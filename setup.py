@@ -5,8 +5,8 @@ import setuptools
 import os
 
 
-if sys.version_info < (3, 8):
-    sys.exit('Python < 3.8 is not supported')
+if sys.version_info < (3, 6):
+    sys.exit('Python < 3.6 is not supported')
 
 
 # get abs path from this folder name
@@ -49,7 +49,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.8',
+    python_requires='>=3.6',
 
     extras_require=dict(tests=['pytest'])
 
