@@ -30,8 +30,6 @@ with open(os.path.join(here, 'docs/project_description.md')) as f:
     long_description = f.read()
 
 
-
-
 setuptools.setup(
     name="bcause", # Replace with your own username
     version=version,
@@ -42,15 +40,20 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/PGM-Lab/bcause",
 
-    packages=setuptools.find_packages(where='bcause'),
-    package_dir={'': 'bcause'},
-
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent",
-    ],
+    packages=["bcause"],
+    #package_dir={'': 'bcause'},
+    include_package_data=True,
+    license='Apache License 2.0',
+    classifiers=['Intended Audience :: Developers',
+                 'Intended Audience :: Education',
+                 'Intended Audience :: Science/Research',
+                 'License :: OSI Approved :: Apache Software License',
+                 'Operating System :: POSIX :: Linux',
+                 'Operating System :: MacOS :: MacOS X',
+                 'Operating System :: Microsoft :: Windows',
+                 'Programming Language :: Python :: 3.6'],
     python_requires='>=3.6',
 
-    extras_require=dict(tests=['pytest'])
+    #extras_require=dict(tests=['pytest'])
 
 )
