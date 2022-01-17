@@ -1,7 +1,6 @@
 appnope==0.1.2
 asttokens==2.0.5
 backcall==0.2.0
--e git+https://github.com/PGM-Lab/bcause.git@1f748598c75bee96ee77c130181e56d4b761d81f#egg=bcause
 black==21.12b0
 click==8.0.3
 decorator==5.1.1
