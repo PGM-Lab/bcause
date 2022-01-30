@@ -26,8 +26,8 @@ except IndexError:
     raise RuntimeError('Unable to determine version.')
 
 # get long description from file in docs folder
-with open(os.path.join(here, 'docs/project_description.md')) as f:
-    long_description = f.read()
+#with open(os.path.join(here, 'docs/project_description.md')) as f:
+#    long_description = f.read()
 
 
 setuptools.setup(
@@ -36,7 +36,7 @@ setuptools.setup(
     author="Rafael Cabañas",
     author_email="rcabanas@ual.es",
     description="Bayesian causal models",
-    long_description=long_description,
+#    long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/PGM-Lab/bcause",
 
