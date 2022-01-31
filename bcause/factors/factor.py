@@ -80,6 +80,30 @@ class MultinomialFactor(DiscreteFactor):
         new_right_vars = [v for v in new_store.variables if v in self.right_vars]
         return self.builder(new_store.domain, new_store.data, new_right_vars)
 
+    def multiply(self, other):
+        new_store = self.store.combine(other.store)
+        new_right_vars = [v for v in new_store.variables
+                          if v not in self.left_vars and v not in other.left_vars]
+        return self.builder(new_store.domain, new_store.data, new_right_vars)
+
+    def addition(self, other):
+        new_store = self.store.addition(other.store)
+        new_right_vars = [v for v in new_store.variables
+                          if v not in self.left_vars and v not in other.left_vars]
+        return self.builder(new_store.domain, new_store.data, new_right_vars)
+
+    def subtract(self, other):
+        new_store = self.store.subtract(other.store)
+        new_right_vars = [v for v in new_store.variables
+                          if v not in self.left_vars and v not in other.left_vars]
+        return self.builder(new_store.domain, new_store.data, new_right_vars)
+
+    def divide(self, other):
+        new_store = self.store.divide(other.store)
+        new_right_vars = [v for v in new_store.variables
+                          if v not in self.left_vars and v not in other.left_vars]
+        return self.builder(new_store.domain, new_store.data, new_right_vars)
+
     def sample(self) -> tuple:
         # joint or marginal distribution
         if len(self.right_vars) == 0:
@@ -103,6 +127,30 @@ class MultinomialFactor(DiscreteFactor):
                f"values=[{self.store.values_str()}]>"
 
 
+    def __mul__(self, other):
+        return self.multiply(other)
+
+    def __rmul__(self, other):
+        return other.multiply(self)
+
+    def __add__(self, other):
+        return self.addition(other)
+
+    def __radd__(self, other):
+        return other.addition(self)
+
+    def __sub__(self, other):
+        return self.subtract(other)
+
+    def __rsub__(self, other):
+        return other.subtract(self)
+
+    def __truediv__(self, other):
+        return self.divide(other)
+
+    def __truediv__(self, other):
+        return other.divide(self)
+
 
 if __name__ == "__main__":
     left_domain = dict(A=["a1","a2"])
@@ -110,8 +158,8 @@ if __name__ == "__main__":
     domain = {**left_domain, **right_domain}
 
     data=[[0.5, .4, 1.0], [0.3, 0.6, 0.1]]
-
     f = MultinomialFactor(domain, data, right_vars=["A"])
-    print(f)
-    f.restrict(A="a1").sample()
-    f.sample()
+
+    f2 = MultinomialFactor(left_domain, data = [0.1, 0.9])
+    f - f2
+

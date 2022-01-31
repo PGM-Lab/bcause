@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from typing import Dict, Iterable, Union
 
 import numpy as np
@@ -20,7 +23,7 @@ class DiscreteStore(DataStore):
             raise ValueError("Cardinality Error")
 
         self._data = data
-        self._domain = domain
+        self._domain = OrderedDict(domain)
 
         super().__init__()
 
@@ -71,10 +74,28 @@ class DiscreteStore(DataStore):
         pass
 
     @abstractmethod
-    def marginalize(self, operation):
+    def marginalize(self, *vars_remove) -> DiscreteStore:
         pass
 
+    @abstractmethod
+    def maxmarginalize(self, *vars_remove) -> DiscreteStore:
+        pass
 
+    @abstractmethod
+    def multiply(self, other:DiscreteStore) -> DiscreteStore:
+        pass
+
+    @abstractmethod
+    def addition(self, other:DiscreteStore) -> DiscreteStore:
+        pass
+
+    @abstractmethod
+    def subtract(self, other: DiscreteStore) -> DiscreteStore:
+        pass
+
+    @abstractmethod
+    def divide(self, other: DiscreteStore) -> DiscreteStore:
+        pass
 
     @abstractmethod
     def sum_all(self):
@@ -90,7 +111,7 @@ class NumpyStore(DiscreteStore):
         super(self.__class__, self).__init__(data=np.array(data), domain=domain)
 
     @property
-    def cardinality(self):
+    def cardinality(self) -> tuple:
         return np.shape(self.data)
 
     @staticmethod
@@ -132,6 +153,99 @@ class NumpyStore(DiscreteStore):
         return next(gen)
 
 
+    def marginalize(self, *vars_remove) -> NumpyStore:
+        idx_vars = tuple(self.get_var_index(v) for v in vars_remove)
+        new_data = np.sum(self.data, axis=idx_vars)
+        new_dom = {v: d for v, d in self.domain.items() if v not in vars_remove}
+        return self.builder(new_data, new_dom)
+
+
+    def maxmarginalize(self, *vars_remove) -> NumpyStore:
+        idx_vars = tuple(self.get_var_index(v) for v in vars_remove)
+        new_data = np.max(self.data, axis=idx_vars)
+        new_dom = {v: d for v, d in self.domain.items() if v not in vars_remove}
+        return self.builder(new_data, new_dom)
+
+    def reorder(self, *new_var_order):
+        if len(self.variables)<2:
+            return self
+
+        # filter variables and add remaining variables
+        new_var_order = [v for v in new_var_order if v in self.variables]
+        new_var_order += [v for v in self.variables if v not in new_var_order]
+
+        idx_var_order = [new_var_order.index(v) for v in self.variables]
+
+        # set the new order in the values
+        new_data = np.moveaxis(self.data, range(np.ndim(self.data)), idx_var_order)
+        new_dom = OrderedDict([(v, self.domain[v]) for v in new_var_order])
+
+        # create new object
+        return self.builder(data = new_data, domain = new_dom)
+
+    def extend_domain(self, **extra_dom):
+
+        extra_dom = OrderedDict({v:c for v,c in extra_dom.items() if v not in self.variables})
+        add_card = tuple([len(d) for d in extra_dom.values()])
+
+        new_data = np.reshape(np.repeat(self.data, np.prod(add_card)), np.shape(self.data) + add_card)
+        new_dom = {**self.domain, **extra_dom}
+
+        return self.builder(data=new_data, domain=new_dom)
+
+    def _generic_combine(self, op2: NumpyStore, operation:callable) -> NumpyStore:
+
+        op1 = self
+
+        if op1.__class__.__name__ != op2.__class__.__name__:
+            raise ValueError("Combination with non-compatible data structure")
+
+        new_domain = OrderedDict({**op1.domain, **op2.domain})
+
+        # Extend domains if needed
+        if len(op1.variables) < len(new_domain):
+            op1 = op1.extend_domain(**new_domain)
+        if len(op2.variables) < len(new_domain):
+            op2 = op2.extend_domain(**new_domain)
+
+        # Set the same variable order
+        new_vars = list(new_domain.keys())
+        if op1.variables != new_vars:
+            op1 = op1.reorder(*new_vars)
+        if op2.variables != new_vars:
+            op2 = op2.reorder(*new_vars)
+
+        return self.builder(data=operation(op1.data, op2.data), domain=new_domain)
+
+
+    def multiply(self, op2: NumpyStore) -> NumpyStore:
+        return self._generic_combine(op2, lambda x,y : x*y)
+
+    def addition(self, op2: NumpyStore) -> NumpyStore:
+        return self._generic_combine(op2, lambda x,y : x+y)
+
+    def divide(self, op2: NumpyStore) -> NumpyStore:
+        return self._generic_combine(op2, lambda x,y : x/y)
+
+    def subtract(self, op2: NumpyStore) -> NumpyStore:
+        return self._generic_combine(op2, lambda x, y: x - y)
+
+
 store_dict = {"numpy": NumpyStore}
 
+if __name__=="__main__":
+    left_domain = dict(A=["a1", "a2"])
+    right_domain = dict(B=[0, 1, 3])
+    domain = {**left_domain, **right_domain}
 
+    new_var_order = ["B", "A"]
+    #complete vars
+
+    new_dom = OrderedDict([(v,domain[v]) for v in new_var_order])
+
+    data = [[0.5, .4, 0.1], [0.3, 0.6, 0.1]]
+
+    vars_remove = ["B"]
+    f = NumpyStore(data, domain)
+
+    f.multiply(f.restrict(B=1).extend_domain(C=[0, 1, 2, 3])).data
