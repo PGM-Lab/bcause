@@ -6,6 +6,8 @@ from typing import Dict, Iterable, Union
 
 import numpy as np
 
+
+
 '''
 todo: use term store? 
 include full domains
@@ -70,7 +72,11 @@ class DiscreteStore(DataStore):
 
 
     @abstractmethod
-    def restrict(self, **observations):
+    def restrict(self, **observation) -> DiscreteStore:
+        pass
+
+    @abstractmethod
+    def get_value(self, **observation) -> float:
         pass
 
     @abstractmethod
@@ -122,11 +128,11 @@ class NumpyStore(DiscreteStore):
     def _copy_data(self):
         return self._data
 
-    def sum_all(self):
+    def sum_all(self) -> float:
         return sum(self._data.flatten())
 
 
-    def restrict(self, **observation):
+    def restrict(self, **observation) -> NumpyStore:
         items = []
         for v in self.variables:
             if v in observation.keys():
@@ -137,6 +143,13 @@ class NumpyStore(DiscreteStore):
         new_data = self._data[tuple(items)].copy()
         new_dom = {k:d for k,d in self.domain.items() if k not in observation}
         return NumpyStore(new_data, new_dom)
+
+    def get_value(self, **observation) -> float:
+        if len([v for v in self.variables if v not in observation.keys()])>0:
+            raise ValueError("Missing value for any of the variables in the domain")
+
+        return float(self.restrict(**observation).data)
+
 
     def values_str(self, maxvalues = 4):
         vals = self.data.flatten()
