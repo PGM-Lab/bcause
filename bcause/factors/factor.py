@@ -34,6 +34,10 @@ class Factor(ABC):
 
 class DiscreteFactor(Factor):
 
+    @property
+    def domain(self) -> Dict:
+        return self.store.domain
+
     @abstractmethod
     def restrict(self, **observation: Dict) -> DiscreteFactor:
         pass
@@ -66,8 +70,25 @@ class DiscreteFactor(Factor):
     def maxmarginalize(self, *vars_remove) -> DiscreteFactor:
         pass
 
+class ConditionalFactor(Factor):
+    @property
+    def right_vars(self) -> set:
+        return self._right_vars
 
-class MultinomialFactor(DiscreteFactor):
+    @property
+    def left_vars(self) -> list:
+        return [v for v in self._variables if v not in self.right_vars]
+
+    @property
+    def right_domain(self) -> Dict:
+        return {v:s for v,s in self.domain.items() if v in self.right_vars}
+
+    @property
+    def left_domain(self) -> Dict:
+        return {v:s for v,s in self.domain.items() if v in self.left_vars}
+
+
+class MultinomialFactor(DiscreteFactor, ConditionalFactor):
 
     def __init__(self, domain:Dict, data, right_vars:list=None, vtype="numpy"):
 
@@ -83,26 +104,6 @@ class MultinomialFactor(DiscreteFactor):
         self.builder = builder
 
     # Properties
-
-    @property
-    def right_vars(self) -> list:
-        return self._right_vars
-
-    @property
-    def left_vars(self) -> list:
-        return [v for v in self._variables if v not in self.right_vars]
-
-    @property
-    def right_domain(self) -> Dict:
-        return {v:s for v,s in self.domain.items() if v in self.right_vars}
-
-    @property
-    def left_domain(self) -> Dict:
-        return {v:s for v,s in self.domain.items() if v in self.left_vars}
-
-    @property
-    def domain(self) -> Dict:
-        return self.store.domain
 
     @property
     def values_list(self)->List:

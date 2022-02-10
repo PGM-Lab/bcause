@@ -8,12 +8,6 @@ import numpy as np
 
 
 
-'''
-todo: use term store? 
-include full domains
-
-'''
-
 class DataStore(ABC):
     pass
 
