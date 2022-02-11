@@ -8,6 +8,7 @@ import numpy as np
 from factors.factor import DiscreteFactor, ConditionalFactor
 from factors.store import store_dict
 from util.domainutils import assingment_space, state_space
+from util.arrayutils import normalize_array
 
 
 class MultinomialFactor(DiscreteFactor, ConditionalFactor):
@@ -149,15 +150,28 @@ class MultinomialFactor(DiscreteFactor, ConditionalFactor):
                f"values=[{self.store.values_str()}]>"
 
 
+def random_multinomial(domain:Dict, right_vars:list=None, vtype="numpy"):
+    right_vars = right_vars or []
+    left_dims = [i for i,v in enumerate(domain.keys()) if v not in right_vars]
+    data = normalize_array(np.random.uniform(0,1, size=[len(d) for d in domain.values()]), axis=left_dims)
+    return MultinomialFactor(domain=domain, data=data, right_vars=right_vars, vtype=vtype)
 
+
+def uniform_multinomial(domain:Dict, right_vars:list=None, vtype="numpy"):
+    right_vars = right_vars or []
+    left_dims = [i for i,v in enumerate(domain.keys()) if v not in right_vars]
+    data = normalize_array(np.ones([len(d) for d in domain.values()]), axis=left_dims)
+    return MultinomialFactor(domain=domain, data=data, right_vars=right_vars, vtype=vtype)
 
 
 if __name__ == "__main__":
+
+    # P(B|A)
     left_domain = dict(A=["a1","a2"])
     right_domain = dict(B=[0,1, 3])
     domain = {**left_domain, **right_domain}
 
-    data=[[0.5, .4, 1.0], [0.3, 0.6, 0.1]]
+    data=np.array([[0.5, .4, 1.0], [0.3, 0.6, 0.1]])
     f = MultinomialFactor(domain, data, right_vars=["A"])
 
     f2 = MultinomialFactor(left_domain, data = [0.1, 0.9])

@@ -1,17 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, List
+from typing import Dict
 
-import math
-
-import numpy as np
 
 from bcause.factors.store import DataStore
-
-from bcause.factors.store import store_dict
-from util.domainutils import assingment_space, state_space
-
 
 class Factor(ABC):
     @property

@@ -1,3 +1,1 @@
-from . import factor
-from . import store
-
+#from .mulitnomial import MultinomialFactor
