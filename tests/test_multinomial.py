@@ -1,4 +1,4 @@
-from bcause.factors.factor import MultinomialFactor
+from factors.mulitnomial import MultinomialFactor
 from util.domainutils import assingment_space
 
 import numpy as np
