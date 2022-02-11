@@ -1,6 +1,7 @@
 from typing import Hashable, Union
 
 import networkx as nx
+from networkx.algorithms import moral
 
 from factors.factor import DiscreteFactor, ConditionalFactor
 from factors.mulitnomial import random_multinomial

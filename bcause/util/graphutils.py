@@ -23,3 +23,5 @@ def str2dag(str_dag: str) -> nx.DiGraph:
                 arcs.append((y, x))
 
     return nx.DiGraph(arcs)
+
+
