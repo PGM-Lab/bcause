@@ -20,7 +20,7 @@ class Factor(ABC):
 
     @property
     def variables(self) -> list:
-        self._variables
+        return self._variables
 
     @property
     @abstractmethod
