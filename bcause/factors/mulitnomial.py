@@ -34,6 +34,7 @@ class MultinomialFactor(DiscreteFactor, ConditionalFactor):
 
     # Factor operations
     def restrict(self, **observation) -> MultinomialFactor:
+        if len(set(observation.keys()).intersection(self._variables))==0: return self
         new_store = self.store.restrict(**observation)
         new_right_vars = [v for v in new_store.variables if v in self.right_vars]
         return self.builder(new_store.domain, new_store.data, new_right_vars)
@@ -63,12 +64,14 @@ class MultinomialFactor(DiscreteFactor, ConditionalFactor):
         return self.builder(new_store.domain, new_store.data, new_right_vars)
 
     def marginalize(self, *vars_remove) -> MultinomialFactor:
+        if len(set(vars_remove).intersection(self._variables))==0: return self
         new_store = self.store.marginalize(*vars_remove)
         new_right_vars = [v for v in new_store.variables if v in self.right_vars]
         return self.builder(new_store.domain, new_store.data, new_right_vars)
 
 
     def maxmarginalize(self, *vars_remove) -> MultinomialFactor:
+        if len(set(vars_remove).intersection(self._variables))==0: return self
         new_store = self.store.maxmarginalize(*vars_remove)
         new_right_vars = [v for v in new_store.variables if v in self.right_vars]
         return self.builder(new_store.domain, new_store.data, new_right_vars)

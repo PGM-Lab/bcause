@@ -73,3 +73,6 @@ if __name__ == "__main__":
     bnet = BayesianNetwork("[A][B|A:C][C][D|C]")
     bnet.randomize_factors(domains)
 
+
+    print(bnet.get_domains(bnet.variables))
+

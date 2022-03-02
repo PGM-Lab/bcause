@@ -35,8 +35,22 @@ class PGModel(ABC):
 
 
 class DiscreteDAGModel(PGModel):
-    def get_domains(self, *variables):
-        pass
+
+
+    def get_domains(self, variables):
+        return {v:d for v,d in self._domains.items() if v in variables}
+
+    def get_varsizes(self, variables):
+        return {v:len(d) for v,d in self._domains.items() if v in variables}
+
+
+    @property
+    def domains(self):
+        return self.get_domains(self.variables)
+
+    @property
+    def varsizes(self):
+        return self.get_varsizes(self.variables)
 
     def get_children(self, *variables) -> list:
         return list(set(sum([list(self.network.successors(v)) for v in variables], [])))
