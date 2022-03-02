@@ -127,7 +127,7 @@ class MultinomialFactor(DiscreteFactor, ConditionalFactor):
     def __truediv__(self, other):
         return self.divide(other)
 
-    def __truediv__(self, other):
+    def __rtruediv__(self, other):
         return other.divide(self)
 
 
@@ -141,7 +141,12 @@ class MultinomialFactor(DiscreteFactor, ConditionalFactor):
             return self.marginalize(vars_remove)
         return self.marginalize(*vars_remove)
 
-
+    @property
+    def name(self):
+        vars_str = ",".join(self.left_vars)
+        if len(self.right_vars) > 0:
+            vars_str += "|" + ",".join(self.right_vars)
+        return f"P({vars_str})"
 
     def __repr__(self):
         cardinality_dict = self.store.cardinality_dict
@@ -149,7 +154,7 @@ class MultinomialFactor(DiscreteFactor, ConditionalFactor):
         vars_str = ",".join(self.left_vars)
         if len(self.right_vars)>0:
             vars_str += "|"+",".join(self.right_vars)
-        return f"<{self.__class__.__name__} P({vars_str}), cardinality = ({card_str}), " \
+        return f"<{self.__class__.__name__} {self.name}, cardinality = ({card_str}), " \
                f"values=[{self.store.values_str()}]>"
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 
 import inspect
+import logging
 from abc import ABC, abstractmethod
 from functools import reduce
 from typing import Callable, Union
@@ -33,6 +34,8 @@ class Inference(ABC):
         pass
 
     def compile(self, target, evidence = None) -> Inference:
+        logging.info(f"Starting inference: target={str(target)} evidence={str(evidence)}")
+
         self._target = target
         self._evidence = evidence or dict()
         self._inference_model = self._preprocess()
@@ -48,6 +51,7 @@ class Inference(ABC):
 
 class VariableElimination(Inference):
     def __init__(self, model:BayesianNetwork, heuristic:Union[Callable,Heuristic]=None):
+
         # Default value for heuristic
         heuristic = heuristic or min_weight_heuristic
 
@@ -76,9 +80,16 @@ class VariableElimination(Inference):
         ordering = self._heuristic(self._inference_model.network, to_remove=to_remove, varsizes = self._inference_model.varsizes)
         factors = list(self._inference_model.factors.values())
 
+
+        logging.info(f"Starting Variable elimination loop. Ordering: {ordering}")
+        logging.debug(f"Current factor list: {[f.name for f in factors]}")
+
         for select_var in ordering:
+
             # get relevant factors
             relevant = [f for f in factors if select_var in f.variables]
+            logging.debug(f"Removing variable {select_var}. Relevant factors: {[f.name for f in relevant]}")
+
             # combine them all
             relevant_restr = [f.R(**self._evidence) for f in relevant]
             join = reduce((lambda f1, f2: f1 * f2), relevant_restr)
@@ -87,9 +98,19 @@ class VariableElimination(Inference):
             # updage factor list
             factors = [f for f in factors if f not in relevant] + [fnew]
 
-        # combine resulting factors and set evidence
-        return reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
+            logging.debug(f"Updated factor list: {[f.name for f in factors]}")
 
+        # combine resulting factors and set evidence
+        joint = reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
+        result =  joint / (joint ** self._target)
+
+        logging.info(f"Finished Variable elimination.")
+        return result
+
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logging.debug('This will get logged')
 
 varsizes = dict(A=5, B=3, C=2, D=2)
 bnet = BayesianNetwork("[A][B|A:C][C][D|B]")
@@ -104,9 +125,15 @@ target = "D"
 heuristic = min_size_heuristic
 
 
-inf = VariableElimination(bnet, Heuristic.MIN_SIZE)
-inf.query("D", evidence)
+bnet.factors
 
+for h in [Heuristic.MIN_FILL, Heuristic.MIN_SIZE, Heuristic.MIN_WEIGHT]:
+    inf = VariableElimination(bnet, h)
+    #print(inf.query("D"))
+    print(inf.query("D", dict(A="a1")))
+    print(inf.query("D", dict(A="a2")))
 
-inf = VariableElimination(bnet, Heuristic.MIN_FILL)
-inf.query("D", evidence)
+0.0718111336432001 + 0.250071787423156  + 0.0420680222568123 + 0.11942885318048309
+
+#inf = VariableElimination(bnet, Heuristic.MIN_FILL)
+#inf.query("D", evidence)
