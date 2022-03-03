@@ -28,7 +28,8 @@ class BayesianNetwork(DiscreteDAGModel):
 
         # check left right variables
         if set(self.get_parents(var)) != set(f.right_vars): raise ValueError("Wrong right variables in factor")
-        if set(var) != set(f.left_vars): raise ValueError("Wrong left variables in factor")
+        if set([var]) != set(f.left_vars):
+            raise ValueError("Wrong left variables in factor")
 
         # check domains
         for v in f.variables:

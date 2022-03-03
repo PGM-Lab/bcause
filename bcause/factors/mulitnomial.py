@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from functools import reduce
 from typing import Dict, List
 
 import numpy as np
@@ -29,8 +30,19 @@ class MultinomialFactor(DiscreteFactor, ConditionalFactor):
     # Properties
 
     @property
-    def values_list(self)->List:
+    def values(self)->List:
         return self.prob(assingment_space(self.domain))
+
+    @property
+    def values_array(self) -> np.array:
+        shape = [reduce(lambda x,y:x*y, [len(c) for c in self.right_domain.values()], 1)] + [len(c) for c in self.left_domain.values()]
+        #if len(shape) == 1: shape = [1] + shape
+        return np.array([self.store.get_value(**s)
+                  for s in assingment_space({**self.right_domain, **self.left_domain})
+                  ]).reshape(shape)
+
+        self.prob(assingment_space({**self.left_domain, **self.right_domain}))
+        [self.prob(**s) for s in assingment_space({**self.right_domain})]
 
     # Factor operations
     def restrict(self, **observation) -> MultinomialFactor:

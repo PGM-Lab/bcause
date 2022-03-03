@@ -23,45 +23,45 @@ def test_sum_values():
 
 def test_multiply():
     f = cond * marg
-    actual = f.values_list
+    actual = f.values
     expected = [0.04, 0.02, 0.14, 0.24, 0.48, 0.08]
     assert_array_almost_equal(actual, expected)
 
 
 def test_marginalize():
     f = join**"A"
-    actual = f.values_list
+    actual = f.values
     expected = [0.3, 0.55, 0.15]
     assert_array_almost_equal(actual, expected)
 
     f = join**("A","B")
-    actual = f.values_list
+    actual = f.values
     expected = [1.0]
     assert_array_almost_equal(actual, expected)
 
 def test_maxmarginalize():
     # max-marginalize
     f = join^"A"
-    actual = f.values_list
+    actual = f.values
     expected = [0.2, 0.4, 0.15]
     assert_array_almost_equal(actual, expected)
 
     f = join^("A","B")
-    actual = f.values_list
+    actual = f.values
     expected = [0.4]
     assert_array_almost_equal(actual, expected)
 
 def test_addition():
     # sum
     f = cond + marg
-    actual = f.values_list
+    actual = f.values
     expected = [0.4, 0.3, 0.9, 1.1, 1.4, 0.9]
     assert_array_almost_equal(actual, expected)
 
 def test_subtract():
     # subtract
     f = cond - marg
-    actual = f.values_list
+    actual = f.values
     expected = [0.0, -0.1, 0.5, -0.5, -0.2,-0.7]
     assert_array_almost_equal(actual, expected)
 

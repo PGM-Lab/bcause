@@ -1,1 +1,1 @@
-#from .pgmodel import BayesianNetwork
+from .bnet import BayesianNetwork

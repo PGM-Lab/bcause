@@ -101,6 +101,7 @@ class DiscreteStore(DataStore):
     def sum_all(self):
         pass
 
+
 class NumpyStore(DiscreteStore):
     def __init__(self, data:Union[Iterable, int, float], domain:Dict):
 

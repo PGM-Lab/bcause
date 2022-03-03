@@ -1,1 +1,1 @@
-#from .mulitnomial import MultinomialFactor
+from .mulitnomial import MultinomialFactor
