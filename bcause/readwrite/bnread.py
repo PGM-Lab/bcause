@@ -1,4 +1,3 @@
-import pgmpy.readwrite
 from pgmpy.readwrite import BIFReader, XMLBIFReader
 
 from conversion.pgmpy import toBCauseBNet

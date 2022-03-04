@@ -3,7 +3,8 @@ from typing import Hashable, Union
 import networkx as nx
 from networkx.algorithms import moral
 
-from factors.factor import DiscreteFactor, ConditionalFactor
+
+import bcause.factors.factor as bf
 from factors.mulitnomial import random_multinomial
 from models.pgmodel import DiscreteDAGModel
 from util.graphutils import str2dag, dag2str
@@ -13,7 +14,8 @@ class BayesianNetwork(DiscreteDAGModel):
     def __init__(self, dag:Union[nx.DiGraph,str], factors:dict = None):
 
         if isinstance(dag, str): dag = str2dag(dag)
-        if not isinstance(dag, nx.DiGraph): raise ValueError("Input graph must be a DAG")
+        if not isinstance(dag, nx.DiGraph) or len(list(nx.simple_cycles(dag)))>0:
+            raise ValueError("Input graph must be a DAG")
         self._initialize(dag)
 
         if factors is not None:
@@ -21,10 +23,10 @@ class BayesianNetwork(DiscreteDAGModel):
                 self.set_factor(v,f)
 
 
-    def set_factor(self, var:Hashable, f:DiscreteFactor):
+    def set_factor(self, var:Hashable, f:bf.DiscreteFactor):
         # check type
-        if not isinstance(f, DiscreteFactor): raise ValueError("Factor must  be discrete")
-        if not isinstance(f, ConditionalFactor): raise ValueError("Factor must  be conditional")
+        if not isinstance(f, bf.DiscreteFactor): raise ValueError("Factor must  be discrete")
+        if not isinstance(f, bf.ConditionalFactor): raise ValueError("Factor must  be conditional")
 
         # check left right variables
         if set(self.get_parents(var)) != set(f.right_vars): raise ValueError("Wrong right variables in factor")
@@ -55,6 +57,8 @@ class BayesianNetwork(DiscreteDAGModel):
             self.set_factor(v, random_multinomial(dom, right_vars=parents))
 
 
+
+
 if __name__ == "__main__":
 
     dag = nx.DiGraph([("A","B"), ("C","B"), ("C","D")])
@@ -65,7 +69,6 @@ if __name__ == "__main__":
         parents = list(dag.predecessors(v))
         dom = {x:d for x,d in domains.items() if x == v or x in parents}
         factors[v]  = random_multinomial(dom, right_vars=parents)
-
 
     bnet = BayesianNetwork(dag, factors)
 

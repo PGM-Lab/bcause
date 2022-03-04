@@ -15,6 +15,7 @@ marg = MultinomialFactor(dict(A=["a1", "a2"]), data=[0.2, 0.8])
 join = MultinomialFactor(domain, data = [[0.1, 0.15, 0.15], [0.2, 0.4, 0.0]])
 
 
+
 def test_sum_values():
     join.store.sum_all() == 1.0
     marg.store.sum_all() == 1.0
@@ -69,4 +70,16 @@ def test_sampling():
     np.random.seed(0)
     dataset = join.sample(100)
     assert sum(join.log_prob(dataset)) == -151.26474464995295
+
+
+def test_values():
+    actual = marg.values_array
+    expected = np.array([[0.2, 0.8]])
+    assert_array_almost_equal(actual, expected)
+
+
+    actual = cond.values_array
+    expected = np.array([[0.2, 0.1, 0.7],[0.3, 0.6, 0.1]])
+
+    # join.values_array #todo: check which should be the behaivour for this.
 

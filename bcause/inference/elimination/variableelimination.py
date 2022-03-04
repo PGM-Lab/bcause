@@ -106,34 +106,3 @@ class VariableElimination(Inference):
 
         logging.info(f"Finished Variable elimination.")
         return result
-
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
-logging.debug('This will get logged')
-
-varsizes = dict(A=5, B=3, C=2, D=2)
-bnet = BayesianNetwork("[A][B|A:C][C][D|B]")
-bnet.randomize_factors(create_domain(varsizes))
-
-
-
-
-bnet.get_domains(bnet.variables)
-evidence = dict(A="a1")
-target = "D"
-heuristic = min_size_heuristic
-
-
-bnet.factors
-
-for h in [Heuristic.MIN_FILL, Heuristic.MIN_SIZE, Heuristic.MIN_WEIGHT]:
-    inf = VariableElimination(bnet, h)
-    #print(inf.query("D"))
-    print(inf.query("D", dict(A="a1")))
-    print(inf.query("D", dict(A="a2")))
-
-0.0718111336432001 + 0.250071787423156  + 0.0420680222568123 + 0.11942885318048309
-
-#inf = VariableElimination(bnet, Heuristic.MIN_FILL)
-#inf.query("D", evidence)

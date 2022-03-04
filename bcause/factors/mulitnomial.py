@@ -6,13 +6,14 @@ from typing import Dict, List
 
 import numpy as np
 
-from factors.factor import DiscreteFactor, ConditionalFactor
 from factors.store import store_dict
+import bcause.factors.factor as bf
+#from . import DiscreteFactor
 from util.domainutils import assingment_space, state_space
 from util.arrayutils import normalize_array
 
 
-class MultinomialFactor(DiscreteFactor, ConditionalFactor):
+class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
     def __init__(self, domain:Dict, data, right_vars:list=None, vtype="numpy"):
 

@@ -53,10 +53,10 @@ class DiscreteDAGModel(PGModel):
         return self.get_varsizes(self.variables)
 
     def get_children(self, *variables) -> list:
-        return list(set(sum([list(self.network.successors(v)) for v in variables], [])))
+        return list(dict.fromkeys(sum([list(self.network.successors(v)) for v in variables], [])))
 
     def get_parents(self, *variables) -> list:
-        return list(set(sum([list(self.network.predecessors(v)) for v in variables], [])))
+        return list(dict.fromkeys(sum([list(self.network.predecessors(v)) for v in variables], [])))
 
     def markov_blanket(self, v)-> list:
         ch = set(self.get_children(v))
