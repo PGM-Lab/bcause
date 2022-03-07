@@ -1,5 +1,9 @@
 import networkx as nx
 
+import logging
+
+from util.arrayutils import len_iterable
+
 
 def dag2str(dag: nx.DiGraph) -> str:
     str_dag = ""
@@ -25,3 +29,41 @@ def str2dag(str_dag: str) -> nx.DiGraph:
     return nx.DiGraph(arcs)
 
 
+def _barren_info(dag:nx.DiGraph, S = None):
+    S = S or set()
+    barren = set()
+    while True:
+        new_barren = set([x for x in dag.nodes if len_iterable(dag.successors(x))==0 and x not in S])
+        if len(new_barren)>0:
+            barren = barren | new_barren
+            dag = dag.subgraph([x for x in dag.nodes if x not in barren])
+        else:
+            break
+
+    logging.info(f"Barren nodes wrt {S} are: {barren}")
+    return dag, barren
+
+def barren_removal(dag:nx.DiGraph, S = None) -> nx.DiGraph:
+    return _barren_info(dag, S)[0]
+
+def barren_nodes(dag:nx.DiGraph, S = None) -> nx.DiGraph:
+    return _barren_info(dag, S)[1]
+
+
+def dsep_nodes(dag:nx.DiGraph, target, evidence_nodes):
+    dsep = set([v for v in dag.nodes if nx.d_separated(dag, x={target}, y={v}, z=set(evidence_nodes)) and v not in evidence_nodes])
+    logging.info(f"D-separated nodes wrt {target} given {evidence_nodes} are: {dsep}")
+    return dsep
+
+
+def remove_outgoing_edges(dag:nx.DiGraph, parent_vars:list) -> nx.DiGraph:
+    involved_edges = [(x,y) for (x,y) in dag.edges if x in parent_vars]
+    out = dag.copy()
+    out.remove_edges_from(involved_edges)
+    return out
+
+
+def remove_nodes(dag:nx.DiGraph, nodes:list) -> nx.DiGraph:
+    out = dag.copy()
+    out.remove_nodes_from(nodes)
+    return out

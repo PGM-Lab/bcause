@@ -13,9 +13,10 @@ def normalize_array(data:Iterable, axis:Iterable):
     return data/sums
 
 
-
-
-
-def powerset(iterable):
+def powerset(iterable:Iterable):
     s = list(iterable)
     return list(chain.from_iterable(combinations(s, r) for r in range(len(s)+1)))
+
+
+def len_iterable(it:Iterable):
+    return sum(1 for _ in it)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Union, Dict, Hashable
 
@@ -76,6 +78,11 @@ class DiscreteDAGModel(PGModel):
             str_dag += "]"
 
         return str_dag
+
+    def submodel(self, nodes:list) -> DiscreteDAGModel:
+        new_dag = self.network.subgraph(nodes)
+        new_factors = {x: f for x, f in self.factors.items() if x in nodes}
+        return self.builder(new_dag, new_factors)
 
 
 

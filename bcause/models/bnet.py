@@ -22,6 +22,9 @@ class BayesianNetwork(DiscreteDAGModel):
             for v,f in factors.items():
                 self.set_factor(v,f)
 
+        def builder(*args, **kwargs): return BayesianNetwork(*args, **kwargs)
+        self.builder = builder
+
 
     def set_factor(self, var:Hashable, f:bf.DiscreteFactor):
         # check type
