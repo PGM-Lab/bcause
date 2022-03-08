@@ -14,6 +14,7 @@ from inference.elimination.ordering import min_weight_heuristic, min_size_heuris
     min_fill_heuristic
 from models.bnet import BayesianNetwork
 from models.pgmodel import PGModel
+from models.transform.simplification import minimalize
 from util.domainutils import create_domain
 from util.graphutils import barren_removal, dsep_nodes, barren_nodes, remove_nodes
 
@@ -72,23 +73,7 @@ class VariableElimination(Inference):
     def _preprocess(self) -> BayesianNetwork:
         if not self._preprocess_flag:
             return self._model
-
-        # Determine irrelevant nodes for the query
-        dseparated = dsep_nodes(self.model.network, self._target, self._evidence.keys())
-        barren = barren_nodes(self.model.network, [self._target] + list(self._evidence.keys()))
-        irrelevant = dseparated | barren
-
-        # Remove irrelevant nodes from DAG
-        new_dag = remove_nodes(self.model.network, irrelevant)
-
-        # Remove factors with dseparated nodes on the left
-        dsep_conf = {v: self.model.domains[v][0] for v in dseparated}
-
-        # Restrict to arbitrary values variables on the right that are dsep.
-        new_factors = {v: f.restrict(**dsep_conf) for v, f in self.model.factors.items() if v not in irrelevant}
-
-        return self.model.builder(new_dag, new_factors)
-
+        return minimalize(self.model, self._target, self._evidence)
 
     def run(self) -> MultinomialFactor:
 
