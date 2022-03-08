@@ -28,7 +28,7 @@ def test_nodes():
     assert expected==actual
 
 def test_edges():
-    actual = list(bnet.network.edges)
+    actual = list(bnet.graph.edges)
     expected = [('A', 'B'), ('C', 'B'), ('C', 'D')]
     assert expected==actual
 

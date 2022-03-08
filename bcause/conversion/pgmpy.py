@@ -39,6 +39,6 @@ def toBCauseBNet(orig : pm.BayesianNetwork) -> bm.BayesianNetwork:
 
 
 def toPgmpyBNet(orig : bm.BayesianNetwork) -> pm.BayesianNetwork:
-    dest = pm.BayesianNetwork(orig.network)
+    dest = pm.BayesianNetwork(orig.graph)
     dest.add_cpds(*[toTabularCPT(f) for f in orig.factors.values()])
     return dest

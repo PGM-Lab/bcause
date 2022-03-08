@@ -51,7 +51,7 @@ class BayesianNetwork(DiscreteDAGModel):
     def __repr__(self):
         str_card = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}" for v, d in self._domains.items()])
 
-        return f"<BayesianNetwork ({str_card}), dag={dag2str(self.network)}>"
+        return f"<BayesianNetwork ({str_card}), dag={dag2str(self.graph)}>"
 
     def randomize_factors(self, domains:dict):
         for v in self.variables:

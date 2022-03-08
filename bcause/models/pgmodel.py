@@ -10,18 +10,18 @@ from factors.factor import Factor
 
 class PGModel(ABC):
 
-    def _initialize(self, network:nx.Graph):
-        self._network = network
-        self._factors = {x: None for x in network.nodes}
-        self._domains = {x: None for x in network.nodes}
+    def _initialize(self, graph:nx.Graph):
+        self._graph = graph
+        self._factors = {x: None for x in graph.nodes}
+        self._domains = {x: None for x in graph.nodes}
 
     @property
-    def network(self) -> nx.Graph:
-        return self._network
+    def graph(self) -> nx.Graph:
+        return self._graph
 
     @property
     def variables(self) -> list:
-        return list(self._network.nodes)
+        return list(self._graph.nodes)
 
     @property
     def factors(self) -> Union[Dict,list]:
@@ -55,10 +55,10 @@ class DiscreteDAGModel(PGModel):
         return self.get_varsizes(self.variables)
 
     def get_children(self, *variables) -> list:
-        return list(dict.fromkeys(sum([list(self.network.successors(v)) for v in variables], [])))
+        return list(dict.fromkeys(sum([list(self.graph.successors(v)) for v in variables], [])))
 
     def get_parents(self, *variables) -> list:
-        return list(dict.fromkeys(sum([list(self.network.predecessors(v)) for v in variables], [])))
+        return list(dict.fromkeys(sum([list(self.graph.predecessors(v)) for v in variables], [])))
 
     def markov_blanket(self, v)-> list:
         ch = set(self.get_children(v))
@@ -70,8 +70,8 @@ class DiscreteDAGModel(PGModel):
 
     def get_dag_str(self):
         str_dag = ""
-        for v in self.network.nodes:
-            parents = list(self.network.predecessors(v))
+        for v in self.graph.nodes:
+            parents = list(self.graph.predecessors(v))
             str_dag += f"[{v}"
             if len(parents) > 0:
                 str_dag += "|" + ":".join(parents)
@@ -80,7 +80,7 @@ class DiscreteDAGModel(PGModel):
         return str_dag
 
     def submodel(self, nodes:list) -> DiscreteDAGModel:
-        new_dag = self.network.subgraph(nodes)
+        new_dag = self.graph.subgraph(nodes)
         new_factors = {x: f for x, f in self.factors.items() if x in nodes}
         return self.builder(new_dag, new_factors)
 

@@ -15,6 +15,7 @@ from inference.elimination.ordering import min_weight_heuristic, min_size_heuris
 from models.bnet import BayesianNetwork
 from models.pgmodel import PGModel
 from models.transform.simplification import minimalize
+from util.assertions import assert_dag_with_nodes
 from util.domainutils import create_domain
 from util.graphutils import barren_removal, dsep_nodes, barren_nodes, remove_nodes
 
@@ -36,6 +37,8 @@ class Inference(ABC):
 
     def compile(self, target, evidence=None) -> Inference:
         logging.info(f"Starting inference: target={str(target)} evidence={str(evidence)}")
+
+        assert_dag_with_nodes(self.model.graph, {target} | evidence.keys())
 
         self._target = target
         self._evidence = evidence or dict()
@@ -82,7 +85,7 @@ class VariableElimination(Inference):
             raise ValueError("Model not compiled")
 
         to_remove = [v for v in self._inference_model.variables if v != self._target and v not in self._evidence.keys()]
-        ordering = self._heuristic(self._inference_model.network, to_remove=to_remove,
+        ordering = self._heuristic(self._inference_model.graph, to_remove=to_remove,
                                    varsizes=self._inference_model.varsizes)
         factors = list(self._inference_model.factors.values())
 
