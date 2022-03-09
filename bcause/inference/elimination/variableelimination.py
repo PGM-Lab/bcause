@@ -2,22 +2,18 @@ from __future__ import annotations
 
 import inspect
 import logging
+import time
 from abc import ABC, abstractmethod
 from functools import reduce
 from typing import Callable, Union
 
-import networkx as nx
-
-from factors.factor import Factor
-from factors.mulitnomial import MultinomialFactor
-from inference.elimination.ordering import min_weight_heuristic, min_size_heuristic, Heuristic, heuristic_functions, \
-    min_fill_heuristic
-from models.bnet import BayesianNetwork
-from models.pgmodel import PGModel
-from models.transform.simplification import minimalize
-from util.assertions import assert_dag_with_nodes
-from util.domainutils import create_domain
-from util.graphutils import barren_removal, dsep_nodes, barren_nodes, remove_nodes
+from bcause.factors.factor import Factor
+from bcause.factors.mulitnomial import MultinomialFactor
+from bcause.inference.elimination.ordering import min_weight_heuristic, Heuristic, heuristic_functions
+from bcause.models.bnet import BayesianNetwork
+from bcause.models.pgmodel import PGModel
+from bcause.models.transform.simplification import minimalize
+from bcause.util.assertions import assert_dag_with_nodes
 
 
 class Inference(ABC):
@@ -84,6 +80,7 @@ class VariableElimination(Inference):
 
     def run(self) -> MultinomialFactor:
 
+        tstart = time.time()
         # Check that target is set
         if not self._compiled:
             raise ValueError("Model not compiled")
@@ -114,6 +111,6 @@ class VariableElimination(Inference):
         # combine resulting factors and set evidence
         joint = reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
         result = joint / (joint ** self._target)
-
-        logging.info(f"Finished Variable elimination.")
+        self.time = (time.time()-tstart)*1000
+        logging.info(f"Finished Variable elimination in {self.time} ms.")
         return result

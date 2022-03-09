@@ -5,7 +5,7 @@ from typing import Union, Dict, Hashable
 
 import networkx as nx
 
-from factors.factor import Factor
+from bcause.factors.factor import Factor
 
 
 class PGModel(ABC):

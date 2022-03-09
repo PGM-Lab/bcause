@@ -2,7 +2,7 @@ import networkx as nx
 
 import logging
 
-from util.arrayutils import len_iterable
+from bcause.util.arrayutils import len_iterable
 
 
 def dag2str(dag: nx.DiGraph) -> str:

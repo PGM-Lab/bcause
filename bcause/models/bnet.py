@@ -5,9 +5,9 @@ from networkx.algorithms import moral
 
 
 import bcause.factors.factor as bf
-from factors.mulitnomial import random_multinomial
-from models.pgmodel import DiscreteDAGModel
-from util.graphutils import str2dag, dag2str
+from bcause.factors.mulitnomial import random_multinomial
+from bcause.models.pgmodel import DiscreteDAGModel
+from bcause.util.graphutils import str2dag, dag2str
 
 
 class BayesianNetwork(DiscreteDAGModel):

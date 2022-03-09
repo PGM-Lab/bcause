@@ -6,7 +6,7 @@ from typing import Dict, Iterable, Union
 
 import numpy as np
 
-import util.domainutils as dutil
+import bcause.util.domainutils as dutil
 
 
 class DataStore(ABC):
@@ -260,7 +260,7 @@ class ListStore(DiscreteStore):
         return sum(self.data)
 
     def restrict(self, **observation) -> ListStore:
-        idx = list(dutil.index_iterator(domain, observation))
+        idx = list(dutil.index_iterator(self.domain, observation))
         new_data = [self._data[i] for i in idx]
         new_dom = {k: d for k, d in self.domain.items() if k not in observation}
         return ListStore(new_data, new_dom)
@@ -269,8 +269,8 @@ class ListStore(DiscreteStore):
     def marginalize(self, *vars_remove) -> DiscreteStore:
         space_remove = dutil.assingment_space({v: d for v, d in self.domain.items() if v in vars_remove})
         new_dom = {v: d for v, d in self.domain.items() if v not in vars_remove}
-        iterators = [dutil.index_iterator(domain, s) for s in space_remove]
-        new_len = np.prod([len(d) for d in new_dom.values()])
+        iterators = [dutil.index_iterator(self.domain, s) for s in space_remove]
+        new_len = int(np.prod([len(d) for d in new_dom.values()]))
         new_data = [sum([self.data[next(it)] for it in iterators]) for i in range(new_len)]
         return ListStore(new_data, new_dom)
 
@@ -278,7 +278,7 @@ class ListStore(DiscreteStore):
     def maxmarginalize(self, *vars_remove) -> DiscreteStore:
         space_remove = dutil.assingment_space({v: d for v, d in self.domain.items() if v in vars_remove})
         new_dom = {v: d for v, d in self.domain.items() if v not in vars_remove}
-        iterators = [dutil.index_iterator(domain, s) for s in space_remove]
+        iterators = [dutil.index_iterator(self.domain, s) for s in space_remove]
         new_len = np.prod([len(d) for d in new_dom.values()])
         new_data = [max([self.data[next(it)] for it in iterators]) for i in range(new_len)]
         return ListStore(new_data, new_dom)

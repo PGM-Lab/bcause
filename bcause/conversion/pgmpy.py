@@ -5,14 +5,14 @@ from networkx import DiGraph
 
 import bcause.models as bm
 import bcause.factors as bfd
-from util.domainutils import assingment_space
+from bcause.util.domainutils import assingment_space
 
 
-def toMultinomialFactor(factor : pfd.TabularCPD) -> bfd.MultinomialFactor:
+def toMultinomialFactor(factor : pfd.TabularCPD, vtype="numpy") -> bfd.MultinomialFactor:
     domain = factor.state_names
     data = np.reshape([factor.get_value(**s) for s in assingment_space(domain)], factor.cardinality)
     right_vars = [v for v in factor.variables if v != factor.variable]
-    return bfd.MultinomialFactor(domain, data, right_vars)
+    return bfd.MultinomialFactor(domain, data, right_vars, vtype)
 
 def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
     v = list(f.left_domain.keys())[0]
@@ -32,9 +32,9 @@ def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
     return pfd.TabularCPD(**args)
 
 
-def toBCauseBNet(orig : pm.BayesianNetwork) -> bm.BayesianNetwork:
+def toBCauseBNet(orig : pm.BayesianNetwork, vtype="numpy") -> bm.BayesianNetwork:
     dag = DiGraph(orig.in_edges)
-    factors = {f.variable:toMultinomialFactor(f) for f in orig.cpds}
+    factors = {f.variable:toMultinomialFactor(f, vtype) for f in orig.cpds}
     return bm.BayesianNetwork(dag, factors)
 
 

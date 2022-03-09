@@ -1,7 +1,7 @@
 from typing import Hashable
 
-from models.pgmodel import DiscreteDAGModel
-from util.graphutils import dsep_nodes, barren_nodes, remove_nodes
+from bcause.models.pgmodel import DiscreteDAGModel
+from bcause.util.graphutils import dsep_nodes, barren_nodes, remove_nodes
 
 
 def minimalize(model:DiscreteDAGModel, target:Hashable, evidence:dict = None) -> DiscreteDAGModel:

@@ -6,11 +6,11 @@ from typing import Dict, List
 
 import numpy as np
 
-from factors.store import store_dict
+from bcause.factors.store import store_dict
 import bcause.factors.factor as bf
 #from . import DiscreteFactor
-from util.domainutils import assingment_space, state_space
-from util.arrayutils import normalize_array
+from bcause.util.domainutils import assingment_space, state_space
+from bcause.util.arrayutils import normalize_array
 
 
 class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
