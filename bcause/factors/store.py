@@ -246,8 +246,6 @@ class ListStore(DiscreteStore):
         self.builder = builder
         super(self.__class__, self).__init__(data=list(np.ravel(data)), domain=domain)
 
-
-
     @staticmethod
     def _check_consistency(data, domain):
         return len(np.ravel(data)) == np.prod([len(d) for d in domain.values()])
@@ -263,7 +261,7 @@ class ListStore(DiscreteStore):
         idx = list(dutil.index_iterator(self.domain, observation))
         new_data = [self._data[i] for i in idx]
         new_dom = {k: d for k, d in self.domain.items() if k not in observation}
-        return ListStore(new_data, new_dom)
+        return self.builder(new_data, new_dom)
 
 
     def marginalize(self, *vars_remove) -> DiscreteStore:
@@ -272,7 +270,7 @@ class ListStore(DiscreteStore):
         iterators = [dutil.index_iterator(self.domain, s) for s in space_remove]
         new_len = int(np.prod([len(d) for d in new_dom.values()]))
         new_data = [sum([self.data[next(it)] for it in iterators]) for i in range(new_len)]
-        return ListStore(new_data, new_dom)
+        return self.builder(new_data, new_dom)
 
 
     def maxmarginalize(self, *vars_remove) -> DiscreteStore:
@@ -281,7 +279,7 @@ class ListStore(DiscreteStore):
         iterators = [dutil.index_iterator(self.domain, s) for s in space_remove]
         new_len = np.prod([len(d) for d in new_dom.values()])
         new_data = [max([self.data[next(it)] for it in iterators]) for i in range(new_len)]
-        return ListStore(new_data, new_dom)
+        return self.builder(new_data, new_dom)
 
     def _generic_combine(self, op2: ListStore, operation:callable) -> ListStore:
 
@@ -292,7 +290,6 @@ class ListStore(DiscreteStore):
 
         new_domain = OrderedDict({**op1.domain, **op2.domain})
         new_space = dutil.assingment_space(new_domain)
-        new_len = np.prod([len(d) for d in new_domain.values()])
         new_data = [0.0] * len(new_space)
 
         for k in range(0, len(new_data)):
@@ -300,7 +297,7 @@ class ListStore(DiscreteStore):
             j = dutil.index_list(op2.domain, new_space[k])[0]
             new_data[k] = operation(op1.data[i], op2.data[j])
 
-        return ListStore(data=new_data, domain=new_domain)
+        return self.builder(data=new_data, domain=new_domain)
 
 
     def multiply(self, op2: ListStore) -> ListStore:
@@ -317,7 +314,88 @@ class ListStore(DiscreteStore):
 
 
 
-store_dict = {"numpy": NumpyStore, "list":ListStore}
+class Numpy1DStore(DiscreteStore):
+
+    def __init__(self, data:Union[Iterable, int, float], domain:Dict):
+
+        def builder(*args, **kwargs):
+            return Numpy1DStore(*args, **kwargs)
+
+        self.builder = builder
+        super(self.__class__, self).__init__(data=np.ravel(data), domain=domain)
+
+
+
+    @staticmethod
+    def _check_consistency(data, domain):
+        return len(np.ravel(data)) == np.prod([len(d) for d in domain.values()])
+
+    def _copy_data(self):
+        return self._data.copy()
+
+
+    def sum_all(self) -> float:
+        return sum(self.data)
+
+
+    def restrict(self, **observation) -> ListStore:
+        idx = list(dutil.index_iterator(self.domain, observation))
+        new_data = [self._data[i] for i in idx]
+        new_dom = {k: d for k, d in self.domain.items() if k not in observation}
+        return self.builder(new_data, new_dom)
+
+
+    def marginalize(self, *vars_remove) -> DiscreteStore:
+        space_remove = dutil.assingment_space({v: d for v, d in self.domain.items() if v in vars_remove})
+        new_dom = {v: d for v, d in self.domain.items() if v not in vars_remove}
+        iterators = [dutil.index_iterator(self.domain, s) for s in space_remove]
+        new_len = int(np.prod([len(d) for d in new_dom.values()]))
+        new_data = [sum([self.data[next(it)] for it in iterators]) for i in range(new_len)]
+        return self.builder(new_data, new_dom)
+
+
+    def maxmarginalize(self, *vars_remove) -> DiscreteStore:
+        space_remove = dutil.assingment_space({v: d for v, d in self.domain.items() if v in vars_remove})
+        new_dom = {v: d for v, d in self.domain.items() if v not in vars_remove}
+        iterators = [dutil.index_iterator(self.domain, s) for s in space_remove]
+        new_len = np.prod([len(d) for d in new_dom.values()])
+        new_data = [max([self.data[next(it)] for it in iterators]) for i in range(new_len)]
+        return self.builder(new_data, new_dom)
+
+    def _generic_combine(self, op2: ListStore, operation:callable) -> ListStore:
+
+        op1 = self
+
+        if op1.__class__.__name__ != op2.__class__.__name__:
+            raise ValueError("Combination with non-compatible data structure")
+
+        new_domain = OrderedDict({**op1.domain, **op2.domain})
+        new_space = dutil.assingment_space(new_domain)
+        new_data = [0.0] * len(new_space)
+
+        for k in range(0, len(new_data)):
+            i = dutil.index_list(op1.domain, new_space[k])[0]
+            j = dutil.index_list(op2.domain, new_space[k])[0]
+            new_data[k] = operation(op1.data[i], op2.data[j])
+
+        return self.builder(data=new_data, domain=new_domain)
+
+
+    def multiply(self, op2: ListStore) -> ListStore:
+        return self._generic_combine(op2, lambda x,y : x*y)
+
+    def addition(self, op2: ListStore) -> ListStore:
+        return self._generic_combine(op2, lambda x,y : x+y)
+
+    def divide(self, op2: ListStore) -> ListStore:
+        return self._generic_combine(op2, lambda x,y : x/y)
+
+    def subtract(self, op2: ListStore) -> ListStore:
+        return self._generic_combine(op2, lambda x, y: x - y)
+
+
+
+store_dict = {"numpy": NumpyStore,"numpy1d": Numpy1DStore, "list":ListStore}
 
 if __name__=="__main__":
     left_domain = dict(A=["a1", "a2"])
