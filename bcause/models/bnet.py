@@ -28,7 +28,8 @@ class BayesianNetwork(DiscreteDAGModel):
 
     def set_factor(self, var:Hashable, f:bf.DiscreteFactor):
         # check type
-        if not isinstance(f, bf.DiscreteFactor): raise ValueError("Factor must  be discrete")
+        if not isinstance(f, bf.DiscreteFactor):
+            raise ValueError("Factor must  be discrete")
         if not isinstance(f, bf.ConditionalFactor): raise ValueError("Factor must  be conditional")
 
         # check left right variables
