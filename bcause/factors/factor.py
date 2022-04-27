@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict
 
 
-from .store import DataStore
+from bcause.factors.values.store import DataStore
 
 class Factor(ABC):
     @property

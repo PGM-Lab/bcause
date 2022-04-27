@@ -6,7 +6,7 @@ from typing import Dict, List
 
 import numpy as np
 
-from bcause.factors.store import store_dict
+from bcause.factors.values.store import store_dict
 import bcause.factors.factor as bf
 #from . import DiscreteFactor
 from bcause.util.domainutils import assingment_space, state_space
@@ -19,7 +19,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
         np.ndim(data)
 
-        self._store = store_dict[vtype](data, domain)
+        self._store = store_dict[vtype](data=data, domain=domain)
         self._right_vars = right_vars or []
         self._variables = list(domain.keys())
 
@@ -42,8 +42,6 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
                   for s in assingment_space({**self.right_domain, **self.left_domain})
                   ]).reshape(shape)
 
-        self.prob(assingment_space({**self.left_domain, **self.right_domain}))
-        [self.prob(**s) for s in assingment_space({**self.right_domain})]
 
     # Factor operations
     def restrict(self, **observation) -> MultinomialFactor:
