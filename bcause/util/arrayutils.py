@@ -20,3 +20,9 @@ def powerset(iterable:Iterable):
 
 def len_iterable(it:Iterable):
     return sum(1 for _ in it)
+
+def set_value(value, data, idx):
+    d = data
+    for i in range(np.ndim(data) - 1):
+        d = data[idx[i]]
+    d[idx[-1]] = value

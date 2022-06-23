@@ -1,4 +1,4 @@
-from typing import Hashable, Union
+from typing import Hashable, Union, Iterable
 
 import networkx as nx
 from networkx.algorithms import moral
@@ -11,43 +11,13 @@ from bcause.util.graphutils import str2dag, dag2str
 
 
 class BayesianNetwork(DiscreteDAGModel):
-    def __init__(self, dag:Union[nx.DiGraph,str], factors:dict = None):
+    def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict, Iterable] = None):
 
-        if isinstance(dag, str): dag = str2dag(dag)
-        if not isinstance(dag, nx.DiGraph) or len(list(nx.simple_cycles(dag)))>0:
-            raise ValueError("Input graph must be a DAG")
         self._initialize(dag)
-
-        if factors is not None:
-            for v,f in factors.items():
-                self.set_factor(v,f)
-
+        if factors is not None: self._set_factors(factors)
         def builder(*args, **kwargs): return BayesianNetwork(*args, **kwargs)
         self.builder = builder
 
-
-    def set_factor(self, var:Hashable, f:bf.DiscreteFactor):
-        # check type
-        if not isinstance(f, bf.DiscreteFactor):
-            raise ValueError("Factor must  be discrete")
-        if not isinstance(f, bf.ConditionalFactor): raise ValueError("Factor must  be conditional")
-
-        # check left right variables
-        if set(self.get_parents(var)) != set(f.right_vars): raise ValueError("Wrong right variables in factor")
-        if set([var]) != set(f.left_vars):
-            raise ValueError("Wrong left variables in factor")
-
-        # check domains
-        for v in f.variables:
-            if v in self._domains and self._domains[v] != None:
-                    if set(self._domains[v]) != set(f.domain[v]): raise ValueError(f"Inconsistent domain for {v}")
-
-        # Update domains
-        if var not in self._domains or self._domains[var] == None:
-            self._domains[var] = f.domain[var]
-
-        # update factor dictionary
-        self._factors[var] = f
 
     def __repr__(self):
         str_card = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}" for v, d in self._domains.items()])

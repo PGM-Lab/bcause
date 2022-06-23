@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from functools import reduce
@@ -8,6 +9,7 @@ from typing import Dict, Iterable, Union
 import numpy as np
 
 import bcause.util.domainutils as dutil
+from bcause.util.treesutil import build_default_tree, treeNode
 
 
 class DataStore(ABC):
@@ -132,11 +134,14 @@ class DiscreteStore(DataStore):
     @property
     def values_list(self) -> list:
         return [self.get_value(**x) for x in dutil.assingment_space(self.domain)]
+    @property
+    def values_dict(self) -> dict:
+        return {tuple(zip(d.keys(), d.values())): self.get_value(**d) for d in dutil.assingment_space(self.domain)}
 
     def values_str(self, maxvalues = 4):
         vals = self.values_list
         output = ",".join([str(x) for x in vals[0:maxvalues]])
-        if self.data.size > maxvalues:
+        if len(vals) > maxvalues:
             output += f",...,{vals[-1]}"
 
         return output
@@ -153,6 +158,9 @@ class DiscreteStore(DataStore):
         return next(gen)
 
 
+
+
+
 class NumpyStore(DiscreteStore):
     def __init__(self, domain: Dict, data: Union[Iterable, int, float] = None):
 
@@ -164,8 +172,7 @@ class NumpyStore(DiscreteStore):
             return NumpyStore(**kwargs)
 
         self.builder = builder
-        #self.set_operationSet(NumpyStoreOperations)
-        self.set_operationSet(GenericOperations)
+        self.set_operationSet(NumpyStoreOperations)
 
 
         super(self.__class__, self).__init__(domain=domain, data=np.array(data))
@@ -186,8 +193,8 @@ class NumpyStore(DiscreteStore):
             items.append(idx)
         self._data[tuple(items)] = value
 
-    def get_value(self, **observation) -> float:
-        return float(self.restrict(**observation).data)
+    def get_value(self, **observation):
+        return np.atleast_1d(self.restrict(**observation).data)[0]
 
     def restrict(self, **observation) -> NumpyStore:
         items = []
@@ -198,7 +205,7 @@ class NumpyStore(DiscreteStore):
             else:
                 items.append(slice(None))
         new_data = self._data[tuple(items)].copy()
-        new_dom = {k:d for k,d in self.domain.items() if k not in observation}
+        new_dom = OrderedDict([(k,d) for k,d in self.domain.items() if k not in observation])
         return NumpyStore(new_dom, new_data)
 
 
@@ -225,7 +232,7 @@ class NumpyStore(DiscreteStore):
         add_card = tuple([len(d) for d in extra_dom.values()])
 
         new_data = np.reshape(np.repeat(self.data, np.prod(add_card)), np.shape(self.data) + add_card)
-        new_dom = {**self.domain, **extra_dom}
+        new_dom = OrderedDict({**self.domain, **extra_dom})
 
         return self.builder(data=new_data, domain=new_dom)
 
@@ -266,8 +273,8 @@ class ListStore(DiscreteStore):
             return ListStore(**kwargs)
 
         self.builder = builder
-        #self.set_operationSet(ListStoreOperations)
-        self.set_operationSet(GenericOperations)
+        self.set_operationSet(ListStoreOperations)
+        #self.set_operationSet(GenericOperations)
 
         super(self.__class__, self).__init__(domain=domain, data=list(np.ravel(data)))
 
@@ -282,13 +289,13 @@ class ListStore(DiscreteStore):
         idx = list(dutil.index_iterator(self.domain, observation))[0]
         self._data[idx] = value
 
-    def get_value(self, **observation) -> float:
+    def get_value(self, **observation):
         return self.restrict(**observation).data[0]
 
     def restrict(self, **observation) -> ListStore:
         idx = list(dutil.index_iterator(self.domain, observation))
         new_data = [self._data[i] for i in idx]
-        new_dom = {k: d for k, d in self.domain.items() if k not in observation}
+        new_dom = OrderedDict([(k, d) for k, d in self.domain.items() if k not in observation])
         return self.builder(data= new_data, domain = new_dom)
 
 
@@ -319,19 +326,83 @@ class Numpy1DStore(DiscreteStore):
         idx = list(dutil.index_iterator(self.domain, observation))[0]
         self._data[idx] = value
 
-    def get_value(self, **observation) -> float:
+    def get_value(self, **observation):
         return self.restrict(**observation).data[0]
 
     def restrict(self, **observation) -> Numpy1DStore:
         idx = list(dutil.index_iterator(self.domain, observation))
         new_data = [self._data[i] for i in idx]
-        new_dom = {k: d for k, d in self.domain.items() if k not in observation}
+        new_dom = OrderedDict([(k, d) for k, d in self.domain.items() if k not in observation])
         return self.builder(data = new_data, domain = new_dom)
 
 
 
+class TreeStore(DiscreteStore):
 
-store_dict = {"numpy": NumpyStore,"numpy1d": Numpy1DStore, "list":ListStore}
+    def __init__(self, domain: Dict, data: Union[Iterable, int, float, dict]=None):
+        #defualt data
+        if data is None:
+            data = np.zeros(np.prod([len(d) for d in domain.values()]))
+        if len(domain)>0 and type(data) not in [dict, OrderedDict]:
+            data = build_default_tree(domain, data)
+        def builder(*args, **kwargs):
+            return TreeStore(**kwargs)
+
+        self.builder = builder
+        self.set_operationSet(TreeStoreOperations)   # set implement
+        super(self.__class__, self).__init__(domain=domain, data=data)
+
+    @staticmethod
+    def _check_consistency(data, domain):
+        return True
+
+    def _copy_data(self):
+        return copy.deepcopy(self.data)
+
+    def set_value(self, value, observation):
+        def modify_dict(data, observation, value):
+            if not isinstance(data, dict) or len(observation) == 0:
+                out = value
+            elif data["var"] not in observation:
+                new_ch = dict()
+                for state, ch in data["children"].items():
+                    new_ch[state] = value if not isinstance(ch, dict) else modify_dict(ch, observation, value)
+                out = treeNode(data["var"], new_ch)
+
+            else:
+                other_obs = {v: s for v, s in observation.items() if v != data["var"]}
+                ch = data["children"][observation[data["var"]]]
+                data["children"][observation[data["var"]]] = modify_dict(ch, other_obs, value)
+                out = data
+            return out
+
+        relevant_obs = {v: s for v, s in observation.items() if v in self.domain}
+        self._data = modify_dict(self.data, relevant_obs, value)
+
+    def get_value(self, **observation):
+        return self.restrict(**observation).data
+
+    def restrict(self, **observation) -> TreeStore:
+        new_data = TreeStore.restrict_dict(self.data, observation)
+        new_dom = OrderedDict([(k, d) for k, d in self.domain.items() if k not in observation])
+        return self.builder(data = new_data, domain = new_dom)
+
+    @staticmethod
+    def restrict_dict(data, observation):
+        if not isinstance(data, dict) or len(observation) == 0:
+            out = data
+        elif data["var"] not in observation:
+            new_ch = dict()
+            for state, ch in data["children"].items():
+                new_ch[state] = ch if not isinstance(ch, dict) else TreeStore.restrict_dict(ch, observation)
+            out = treeNode(data["var"], new_ch)
+        else:
+            other_obs = {v: s for v, s in observation.items() if v != data["var"]}
+            out = TreeStore.restrict_dict(data["children"][observation[data["var"]]], other_obs)
+        return out
+
+
+store_dict = {"numpy": NumpyStore,"numpy1d": Numpy1DStore, "list":ListStore, "tree":TreeStore}
 
 
 ####### operations
@@ -379,7 +450,7 @@ class GenericOperations(OperationSet):
     @staticmethod
     def marginalize(store: DataStore, vars_remove: list):
         space_remove = dutil.assingment_space({v: d for v, d in store.domain.items() if v in vars_remove})
-        new_dom = {v: d for v, d in store.domain.items() if v not in vars_remove}
+        new_dom = OrderedDict([(v,d) for v, d in store.domain.items() if v not in vars_remove])
         restricted = [store.restrict(**obs) for obs in space_remove]
         return reduce(GenericOperations.addition, restricted)
 
@@ -429,15 +500,15 @@ class NumpyStoreOperations(OperationSet):
     def marginalize(store: DataStore, vars_remove: list):
         idx_vars = tuple(store.get_var_index(v) for v in vars_remove)
         new_data = np.sum(store.data, axis=idx_vars)
-        new_dom = {v: d for v, d in store.domain.items() if v not in vars_remove}
-        return store.builder(new_data, new_dom)
+        new_dom = OrderedDict([(v,d) for v, d in store.domain.items() if v not in vars_remove])
+        return store.builder(data=new_data, domain=new_dom)
 
     @staticmethod
     def maxmarginalize(store: DataStore, vars_remove: list):
         idx_vars = tuple(store.get_var_index(v) for v in vars_remove)
         new_data = np.max(store.data, axis=idx_vars)
-        new_dom = {v: d for v, d in store.domain.items() if v not in vars_remove}
-        return store.builder(new_data, new_dom)
+        new_dom = OrderedDict([(v,d) for v, d in store.domain.items() if v not in vars_remove])
+        return store.builder(data=new_data, domain=new_dom)
 
     @staticmethod
     def _generic_combine(op1:NumpyStore, op2: NumpyStore, operation:callable) -> NumpyStore:
@@ -486,20 +557,20 @@ class ListStoreOperations(OperationSet):
     @staticmethod
     def marginalize(store: DataStore, vars_remove: list):
         space_remove = dutil.assingment_space({v: d for v, d in store.domain.items() if v in vars_remove})
-        new_dom = {v: d for v, d in store.domain.items() if v not in vars_remove}
+        new_dom = OrderedDict([(v,d) for v, d in store.domain.items() if v not in vars_remove])
         iterators = [dutil.index_iterator(store.domain, s) for s in space_remove]
         new_len = int(np.prod([len(d) for d in new_dom.values()]))
         new_data = [sum([store.data[next(it)] for it in iterators]) for i in range(new_len)]
-        return store.builder(new_data, new_dom)
+        return store.builder(data=new_data, domain=new_dom)
 
     @staticmethod
     def maxmarginalize(store: DataStore, vars_remove: list):
         space_remove = dutil.assingment_space({v: d for v, d in store.domain.items() if v in vars_remove})
-        new_dom = {v: d for v, d in store.domain.items() if v not in vars_remove}
+        new_dom = OrderedDict([(v,d) for v, d in store.domain.items() if v not in vars_remove])
         iterators = [dutil.index_iterator(store.domain, s) for s in space_remove]
         new_len = np.prod([len(d) for d in new_dom.values()])
         new_data = [max([store.data[next(it)] for it in iterators]) for i in range(new_len)]
-        return store.builder(new_data, new_dom)
+        return store.builder(data=new_data, domain=new_dom)
 
 
     def _generic_combine(op1: ListStore, op2: ListStore, operation:callable) -> ListStore:
@@ -518,7 +589,6 @@ class ListStoreOperations(OperationSet):
 
         return op1.builder(data=new_data, domain=new_domain)
 
-
     @staticmethod
     def multiply(store: DataStore, other: DataStore) -> DataStore:
         return ListStoreOperations._generic_combine(store, other, lambda x, y: x * y)
@@ -534,6 +604,84 @@ class ListStoreOperations(OperationSet):
     @staticmethod
     def divide(store: DataStore, other: DataStore) -> DataStore:
         return ListStoreOperations._generic_combine(store, other, lambda x, y: x / y)
+
+
+class TreeStoreOperations(OperationSet):
+
+    @staticmethod
+    def marginalize(store: DataStore, vars_remove: list):
+        new_data = store.data
+        for v in vars_remove:
+            new_data = TreeStoreOperations._marginalize_dict(new_data, v, len(store.domain[v]), lambda x, y: x + y)
+        new_dom = OrderedDict([(v, d) for v, d in store.domain.items() if v not in vars_remove])
+        return store.builder(domain=new_dom, data=new_data)
+
+    @staticmethod
+    def maxmarginalize(store: DataStore, vars_remove: list):
+        new_data = store.data
+        for v in vars_remove:
+            new_data = TreeStoreOperations._marginalize_dict(new_data, v, 1, lambda x, y: max(x,y))
+        new_dom = OrderedDict([(v, d) for v, d in store.domain.items() if v not in vars_remove])
+        return store.builder(domain=new_dom, data=new_data)
+    @staticmethod
+    def _combine_dict(d1, d2, operation):
+        if not isinstance(d1, dict):
+            if not isinstance(d2, dict):
+                out = operation(d1, d2)
+            else:
+                new_var = d2["var"]
+                new_ch = {state: TreeStoreOperations._combine_dict(d1, ch, operation) for state, ch in d2["children"].items()}
+                out = treeNode(new_var, new_ch)
+        else:
+            new_var = d1["var"]
+            new_ch = {state: TreeStoreOperations._combine_dict(ch, TreeStore.restrict_dict(d2, {new_var: state}), operation) for
+                      state, ch in d1["children"].items()}
+            out = treeNode(new_var, new_ch)
+
+        return out
+
+    @staticmethod
+    def _marginalize_dict(d, var_to_remove, k, operation:callable):
+
+        if not isinstance(d, dict):
+            out = d * k
+        else:
+            if d["var"] == var_to_remove:
+                out = reduce(lambda ch1, ch2: TreeStoreOperations._combine_dict(ch1, ch2, operation),
+                             [ch for ch in d["children"].values()])
+            else:
+                new_var = d["var"]
+                new_ch = {state: TreeStoreOperations._marginalize_dict(ch, var_to_remove, k, operation) for state, ch in d["children"].items()}
+                out = treeNode(new_var, new_ch)
+
+        return out
+
+    @staticmethod
+    def _generic_combine(op1:NumpyStore, op2: NumpyStore, operation:callable) -> NumpyStore:
+
+        if op1.__class__.__name__ != op2.__class__.__name__:
+            raise ValueError("Combination with non-compatible data structure")
+
+        new_domain = OrderedDict({**op1.domain, **op2.domain})
+        new_data = TreeStoreOperations._combine_dict(op1.data, op2.data, operation)
+        return op1.builder(domain=new_domain, data=new_data)
+
+
+    @staticmethod
+    def multiply(store: DataStore, other: DataStore) -> DataStore:
+        return TreeStoreOperations._generic_combine(store, other, lambda x, y: x * y)
+
+    @staticmethod
+    def addition(store: DataStore, other: DataStore) -> DataStore:
+        return TreeStoreOperations._generic_combine(store, other, lambda x, y: x + y)
+
+    @staticmethod
+    def subtract(store: DataStore, other: DataStore) -> DataStore:
+        return TreeStoreOperations._generic_combine(store, other, lambda x, y: x - y)
+
+    @staticmethod
+    def divide(store: DataStore, other: DataStore) -> DataStore:
+        return TreeStoreOperations._generic_combine(store, other, lambda x, y: x / y)
 
 
 if __name__=="__main__":

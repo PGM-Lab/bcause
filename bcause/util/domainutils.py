@@ -59,3 +59,29 @@ def index_iterator(domain, observation = None):
 
 def index_list(domain, observation = None):
     return list(index_iterator(domain, observation))
+
+
+
+def numeric_state_space(dom):
+    return state_space(to_numeric_domains(dom))
+
+def numeric_assignment_space(dom):
+    return assingment_space(to_numeric_domains(dom))
+
+def random_assignment(dom, iterate_vars = None):
+    if iterate_vars is None:
+        return {v:np.random.choice(d) for v,d in dom.items()}
+
+    iterate_dom = {v: dom[v] for v in iterate_vars}
+    select_dom = {v: dom[v] for v in dom.keys() if v not in iterate_vars}
+    out = []
+    for s in assingment_space(iterate_dom):
+        d = {**random_assignment(select_dom), **s}
+        d = {v:d[v] for v in dom.keys()}
+        out.append(d)
+    return out
+
+
+def subdomain(domains, *variables):
+    if np.ndim(variables)==0: variables = [variables]
+    return {v:domains[v] for v in variables}

@@ -3,9 +3,9 @@ import os
 
 from pgmpy.readwrite import BIFWriter, XMLBIFWriter
 
-from conversion.pgmpy import toPgmpyBNet
-from models import BayesianNetwork
-from util.assertions import assert_file_exists
+from bcause.conversion.pgmpy import toPgmpyBNet
+from bcause.models import BayesianNetwork
+from bcause.util.assertions import assert_file_exists
 
 
 def __write(writer, model, path):

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from typing import Union, Dict, Hashable
 
 import networkx as nx
 
-from bcause.factors.factor import Factor
-
+import bcause.factors.factor as bf
+import bcause.util.graphutils as gutils
 
 class PGModel(ABC):
 
@@ -30,13 +31,54 @@ class PGModel(ABC):
     def get_factors(self, *variables) -> list:
         return [self._factors[v] for v in variables]
 
-    @abstractmethod
-    def set_factor(self, var:Hashable, f:Factor):
-        pass
+
+    def set_factor(self, var:Hashable, f:bf.DiscreteFactor):
+        # check type
+        if not isinstance(f, bf.DiscreteFactor):
+            raise ValueError(f"Factor {var} must  be discrete")
+        if not isinstance(f, bf.ConditionalFactor): raise ValueError(f"Factor {var} must  be conditional")
+
+        # check left right variables
+        if set(self.get_parents(var)) != set(f.right_vars): raise ValueError(f"Wrong right variables in factor for {var}")
+        if set([var]) != set(f.left_vars):
+            raise ValueError("Wrong left variables in factor")
+
+        # check domains
+        for v in f.variables:
+            if v in self._domains and self._domains[v] != None:
+                    if set(self._domains[v]) != set(f.domain[v]): raise ValueError(f"Inconsistent domain for {v} when setting {var}")
+
+        # Update domains
+        if var not in self._domains or self._domains[var] == None:
+            self._domains[var] = f.domain[var]
+
+        # update factor dictionary
+        self._factors[var] = f
+
 
 
 
 class DiscreteDAGModel(PGModel):
+
+
+    def _initialize(self, dag:Union[nx.Graph, str]):
+        if isinstance(dag, str):
+            dag = gutils.str2dag(dag)
+        if not isinstance(dag, nx.DiGraph) or len(list(nx.simple_cycles(dag)))>0:
+            raise ValueError("Input graph must be a DAG")
+        super()._initialize(dag)
+
+
+    def _set_factors(self, factors):
+        if isinstance(factors, dict):
+            for v,f in factors.items():
+                self.set_factor(v,f)
+        elif isinstance(factors, Iterable):
+            for f in factors:
+                if len(f.left_vars)>1: raise ValueError("Factor with more than one left variable.")
+                self.set_factor(f.left_vars[0], f)
+        else:
+            raise ValueError("Wrong factor type")
 
 
     def get_domains(self, variables):
@@ -83,6 +125,9 @@ class DiscreteDAGModel(PGModel):
         new_dag = self.graph.subgraph(nodes)
         new_factors = {x: f for x, f in self.factors.items() if x in nodes}
         return self.builder(new_dag, new_factors)
+
+
+
 
 
 

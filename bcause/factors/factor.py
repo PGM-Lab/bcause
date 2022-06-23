@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict
+from collections import OrderedDict
+from typing import Dict, List
 
+import numpy as np
 
 from bcause.factors.values.store import DataStore
+from bcause.util.domainutils import assingment_space
+
 
 class Factor(ABC):
     @property
@@ -31,13 +35,39 @@ class DiscreteFactor(Factor):
     def domain(self) -> Dict:
         return self.store.domain
 
+    def get_value(self, **observation) -> float:
+        return self.store.get_value(**observation)
+
+    @property
+    def values(self)->List:
+        return self.store.values_list
+
+    @property
+    def values_list(self) -> Dict:
+        return self.store.values_list
+
+    @property
+    def values_dict(self) -> Dict:
+        return self.store.values_dict
+
+    def to_values_array(self, var_order = None) -> np.array:
+        var_order  = var_order or list(self.domain.keys())
+        dom_order = OrderedDict([(v,self.domain[v]) for v in var_order])
+        shape = [len(dom_order[v]) for v in var_order]
+        return np.array([self.store.get_value(**s)
+                  for s in assingment_space(dom_order)
+                  ]).reshape(shape)
+
+    def is_degenerate(self):
+        return len([x for x in self.values_list if x != 0 and x != 1]) == 0
+
+
     @abstractmethod
     def restrict(self, **observation: Dict) -> DiscreteFactor:
         pass
 
     def R(self, **observation: Dict) -> DiscreteFactor:
         return self.restrict(**observation)
-
 
     @abstractmethod
     def multiply(self, other) -> DiscreteFactor:
@@ -79,4 +109,17 @@ class ConditionalFactor(Factor):
     @property
     def left_domain(self) -> Dict:
         return {v:s for v,s in self.domain.items() if v in self.left_vars}
+
+    def set_variables(self, variables, left_vars, right_vars):
+        if left_vars is None and right_vars is None:
+            # all the variables are in the left side
+            left_vars, right_vars = variables, []
+        elif left_vars is not None and right_vars is None:
+            right_vars = [v for v in variables if v not in left_vars]
+        elif left_vars is not None and right_vars is not None:
+            if not (set(right_vars).union(left_vars) == set(variables) and set(right_vars).isdisjoint(left_vars)):
+                raise ValueError("Cannot determine left/right side variables")
+
+        self._variables, self._right_vars = variables, right_vars
+
 

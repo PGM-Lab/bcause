@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections import OrderedDict
 from functools import reduce
 from typing import Dict, List
 
@@ -9,38 +10,27 @@ import numpy as np
 from bcause.factors.values.store import store_dict
 import bcause.factors.factor as bf
 #from . import DiscreteFactor
-from bcause.util.domainutils import assingment_space, state_space
-from bcause.util.arrayutils import normalize_array
+from bcause.util.domainutils import assingment_space, state_space, steps, random_assignment, to_numeric_domains
+from bcause.util.arrayutils import normalize_array, set_value
 
 
 class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
-    def __init__(self, domain:Dict, data, right_vars:list=None, vtype="numpy"):
+    def __init__(self, domain:Dict, data, left_vars:list=None, right_vars:list=None, vtype="numpy"):
 
-        np.ndim(data)
+
+        if np.ndim(data)==1: data = np.reshape(data, [len(d) for d in domain.values()])
 
         self._store = store_dict[vtype](data=data, domain=domain)
-        self._right_vars = right_vars or []
-        self._variables = list(domain.keys())
+        self.set_variables(list(domain.keys()), left_vars, right_vars)
+        self.vtype = vtype
 
         def builder(*args, **kwargs):
             return MultinomialFactor(*args, **kwargs, vtype=vtype)
 
         self.builder = builder
 
-    # Properties
 
-    @property
-    def values(self)->List:
-        return self.prob(assingment_space(self.domain))
-
-    @property
-    def values_array(self) -> np.array:
-        shape = [reduce(lambda x,y:x*y, [len(c) for c in self.right_domain.values()], 1)] + [len(c) for c in self.left_domain.values()]
-        #if len(shape) == 1: shape = [1] + shape
-        return np.array([self.store.get_value(**s)
-                  for s in assingment_space({**self.right_domain, **self.left_domain})
-                  ]).reshape(shape)
 
 
     # Factor operations
@@ -88,8 +78,6 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return self.builder(new_store.domain, new_store.data, new_right_vars)
 
 
-    def get_value(self, **observation) -> float:
-        return self.store.get_value(**observation)
 
     def prob(self, observations:List[Dict]) -> List:
         return [self.get_value(**x) for x in observations]
@@ -162,9 +150,6 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
     def __repr__(self):
         cardinality_dict = self.store.cardinality_dict
         card_str = ",".join([f"{v}:{cardinality_dict[v]}" for v in self._variables])
-        vars_str = ",".join(self.left_vars)
-        if len(self.right_vars)>0:
-            vars_str += "|"+",".join(self.right_vars)
         return f"<{self.__class__.__name__} {self.name}, cardinality = ({card_str}), " \
                f"values=[{self.store.values_str()}]>"
 
@@ -181,6 +166,12 @@ def uniform_multinomial(domain:Dict, right_vars:list=None, vtype="numpy"):
     left_dims = [i for i,v in enumerate(domain.keys()) if v not in right_vars]
     data = normalize_array(np.ones([len(d) for d in domain.values()]), axis=left_dims)
     return MultinomialFactor(domain=domain, data=data, right_vars=right_vars, vtype=vtype)
+
+def random_deterministic(dom:Dict, right_vars:list=None, vtype="numpy"):
+    data = np.zeros([len(d) for d in dom.values()])
+    for idx in [list(s.values()) for s in random_assignment(to_numeric_domains(dom), right_vars)]:
+        set_value(1., data, idx)
+    return MultinomialFactor(domain=dom, right_vars=right_vars, data=data, vtype=vtype)
 
 
 if __name__ == "__main__":

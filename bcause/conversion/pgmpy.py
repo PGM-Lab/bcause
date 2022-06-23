@@ -20,7 +20,7 @@ def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
     args = dict(
         variable = v,
         variable_card = card[v],
-        values = f.values_array.T,
+        values = f.to_values_array().T,
         state_names = f.domain
     )
 

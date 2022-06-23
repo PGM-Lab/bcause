@@ -68,3 +68,8 @@ def remove_nodes(dag:nx.DiGraph, nodes:list) -> nx.DiGraph:
     return out
 
 
+# relevant vars in DAG
+def relevat_vars(dag:nx.DiGraph, v):
+    return list(dag.predecessors(v)) + [v]
+
+

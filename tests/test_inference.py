@@ -1,8 +1,8 @@
 from numpy.testing import assert_array_almost_equal
 
 import bcause.readwrite.bnread as bnread
-from inference.elimination.variableelimination import VariableElimination
-from models.transform.simplification import minimalize
+from bcause.inference.elimination.variableelimination import VariableElimination
+from bcause.models.transform.simplification import minimalize
 
 model = bnread.fromBIF("models/asia.bif")
 

@@ -1,5 +1,5 @@
-from factors.mulitnomial import MultinomialFactor
-from util.domainutils import assingment_space
+from bcause.factors.mulitnomial import MultinomialFactor
+from bcause.util.domainutils import assingment_space
 
 import numpy as np
 import pytest
@@ -73,13 +73,12 @@ def test_sampling():
 
 
 def test_values():
-    actual = marg.values_array
-    expected = np.array([[0.2, 0.8]])
+    actual = marg.to_values_array()
+    expected = np.array([0.2, 0.8])
     assert_array_almost_equal(actual, expected)
 
 
-    actual = cond.values_array
+    actual = cond.to_values_array()
     expected = np.array([[0.2, 0.1, 0.7],[0.3, 0.6, 0.1]])
 
-    # join.values_array #todo: check which should be the behaivour for this.
 

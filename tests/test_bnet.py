@@ -1,13 +1,12 @@
 import networkx as nx
 import pytest
 
-from models import BayesianNetwork
-
-from factors.mulitnomial import random_multinomial
+from bcause.models import BayesianNetwork
+from bcause.factors.mulitnomial import random_multinomial
+from bcause.util.arrayutils import powerset
 
 import numpy as np
 
-from util.arrayutils import powerset
 
 np.random.seed(0)
 
