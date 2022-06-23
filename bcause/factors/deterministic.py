@@ -4,7 +4,6 @@ from collections import OrderedDict
 from typing import Dict, List
 
 import numpy as np
-import networkx as nx
 
 import bcause.util.domainutils as dutils
 

@@ -1,13 +1,10 @@
-from typing import Hashable, Union, Iterable
+from typing import Union, Iterable
 
 import networkx as nx
-from networkx.algorithms import moral
 
-
-import bcause.factors.factor as bf
 from bcause.factors.mulitnomial import random_multinomial
 from bcause.models.pgmodel import DiscreteDAGModel
-from bcause.util.graphutils import str2dag, dag2str
+from bcause.util.graphutils import dag2str
 
 
 class BayesianNetwork(DiscreteDAGModel):

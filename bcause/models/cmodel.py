@@ -2,19 +2,44 @@ from typing import Dict, Union, Hashable
 
 import networkx as nx
 
-from bcause.factors import DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor
-from bcause.factors.values.store import store_dict
-from bcause.models import BayesianNetwork
 import bcause.util.domainutils as dutils
 import bcause.util.graphutils as gutils
+
+from bcause.factors import DeterministicFactor
+from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor
 from bcause.models.pgmodel import DiscreteDAGModel
-from bcause.util.arrayutils import set_value
-import numpy as np
+
 
 import bcause.factors.factor as bf
 
-class CausalModel(DiscreteDAGModel):
+
+class DiscreteCausalDAGModel(DiscreteDAGModel):
+
+    @property
+    def endogenous(self):
+        return self._endogenous
+
+    @property
+    def exogenous(self):
+        return [v for v in self.graph.nodes if v not in self.endogenous]
+
+    def is_endogenous(self, x):
+        return len(list(self.graph.predecessors(x)))>0
+
+    def is_exogenous(self, x):
+        return len(list(self.graph.predecessors(x)))==0
+
+    def get_edogenous_parents(self, variable):
+        return [x for x in m.get_parents(variable) if m.is_endogenous(x)]
+    def get_edogenous_children(self, variable):
+        return [x for x in m.get_children(variable) if m.is_endogenous(x)]
+    def get_exogenous_parents(self, variable):
+        return [x for x in m.get_parents(variable) if m.is_exogenous(x)]
+    def get_exogenous_children(self, variable):
+        return [x for x in m.get_children(variable) if m.is_exogenous(x)]
+
+
+class CausalModel(DiscreteCausalDAGModel):
     def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict,list] = None, cast_multinomial = False):
 
         self._initialize(dag)
@@ -26,36 +51,10 @@ class CausalModel(DiscreteDAGModel):
         def builder(*args, **kwargs): return CausalModel(*args, **kwargs)
         self.builder = builder
 
-
-
-
-    @property
-    def endogenous(self):
-        return self._endogenous
-
-    @property
-    def exogenous(self):
-        return [v for v in self.graph.nodes if v not in self.endogenous]
-
-    def is_endogenous(self, x):
-        return len(list(dag.predecessors(x)))>0
-
-    def is_exogenous(self, x):
-        return len(list(dag.predecessors(x)))==0
-
-    def get_edogenous_parents(self, variable):
-        return [x for x in m.get_parents(variable) if m.is_endogenous(x)]
-    def get_edogenous_children(self, variable):
-        return [x for x in m.get_children(variable) if m.is_endogenous(x)]
-    def get_exogenous_parents(self, variable):
-        return [x for x in m.get_parents(variable) if m.is_exogenous(x)]
-    def get_exogenous_children(self, variable):
-        return [x for x in m.get_children(variable) if m.is_exogenous(x)]
-
     def set_factor(self, var:Hashable, f:bf.DiscreteFactor):
         # SCM related check
         if self.is_endogenous(var):
-            if not(isinstance(f, DeterministicFactor) or f.is_degenerate(f)):
+            if not(isinstance(f, DeterministicFactor) or f.is_degenerate()):
                 raise ValueError("Factor must be deterministic or degenerate")
             if self._cast_multinomial and isinstance(f, DeterministicFactor):
                 f = f.to_multinomial()
@@ -91,7 +90,12 @@ if __name__ == "__main__":
 
 
 
-    m = CausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
+    m = CausalModel(dag, [fx, fy, pu, pv], cast_multinomial=False)
 
-    print(m.factors)
+
 #
+
+
+#causal_to_bnet
+
+
