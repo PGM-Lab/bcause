@@ -22,6 +22,8 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         self._domain = OrderedDict(domain)
         self.set_variables(list(domain.keys()), left_vars, right_vars)
 
+        if len(self.left_vars)!=1: raise ValueError("Wrong number of left variables")
+
         if np.ndim(data)==1: data = np.reshape(data, [len(d) for d in self.right_domain.values()])
 
         self._store = store_dict[vtype](data=data, domain=self.right_domain)
@@ -48,12 +50,26 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
     def to_values_array(self, var_order = None) -> np.array:
         return super().to_values_array(var_order or self.right_vars)
 
+    def constant(self, left_value):
+        new_dom = self.left_domain
+        if len(new_dom) != 1:
+            raise ValueError("Only one varible on the left is allowed")
+        if left_value not in new_dom[self.left_vars[0]]:
+            raise ValueError("Value not in domain")
+        return self.builder(new_dom, data=[left_value])
 
     def sample(self) -> float:
         raise NotImplementedError("Method not available")
 
     def restrict(self, **observation: Dict) -> DeterministicFactor:
-        return self.store.restrict(**observation)
+        raise NotImplementedError("Method not available")
+        #
+        # if not set(observation.keys()).isdisjoint(self.left_vars):
+        #     raise ValueError("It is not allowed to restrict to a left-side variable")
+        # new_data = self.store.restrict(**observation)
+        # new_dom = {v:d for v,d in self.domain.items() if v not in observation}
+        # return self.builder(domain=new_dom, left_vars=self.left_vars, data=new_data)
+
 
     def multiply(self, other) -> DeterministicFactor:
         raise NotImplementedError("Method not available")
@@ -76,6 +92,7 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
     @property
     def name(self):
         left_str = "".join(self.left_vars)
+        right_str = ""
         if len(self.right_vars) > 0:
             right_str = ",".join(self.right_vars)
         return f"f{left_str}({right_str})"

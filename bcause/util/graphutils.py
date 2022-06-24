@@ -61,6 +61,13 @@ def remove_outgoing_edges(dag:nx.DiGraph, parent_vars:list) -> nx.DiGraph:
     out.remove_edges_from(involved_edges)
     return out
 
+def remove_ingoing_edges(dag:nx.DiGraph, children_vars:list) -> nx.DiGraph:
+    involved_edges = [(x,y) for (x,y) in dag.edges if y in children_vars]
+    out = dag.copy()
+    out.remove_edges_from(involved_edges)
+    return out
+
+
 
 def remove_nodes(dag:nx.DiGraph, nodes:list) -> nx.DiGraph:
     out = dag.copy()

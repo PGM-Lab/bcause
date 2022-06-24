@@ -18,7 +18,6 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
     def __init__(self, domain:Dict, data, left_vars:list=None, right_vars:list=None, vtype="numpy"):
 
-
         if np.ndim(data)==1: data = np.reshape(data, [len(d) for d in domain.values()])
 
         self._store = store_dict[vtype](data=data, domain=domain)
@@ -30,8 +29,21 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
         self.builder = builder
 
+    def constant(self, left_value):
 
+        new_dom = self.left_domain
+        states = new_dom[self.left_vars[0]]
 
+        if len(new_dom) != 1:
+            raise ValueError("Only one variable on the left is allowed")
+
+        if left_value not in states:
+            raise ValueError("Value not in domain")
+
+        new_data = [0.0] * len(states)
+        new_data[states.index(left_value)] = 1.0
+
+        return self.builder(new_dom, new_data)
 
     # Factor operations
     def restrict(self, **observation) -> MultinomialFactor:
