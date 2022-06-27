@@ -269,7 +269,7 @@ class ListStore(DiscreteStore):
         if data is None:
             data = [0.0] * int(np.prod([len(d) for d in domain.values()]))
 
-        def builder(*args, **kwargs):
+        def builder(**kwargs):
             return ListStore(**kwargs)
 
         self.builder = builder
@@ -307,7 +307,7 @@ class Numpy1DStore(DiscreteStore):
         if data is None:
             data = np.zeros(np.prod([len(d) for d in domain.values()]))
 
-        def builder(*args, **kwargs):
+        def builder(**kwargs):
             return Numpy1DStore(**kwargs)
 
         self.builder = builder
@@ -345,7 +345,7 @@ class TreeStore(DiscreteStore):
             data = np.zeros(np.prod([len(d) for d in domain.values()]))
         if len(domain)>0 and type(data) not in [dict, OrderedDict]:
             data = build_default_tree(domain, data)
-        def builder(*args, **kwargs):
+        def builder(**kwargs):
             return TreeStore(**kwargs)
 
         self.builder = builder

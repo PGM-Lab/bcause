@@ -10,48 +10,12 @@ from typing import Callable, Union
 from bcause.factors.factor import Factor
 from bcause.factors.mulitnomial import MultinomialFactor
 from bcause.inference.elimination.ordering import min_weight_heuristic, Heuristic, heuristic_functions
+from bcause.inference.inference import Inference
 from bcause.models.bnet import BayesianNetwork
 from bcause.models.pgmodel import PGModel
 from bcause.models.transform.simplification import minimalize
 from bcause.util.assertions import assert_dag_with_nodes
 
-
-class Inference(ABC):
-    def __init__(self, model: PGModel):
-        self._model = model
-        self._evidence = dict()
-        self._target = None
-        self._compiled = False
-
-    @property
-    def model(self):
-        return self._model
-
-    @abstractmethod
-    def _preprocess(self, *args, **kwargs) -> PGModel:
-        pass
-
-    def compile(self, target, evidence=None) -> Inference:
-
-
-        logging.info(f"Starting inference: target={str(target)} evidence={str(evidence)}")
-
-
-        self._target = target
-        self._evidence = evidence or dict()
-
-        assert_dag_with_nodes(self.model.graph, {self._target} | self._evidence.keys())
-
-        self._inference_model = self._preprocess()
-        self._compiled = True;
-        return self
-
-    @abstractmethod
-    def run(self) -> Factor:
-        pass
-
-    def query(self, target, evidence=None):
-        return self.compile(target, evidence).run()
 
 
 class VariableElimination(Inference):
@@ -85,7 +49,7 @@ class VariableElimination(Inference):
         if not self._compiled:
             raise ValueError("Model not compiled")
 
-        to_remove = [v for v in self._inference_model.variables if v != self._target and v not in self._evidence.keys()]
+        to_remove = [v for v in self._inference_model.variables if v not in self._target and v not in self._evidence.keys()]
         ordering = self._heuristic(self._inference_model.graph, to_remove=to_remove,
                                    varsizes=self._inference_model.varsizes)
         factors = list(self._inference_model.factors.values())

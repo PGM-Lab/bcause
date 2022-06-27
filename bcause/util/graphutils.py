@@ -51,7 +51,9 @@ def barren_nodes(dag:nx.DiGraph, S = None) -> nx.DiGraph:
 
 
 def dsep_nodes(dag:nx.DiGraph, target, evidence_nodes):
-    dsep = set([v for v in dag.nodes if nx.d_separated(dag, x={target}, y={v}, z=set(evidence_nodes)) and v not in evidence_nodes])
+    dsep = set(
+        [v for v in dag.nodes if
+         nx.d_separated(dag, x=set(target), y={v}, z=set(evidence_nodes)) and v not in evidence_nodes])
     logging.info(f"D-separated nodes wrt {target} given {evidence_nodes} are: {dsep}")
     return dsep
 

@@ -41,7 +41,7 @@ class DiscreteCausalDAGModel(DiscreteDAGModel):
         return [x for x in m.get_children(variable) if m.is_exogenous(x)]
 
 
-class CausalModel(DiscreteCausalDAGModel):
+class StructuralCausalModel(DiscreteCausalDAGModel):
     def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict,list] = None, endogenous:Iterable = None, cast_multinomial = True):
 
         self._initialize(dag)
@@ -50,8 +50,10 @@ class CausalModel(DiscreteCausalDAGModel):
         if factors is not None:
             self._set_factors(factors)
 
-        def builder(*args, **kwargs): return CausalModel(*args, **kwargs, cast_multinomial=cast_multinomial)
-        self.builder = builder
+    def builder(self, **kwargs):
+        if "cast_multinomial" not in kwargs: kwargs["cast_multinomial"] = self._cast_multinomial
+        return StructuralCausalModel(**kwargs)
+
 
     def set_factor(self, var:Hashable, f:bf.DiscreteFactor):
         # SCM related check
@@ -63,22 +65,22 @@ class CausalModel(DiscreteCausalDAGModel):
 
         super().set_factor(var, f)
 
-    def to_multinomial(self) -> CausalModel:
-        return self.builder(dag=self.graph, factors=self.factors, cast_multinomial=True)
+    def to_multinomial(self) -> StructuralCausalModel:
+        return StructuralCausalModel(dag=self.graph, factors=self.factors, cast_multinomial=True)
 
     def intervention(self, **obs):
         new_dag = gutils.remove_ingoing_edges(self.graph, obs.keys())
         new_factors = dict()
         for v, f in self.factors.items():
             new_factors[v] = f if v not in obs else f.constant(obs[v])
-        return self.builder(dag=new_dag, factors=new_factors, endogenous=self.endogenous)
+        return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=self.endogenous)
 
     def __repr__(self):
         str_card_endo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"
                                   for v, d in self._domains.items() if self.is_endogenous(v)])
         str_card_exo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"
                                   for v, d in self._domains.items() if self.is_exogenous(v)])
-        return f"<CausalModel ({str_card_endo}|{str_card_exo}), dag={gutils.dag2str(self.graph)}>"
+        return f"<StructuralCausalModel ({str_card_endo}|{str_card_exo}), dag={gutils.dag2str(self.graph)}>"
 
 
 if __name__ == "__main__":
@@ -103,11 +105,10 @@ if __name__ == "__main__":
     domu = dutils.subdomain(domains, "U")
     pu = MultinomialFactor(domu, data = [.2, .2, .1, .5])
 
-    m = CausalModel(dag, [fx, fy, pu, pv], endogenous=["X"], cast_multinomial=False)
+    m = StructuralCausalModel(dag, [fx, fy, pu, pv], endogenous=["X"], cast_multinomial=False)
 
 
-
-
+    model = m
 #
 
 

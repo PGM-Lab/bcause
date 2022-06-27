@@ -12,7 +12,7 @@ def toMultinomialFactor(factor : pfd.TabularCPD, vtype="numpy") -> bfd.Multinomi
     domain = factor.state_names
     data = np.reshape([factor.get_value(**s) for s in assingment_space(domain)], factor.cardinality)
     right_vars = [v for v in factor.variables if v != factor.variable]
-    return bfd.MultinomialFactor(domain, data, right_vars, vtype)
+    return bfd.MultinomialFactor(domain, data, right_vars=right_vars, vtype=vtype)
 
 def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
     v = list(f.left_domain.keys())[0]

@@ -27,7 +27,6 @@ cost_functions = {
 
 def _get_elim_ordering(dag, varsizes=None, to_remove=None, heuristic=Heuristic.MIN_SIZE, random_state = 0):
 
-    to_remove = to_remove or list(dag.nodes)
     cost_fn = cost_functions[heuristic.name]
     choice = np.random.RandomState(random_state).choice
 
@@ -58,13 +57,13 @@ def _get_elim_ordering(dag, varsizes=None, to_remove=None, heuristic=Heuristic.M
 
     return ordering
 
-def min_fill_heuristic(dag:nx.DiGraph, to_remove=None, random_state = 0, **kwargs) -> list:
+def min_fill_heuristic(dag:nx.DiGraph, to_remove, random_state = 0, **kwargs) -> list:
     return _get_elim_ordering(dag, varsizes=None, to_remove=to_remove, heuristic=Heuristic.MIN_FILL, random_state=0)
 
-def min_size_heuristic(dag:nx.DiGraph, to_remove=None, random_state = 0, **kwargs) -> list:
+def min_size_heuristic(dag:nx.DiGraph, to_remove, random_state = 0, **kwargs) -> list:
     return _get_elim_ordering(dag, varsizes=None, to_remove=to_remove, heuristic=Heuristic.MIN_SIZE, random_state=0)
 
-def min_weight_heuristic(dag:nx.DiGraph, to_remove=None, random_state = 0, varsizes = None) -> list:
+def min_weight_heuristic(dag:nx.DiGraph, to_remove, random_state = 0, varsizes = None) -> list:
     if varsizes is None:
         raise ValueError("Size of Variables must be provided")
     return _get_elim_ordering(dag, varsizes, to_remove=to_remove, heuristic=Heuristic.MIN_WEIGHT, random_state=0)

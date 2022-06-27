@@ -68,6 +68,9 @@ class DiscreteDAGModel(PGModel):
             raise ValueError("Input graph must be a DAG")
         super()._initialize(dag)
 
+    @abstractmethod
+    def builder(self, **kwargs):
+        pass
 
     def _set_factors(self, factors):
         if isinstance(factors, dict):

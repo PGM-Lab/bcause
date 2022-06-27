@@ -12,8 +12,10 @@ class BayesianNetwork(DiscreteDAGModel):
 
         self._initialize(dag)
         if factors is not None: self._set_factors(factors)
-        def builder(*args, **kwargs): return BayesianNetwork(*args, **kwargs)
-        self.builder = builder
+
+    def builder(self, **kwargs):
+        return BayesianNetwork(**kwargs)
+
 
 
     def __repr__(self):
