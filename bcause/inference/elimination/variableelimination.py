@@ -10,16 +10,17 @@ from typing import Callable, Union
 from bcause.factors.factor import Factor
 from bcause.factors.mulitnomial import MultinomialFactor
 from bcause.inference.elimination.ordering import min_weight_heuristic, Heuristic, heuristic_functions
-from bcause.inference.inference import Inference
+from bcause.inference.inference import ProbabilisticInference, CausalInference
 from bcause.models.bnet import BayesianNetwork
-from bcause.models.pgmodel import PGModel
+from bcause.models.cmodel import StructuralCausalModel
+from bcause.models.pgmodel import PGModel, DiscreteDAGModel
 from bcause.models.transform.simplification import minimalize
 from bcause.util.assertions import assert_dag_with_nodes
 
 
 
-class VariableElimination(Inference):
-    def __init__(self, model: BayesianNetwork, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = True):
+class VariableElimination(ProbabilisticInference):
+    def __init__(self, model: DiscreteDAGModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = True):
 
         # Default value for heuristic
         heuristic = heuristic or min_weight_heuristic
@@ -37,7 +38,7 @@ class VariableElimination(Inference):
 
         super(self.__class__, self).__init__(model)
 
-    def _preprocess(self) -> BayesianNetwork:
+    def _preprocess(self) -> DiscreteDAGModel:
         if not self._preprocess_flag:
             return self._model
         return minimalize(self.model, self._target, self._evidence)
@@ -78,3 +79,11 @@ class VariableElimination(Inference):
         self.time = (time.time()-tstart)*1000
         logging.info(f"Finished Variable elimination in {self.time} ms.")
         return result
+
+
+class CausalVariableElimination(CausalInference):
+    def __init__(self, model: StructuralCausalModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = True):
+        prob_inf_fn = lambda m : VariableElimination(m, heuristic, preprocess_flag)
+        super(self.__class__, self).__init__(model, prob_inf_fn)
+
+

@@ -31,6 +31,15 @@ class Factor(ABC):
 
 class DiscreteFactor(Factor):
 
+
+    def _check_domain(self, domain):
+
+        if not isinstance(domain, dict) \
+                or not all([isinstance(v, str) for v in domain.keys()]) \
+                or not all([isinstance(v, list) for v in domain.values()]):
+            raise ValueError("Wrong domain format: it must be a dictionary with keys of class str and values of class list.")
+
+
     @property
     def domain(self) -> Dict:
         return self.store.domain

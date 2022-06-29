@@ -18,6 +18,8 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
     def __init__(self, domain:Dict, data, left_vars:list=None, right_vars:list=None, vtype="numpy"):
 
+        self._check_domain(domain)
+
         if np.ndim(data)==1: data = np.reshape(data, [len(d) for d in domain.values()])
 
         self._store = store_dict[vtype](data=data, domain=domain)
@@ -28,6 +30,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             return MultinomialFactor(*args, **kwargs, vtype=vtype)
 
         self.builder = builder
+
 
     def constant(self, left_value):
 

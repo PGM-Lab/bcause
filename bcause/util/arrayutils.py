@@ -12,11 +12,9 @@ def normalize_array(data:Iterable, axis:Iterable):
 
     return data/sums
 
-
 def powerset(iterable:Iterable):
     s = list(iterable)
     return list(chain.from_iterable(combinations(s, r) for r in range(len(s)+1)))
-
 
 def len_iterable(it:Iterable):
     return sum(1 for _ in it)
@@ -26,3 +24,17 @@ def set_value(value, data, idx):
     for i in range(np.ndim(data) - 1):
         d = data[idx[i]]
     d[idx[-1]] = value
+
+def as_lists(*args):
+    def as_list(elem):
+        if isinstance(elem, str): return [elem]
+        return list(elem)
+
+    if len(args)>1:
+        return [as_list(elem) for elem in args]
+    return as_list(args[0])
+
+
+def all_disjoint(*x):
+    return all((set(p0).isdisjoint(set(p1))) for p0, p1 in it.combinations(x, 2))
+
