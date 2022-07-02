@@ -36,3 +36,7 @@ pu = MultinomialFactor(domu, data=[.2, .2, .1, .5])
 model = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 inf = CausalVariableElimination(model)
 p = inf.causal_query("X", do=dict(Y=1))
+
+
+import bcause.factors.values.store as store
+

@@ -305,7 +305,7 @@ class Numpy1DStore(DiscreteStore):
 
         #defualt data
         if data is None:
-            data = np.zeros(np.prod([len(d) for d in domain.values()]))
+            data = np.zeros(int(np.prod([len(d) for d in domain.values()])))
 
         def builder(**kwargs):
             return Numpy1DStore(**kwargs)
@@ -403,7 +403,7 @@ class TreeStore(DiscreteStore):
 
 
 store_dict = {"numpy": NumpyStore,"numpy1d": Numpy1DStore, "list":ListStore, "tree":TreeStore}
-
+__ALL__ = list(store_dict.keys())
 
 ####### operations
 
@@ -568,7 +568,7 @@ class ListStoreOperations(OperationSet):
         space_remove = dutil.assingment_space({v: d for v, d in store.domain.items() if v in vars_remove})
         new_dom = OrderedDict([(v,d) for v, d in store.domain.items() if v not in vars_remove])
         iterators = [dutil.index_iterator(store.domain, s) for s in space_remove]
-        new_len = np.prod([len(d) for d in new_dom.values()])
+        new_len = int(np.prod([len(d) for d in new_dom.values()]))
         new_data = [max([store.data[next(it)] for it in iterators]) for i in range(new_len)]
         return store.builder(data=new_data, domain=new_dom)
 

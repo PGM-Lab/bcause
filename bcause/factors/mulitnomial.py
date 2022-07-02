@@ -110,7 +110,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         if len(self.right_vars) == 0:
             possible_states = state_space(self.left_domain)
             observations = assingment_space(self.left_domain)
-            probs = np.array([float(self.store.restrict(**obs).data) for obs in observations])
+            probs = np.array([float(self.store.get_value(**obs)) for obs in observations])
             idx = np.random.choice(list(range(0, len(possible_states))), p=probs / probs.sum())
             sample = observations[idx] if varnames else possible_states[idx]
             return sample
