@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from typing import Union, Dict, Hashable
 
 import networkx as nx
+from networkx import relabel_nodes
 
 import bcause.factors.factor as bf
 import bcause.util.graphutils as gutils
@@ -128,6 +130,13 @@ class DiscreteDAGModel(PGModel):
         new_dag = self.graph.subgraph(nodes)
         new_factors = {x: f for x, f in self.factors.items() if x in nodes}
         return self.builder(new_dag, new_factors)
+
+    def rename_vars(self, names_mapping: dict) -> DiscreteDAGModel:
+        logging.debug(f"Renaming variables as {names_mapping}")
+        new_dag = relabel_nodes(self.graph, names_mapping)
+        new_factors = [f.rename_vars(names_mapping) for f in self.factors.values()]
+        return self.builder(dag=new_dag, factors=new_factors)
+
 
 
 

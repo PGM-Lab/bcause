@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import OrderedDict
 from typing import Dict, List
 
@@ -29,8 +30,10 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         self._store = store_dict[vtype](data=data, domain=self.right_domain)
         self.vtype = vtype
 
-        def builder(*args, **kwargs):
-            return DeterministicFactor(*args, **kwargs, vtype=vtype)
+        def builder(**kwargs):
+            if "left_vars" not in kwargs and "right_vars" not in kwargs:
+                kwargs["left_vars"] = self.left_vars
+            return DeterministicFactor(**kwargs, vtype=vtype)
 
         self.builder = builder
 
@@ -43,6 +46,7 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return self.get_value(**righ_obs) == observation[self.left_vars[0]]
 
     def to_multinomial(self, as_int=False):
+        logging.debug(f"Casting deterministic function {self.name} to multinomial")
         cast = int if as_int else float
         data = [cast(self.eval(**obs)) for obs in dutils.assingment_space(self.domain)]
         return MultinomialFactor(self.domain, right_vars=self.right_vars, data=data, vtype=self.vtype)
@@ -56,7 +60,7 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             raise ValueError("Only one varible on the left is allowed")
         if left_value not in new_dom[self.left_vars[0]]:
             raise ValueError("Value not in domain")
-        return self.builder(new_dom, data=[left_value])
+        return self.builder(domain=new_dom, data=[left_value])
 
     def sample(self) -> float:
         raise NotImplementedError("Method not available")

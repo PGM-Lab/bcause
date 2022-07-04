@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from typing import Dict, Union, Hashable, Iterable
 
 import networkx as nx
+from networkx import relabel_nodes
 
 import bcause.util.domainutils as dutils
 import bcause.util.graphutils as gutils
@@ -73,7 +75,16 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         new_factors = dict()
         for v, f in self.factors.items():
             new_factors[v] = f if v not in obs else f.constant(obs[v])
-        return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=self.endogenous)
+        return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=self.endogenous, cast_multinomial=self._cast_multinomial)
+
+    def rename_vars(self, names_mapping: dict) -> DiscreteDAGModel:
+        logging.debug(f"Renaming variables as {names_mapping}")
+        new_dag = relabel_nodes(self.graph, names_mapping)
+        new_factors = [f.rename_vars(names_mapping) for f in self.factors.values()]
+        new_endogenous = [names_mapping[x] for x in self.endogenous]
+        return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=new_endogenous, cast_multinomial=self._cast_multinomial)
+
+
 
     def __repr__(self):
         str_card_endo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"

@@ -26,8 +26,10 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         self.set_variables(list(domain.keys()), left_vars, right_vars)
         self.vtype = vtype
 
-        def builder(*args, **kwargs):
-            return MultinomialFactor(*args, **kwargs, vtype=vtype)
+        def builder(**kwargs):
+            if "left_vars" not in kwargs and "right_vars" not in kwargs:
+                kwargs["left_vars"] = self.left_vars
+            return MultinomialFactor(**kwargs, vtype=vtype)
 
         self.builder = builder
 
@@ -46,51 +48,53 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         new_data = [0.0] * len(states)
         new_data[states.index(left_value)] = 1.0
 
-        return self.builder(new_dom, new_data)
+        return self.builder(domain=new_dom, data=new_data)
+
 
     # Factor operations
     def restrict(self, **observation) -> MultinomialFactor:
         if len(set(observation.keys()).intersection(self._variables))==0: return self
         new_store = self.store.restrict(**observation)
         new_right_vars = [v for v in new_store.variables if v in self.right_vars]
-        return self.builder(new_store.domain, new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
+
 
     def multiply(self, other):
         new_store = self.store.multiply(other.store)
         new_right_vars = [v for v in new_store.variables
                           if v not in self.left_vars and v not in other.left_vars]
-        return self.builder(new_store.domain, new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
 
     def addition(self, other):
         new_store = self.store.addition(other.store)
         new_right_vars = [v for v in new_store.variables
                           if v not in self.left_vars and v not in other.left_vars]
-        return self.builder(new_store.domain, new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
 
     def subtract(self, other):
         new_store = self.store.subtract(other.store)
         new_right_vars = [v for v in new_store.variables
                           if v not in self.left_vars and v not in other.left_vars]
-        return self.builder(new_store.domain, new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
 
     def divide(self, other):
         new_store = self.store.divide(other.store)
         new_right_vars = [v for v in new_store.variables
                           if v not in self.left_vars and v not in other.left_vars]
-        return self.builder(new_store.domain, new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
 
     def marginalize(self, *vars_remove) -> MultinomialFactor:
         if len(set(vars_remove).intersection(self._variables))==0: return self
         new_store = self.store.marginalize(*vars_remove)
         new_right_vars = [v for v in new_store.variables if v in self.right_vars]
-        return self.builder(new_store.domain, new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
 
 
     def maxmarginalize(self, *vars_remove) -> MultinomialFactor:
         if len(set(vars_remove).intersection(self._variables))==0: return self
         new_store = self.store.maxmarginalize(*vars_remove)
         new_right_vars = [v for v in new_store.variables if v in self.right_vars]
-        return self.builder(new_store.domain, new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
 
 
 

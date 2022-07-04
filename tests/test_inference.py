@@ -1,3 +1,4 @@
+import pytest
 from numpy.testing import assert_array_almost_equal
 
 import bcause.readwrite.bnread as bnread
@@ -22,6 +23,36 @@ def test_variable_elimination():
     actual = [ve.query(**arg).values[0] for arg in args]
     assert_array_almost_equal(actual, expected)
 
+
+#list(map(lambda x: tuple(x[0]+[x[1]]), list(zip([list(d.values()) for d in dt], ex))))
+
+
+
+
+#list(zip([list(d.values()) for d in dt], ex))
+
+@pytest.mark.parametrize("target,evidence,expected",
+                         [('dysp', None, {'xray'}),
+                          ('dysp', {'smoke': 'yes'}, {'xray'}),
+                          ('smoke', {'dysp': 'yes'}, {'xray'}),
+                          ('either', None, {'bronc', 'dysp', 'xray'}),
+                          ('xray', {'tub': 'yes'}, {'asia', 'bronc', 'dysp'}),
+                          ('lung', {'asia': 'yes'}, {'asia','bronc', 'dysp', 'either', 'tub', 'xray'}),
+                          ('lung', {'asia': 'yes', 'either': 'yes'}, {'bronc', 'dysp', 'xray'}),
+                          ('smoke',
+                           {'asia': 'yes'},
+                           {'asia','bronc', 'dysp', 'either', 'lung', 'tub', 'xray'})]
+                         )
+def test_minimalize(target, evidence, expected):
+
+    def determine_dropped(target, evidence):
+        return set(model.variables).difference(set(minimalize(model, target, evidence).variables))
+
+    assert determine_dropped(target, evidence) == expected
+
+
+
+'''
 def test_minimalize():
 
     print(model.variables)
@@ -49,3 +80,4 @@ def test_minimalize():
         assert determine_dropped(**args[i]) == expected[i]
 
 
+'''

@@ -1,5 +1,6 @@
 import logging
 from abc import abstractmethod, ABC
+from collections.abc import Iterable
 from typing import Callable
 
 from pgmpy.inference import Inference
@@ -7,6 +8,7 @@ from pgmpy.inference import Inference
 from bcause.factors.factor import Factor
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.models.pgmodel import PGModel
+from bcause.models.transform.combination import fusion_roots
 from bcause.util.arrayutils import as_lists
 from bcause.util.assertions import assert_dag_with_nodes
 
@@ -105,10 +107,24 @@ class CausalInference(Inference):
         return self
 
     def _preprocess(self, *args, **kwargs) -> PGModel:
+
         if not self._counterfactual:
-            return self.model.intervention(**self._do)
+            new_model = self.model.intervention(**self._do)
+            logging.debug(f"Intervened DAG: {new_model.graph.edges}")
+
         else:
-            raise NotImplementedError("Counterfactual queries are not available")
+            do = self._do if isinstance(self._do, list) else [self._do]
+            models = [self.model]
+            for i in range(0, len(do)):
+                mapping = {v: f"{v}_{i+1}" for v in self.model.endogenous}
+                models.append(self.model.intervention(**do[i]).rename_vars(mapping))
+
+            new_endogenous = sum([m.endogenous for m in models],[])
+            new_model = fusion_roots(models, on=self.model.exogenous, endogenous=new_endogenous)
+            logging.debug(f"Counterfactual DAG: {new_model.graph.edges}")
+
+        return new_model
+
 
     @property
     def counterfactual(self):
@@ -118,10 +134,16 @@ class CausalInference(Inference):
         return self._inf.run()
 
     def query(self, target, do, evidence=None, counterfactual=False):
+        if counterfactual:
+            if not isinstance(do, dict): raise ValueError("Intervention must be specified in a single dictionary")
+            target = [f"{v}_1" for v in as_lists(target)]
         return self.compile(target, do, evidence,counterfactual).run()
 
     def causal_query(self, target, do, evidence=None):
         return self.query(target, do, evidence=evidence, counterfactual=False)
 
-    def counterfactual_query(self, target, do, evidence=None):
+    def counterfactual_query(self, target, do, evidence):
         return self.query(target, do, evidence=evidence, counterfactual=True)
+
+    def prob_necessity_sufficiency(self, cause, effect, true_states:dict=None, false_states:dict=None):
+        pass

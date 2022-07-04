@@ -85,3 +85,11 @@ def remove_nodes(dag: nx.DiGraph, nodes: list) -> nx.DiGraph:
 # relevant vars in DAG
 def relevat_vars(dag: nx.DiGraph, v):
     return list(dag.predecessors(v)) + [v]
+
+def connected(G:nx.Graph, target, y):
+    if y in as_lists(target): return True
+    G = G.to_undirected()
+    return any([nx.node_connectivity(G, t, y) > 0 for t in as_lists(target)])
+
+def disconnected_nodes(G:nx.Graph, target):
+    return set([x for x in G.nodes if not connected(G, target, x)])

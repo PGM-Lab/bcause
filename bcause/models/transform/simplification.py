@@ -1,9 +1,11 @@
 import logging
 from typing import Hashable
 
+import networkx as nx
+
 from bcause.models.pgmodel import DiscreteDAGModel
 from bcause.util.arrayutils import as_lists
-from bcause.util.graphutils import dsep_nodes, barren_nodes, remove_nodes
+from bcause.util.graphutils import dsep_nodes, barren_nodes, remove_nodes, disconnected_nodes
 
 
 def minimalize(model:DiscreteDAGModel, target:Hashable, evidence:dict = None) -> DiscreteDAGModel:
@@ -13,7 +15,8 @@ def minimalize(model:DiscreteDAGModel, target:Hashable, evidence:dict = None) ->
     # Determine irrelevant nodes for the query
     dseparated = dsep_nodes(model.graph, target, evidence.keys())
     barren = barren_nodes(model.graph, sum(as_lists(target, evidence.keys()),[]))
-    irrelevant = dseparated | barren
+    disconnected = disconnected_nodes(remove_nodes(model.graph, dseparated | barren), target)
+    irrelevant = dseparated | barren | disconnected
 
     # Remove irrelevant nodes from DAG
     new_dag = remove_nodes(model.graph, irrelevant)

@@ -77,13 +77,13 @@ class VariableElimination(ProbabilisticInference):
         joint = reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
         result = joint / (joint ** self._target)
         self.time = (time.time()-tstart)*1000
-        logging.info(f"Finished Variable elimination in {self.time} ms.")
+        logging.info(f"Finished variable elimination in {self.time} ms.")
         return result
 
 
 class CausalVariableElimination(CausalInference):
     def __init__(self, model: StructuralCausalModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = True):
         prob_inf_fn = lambda m : VariableElimination(m, heuristic, preprocess_flag)
-        super(self.__class__, self).__init__(model, prob_inf_fn)
+        super(self.__class__, self).__init__(model.to_multinomial(), prob_inf_fn)
 
 

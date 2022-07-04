@@ -70,6 +70,18 @@ class DiscreteFactor(Factor):
     def is_degenerate(self):
         return len([x for x in self.values_list if x != 0 and x != 1]) == 0
 
+    def rename_vars(self, names_mapping) -> DiscreteFactor:
+        kwargs = dict()
+        kwargs["data"] = self.values
+        kwargs["domain"] = OrderedDict(
+            [(v, d) if v not in names_mapping else (names_mapping[v], d) for v, d in self.domain.items()])
+
+
+        if isinstance(self, ConditionalFactor):
+            kwargs["left_vars"] = [v if v not in names_mapping else names_mapping[v] for v in self.left_vars]
+            kwargs["right_vars"] = [v if v not in names_mapping else names_mapping[v] for v in self.right_vars]
+
+        return self.builder(**kwargs)
 
     @abstractmethod
     def restrict(self, **observation: Dict) -> DiscreteFactor:
