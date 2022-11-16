@@ -62,7 +62,10 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             raise ValueError("Value not in domain")
         return self.builder(domain=new_dom, data=[left_value])
 
-    def sample(self) -> float:
+    def sample(self, size:int, varnames:bool) -> float:
+        raise NotImplementedError("Method not available")
+
+    def sample_conditional(self, observations:list[Dict], varnames:bool) -> float:
         raise NotImplementedError("Method not available")
 
     def restrict(self, **observation: Dict) -> DeterministicFactor:

@@ -85,3 +85,23 @@ def random_assignment(dom, iterate_vars = None):
 def subdomain(domains, *variables):
     if np.ndim(variables)==0: variables = [variables]
     return {v:domains[v] for v in variables}
+
+
+def identify_true_false(varname, dom):
+
+    dtypes = [type(d) for d in dom]
+
+    if len(dom)>2: raise ValueError("Cannot identify true/false states: non binary domains")
+    if len(set(dtypes))>1: raise ValueError("Cannot identify true/false states: different data types")
+
+    tf = []
+    print(dtypes[0] == str)
+    if dtypes[0] in [int, float]:
+        tf = [d for d in dom if d==True] + [d for d in dom if d==False]
+    elif dtypes[0] == str:
+        tf = [d for d in dom if d.lower() == varname.lower()+"1"] + [d for d in dom if d.lower() == varname.lower()+"0"]
+
+    print(tf)
+    if len(tf)!=2: raise ValueError("Cannot identify true/false states: wrong values or data types")
+
+    return tf[0],tf[1]

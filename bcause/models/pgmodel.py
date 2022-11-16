@@ -6,10 +6,13 @@ from collections.abc import Iterable
 from typing import Union, Dict, Hashable
 
 import networkx as nx
+import pandas as pd
 from networkx import relabel_nodes
 
 import bcause.factors.factor as bf
 import bcause.util.graphutils as gutils
+
+from bcause.models.sampling import forward_sampling
 
 class PGModel(ABC):
 
@@ -137,6 +140,13 @@ class DiscreteDAGModel(PGModel):
         new_factors = [f.rename_vars(names_mapping) for f in self.factors.values()]
         return self.builder(dag=new_dag, factors=new_factors)
 
+
+    def sample(self, n_samples: int, as_pandas = False) -> Union[list[Dict], pd.DataFrame]:
+        logging.info(f"Sampling {n_samples} instances from model")
+        data = forward_sampling(self, n_samples=n_samples)
+        if not as_pandas:
+            data = data.to_dict("records")
+        return data
 
 
 

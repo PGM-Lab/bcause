@@ -25,21 +25,20 @@ class Factor(ABC):
         pass
 
     @abstractmethod
-    def sample(self) -> float:
+    def sample(self, size:int, varnames:bool) -> float:
+        pass
+
+    @abstractmethod
+    def sample_conditional(self, observations:list[Dict], varnames:bool) -> float:
         pass
 
 
 class DiscreteFactor(Factor):
-
-
     def _check_domain(self, domain):
-
         if not isinstance(domain, dict) \
                 or not all([isinstance(v, str) for v in domain.keys()]) \
                 or not all([isinstance(v, list) for v in domain.values()]):
             raise ValueError("Wrong domain format: it must be a dictionary with keys of class str and values of class list.")
-
-
     @property
     def domain(self) -> Dict:
         return self.store.domain

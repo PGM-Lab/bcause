@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 import math
 from collections import OrderedDict
 from functools import reduce
 from typing import Dict, List
 
 import numpy as np
+import pandas as pd
 
 from bcause.factors.values.store import store_dict
 import bcause.factors.factor as bf
@@ -78,10 +80,16 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
 
     def divide(self, other):
-        new_store = self.store.divide(other.store)
-        new_right_vars = [v for v in new_store.variables
-                          if v not in self.left_vars and v not in other.left_vars]
-        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
+        import warnings
+        with warnings.catch_warnings(record=True) as W:
+            new_store = self.store.divide(other.store)
+            new_right_vars = [v for v in new_store.variables
+                              if v not in self.left_vars and v not in other.left_vars]
+            out = self.builder(domain=new_store.domain, data=new_store.data, right_vars=new_right_vars)
+
+            for w in W: logging.warning(f"{w.message}: {self.name}/{other.name}")
+
+        return out
 
     def marginalize(self, *vars_remove) -> MultinomialFactor:
         if len(set(vars_remove).intersection(self._variables))==0: return self
@@ -108,6 +116,14 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         if size < 1:
             raise ValueError("sample size cannot be lower than 1.")
         return [self._sample(varnames=varnames) for _ in range(0,size)]
+
+    def sample_conditional(self, observations : list[Dict], varnames:bool=True) -> List:
+        if len(observations) < 1:
+            raise ValueError("sample size cannot be lower than 1.")
+        df_obs = pd.DataFrame(observations).drop_duplicates()
+        factors = {tuple(val_obs):self.R(**dict(list(zip(list(df_obs.keys()), list(val_obs))))) for val_obs in df_obs.values}
+        return [factors[tuple(obs.values())]._sample(varnames=varnames) for obs in observations]
+
 
     def _sample(self, varnames:bool=True) -> tuple:
         # joint or marginal distribution

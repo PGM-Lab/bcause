@@ -38,5 +38,6 @@ inf = CausalVariableElimination(model)
 p = inf.causal_query("X", do=dict(Y=1))
 
 
-import bcause.factors.values.store as store
+
+MultinomialFactor(dutils.subdomain(domains, "X"), data = [120, 80])
 

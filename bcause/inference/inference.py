@@ -12,6 +12,7 @@ from bcause.models.transform.combination import fusion_roots
 from bcause.util.arrayutils import as_lists
 from bcause.util.assertions import assert_dag_with_nodes
 
+import bcause.util.domainutils as dutils
 
 
 class Inference(ABC):
@@ -19,6 +20,10 @@ class Inference(ABC):
     @property
     def model(self) -> PGModel:
         return self._model
+
+    @property
+    def inference_model(self):
+        return self._inference_model
 
     @abstractmethod
     def _preprocess(self, *args, **kwargs) -> PGModel:
@@ -98,9 +103,11 @@ class CausalInference(Inference):
         self._counterfactual = counterfactual
 
         logging.info(f"Starting causal inference: target={str(target)}  intervention={str(do)} evidence={str(evidence)}")
-        assert_dag_with_nodes(self.model.graph, do.keys())
+        do_vars = list(do.keys()) if isinstance(do,dict) else sum([list(d.keys()) for d in do],[])
+        assert_dag_with_nodes(self.model.graph, do_vars)
 
-        self._inf = self._prob_inf_fn(self._preprocess())
+        self._inference_model = self._preprocess()
+        self._inf = self._prob_inf_fn(self._inference_model)
         self._inf.compile(target, evidence)
         self._compiled = True
 
@@ -133,17 +140,48 @@ class CausalInference(Inference):
     def run(self) -> Factor:
         return self._inf.run()
 
-    def query(self, target, do, evidence=None, counterfactual=False):
+    def query(self, target, do, evidence=None, counterfactual=False, targets_subgraphs = None):
         if counterfactual:
-            if not isinstance(do, dict): raise ValueError("Intervention must be specified in a single dictionary")
-            target = [f"{v}_1" for v in as_lists(target)]
+            #if not isinstance(do, dict): raise ValueError("Intervention must be specified in a single dictionary")
+            target = as_lists(target)
+            targets_subgraphs = targets_subgraphs or [1]*len(target)
+            target = [f"{t[0]}_{t[1]}" for t in zip(target, targets_subgraphs)]
         return self.compile(target, do, evidence,counterfactual).run()
 
     def causal_query(self, target, do, evidence=None):
         return self.query(target, do, evidence=evidence, counterfactual=False)
 
-    def counterfactual_query(self, target, do, evidence):
-        return self.query(target, do, evidence=evidence, counterfactual=True)
+    def counterfactual_query(self, target, do, evidence=None, targets_subgraphs = None):
+        return self.query(target, do, evidence=evidence, counterfactual=True, targets_subgraphs=targets_subgraphs)
 
-    def prob_necessity_sufficiency(self, cause, effect, true_states:dict=None, false_states:dict=None):
+    def prob_necessity_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         pass
+    def prob_necessity(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
+        # PN: P(X_{Y=f} = f |X=t, Y=t)   Y->X
+
+        # Determine the true and false states
+        Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
+        Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
+
+        # Run the query
+        return self.counterfactual_query(
+            effect,
+            do={cause: Fcause},
+            evidence={cause: Tcause, effect: Teffect}
+        ).get_value(**{effect: Feffect})
+
+    def prob_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
+        # PS: P(X_{Y=t} = t |X=f, Y=f)   Y->X
+
+        # Determine the true and false states
+        Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
+        Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
+
+        # Run the query
+        return self.counterfactual_query(
+            effect,
+            do={cause: Tcause},
+            evidence={cause: Fcause, effect: Feffect}
+        ).get_value(**{effect: Teffect})
+
+

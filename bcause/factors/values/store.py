@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from functools import reduce
@@ -489,6 +490,8 @@ class GenericOperations(OperationSet):
 
     @staticmethod
     def divide(store: DataStore, other: DataStore) -> DataStore:
+        print(store.data)
+        print(other.data)
         return GenericOperations._generic_combine(store, other, lambda x, y: x / y)
 
 
@@ -549,7 +552,10 @@ class NumpyStoreOperations(OperationSet):
 
     @staticmethod
     def divide(store: DataStore, other: DataStore) -> DataStore:
-        return NumpyStoreOperations._generic_combine(store, other, lambda x, y: x / y)
+        return NumpyStoreOperations._generic_combine(store, other, lambda x, y: np.nan_to_num(x / y))
+
+
+
 
 
 

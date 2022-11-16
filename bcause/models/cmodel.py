@@ -4,7 +4,7 @@ import logging
 from typing import Dict, Union, Hashable, Iterable
 
 import networkx as nx
-from networkx import relabel_nodes
+from networkx import relabel_nodes, DiGraph
 
 import bcause.util.domainutils as dutils
 import bcause.util.graphutils as gutils
@@ -41,6 +41,37 @@ class DiscreteCausalDAGModel(DiscreteDAGModel):
         return [x for x in m.get_parents(variable) if m.is_exogenous(x)]
     def get_exogenous_children(self, variable):
         return [x for x in m.get_children(variable) if m.is_exogenous(x)]
+
+
+    @property
+    def endo_graph(self):
+        return self.graph.subgraph(self.endogenous)
+
+    @property
+    def exo_graph(self):
+        exo_edges = [(x,y) for x,y in self.graph.edges if self.is_exogenous(x)]
+        return DiGraph(self.graph.edge_subgraph(exo_edges).edges)
+
+    @property
+    def ccomponents(self):
+        return list(nx.connected_components(self.exo_graph.to_undirected()))
+
+    @property
+    def exo_ccomponents(self):
+        return [set(c).intersection(self.exogenous) for c in self.ccomponents]
+
+    @property
+    def endo_ccomponents(self):
+        return [set(c).intersection(self.endogenous) for c in self.ccomponents]
+
+    def get_ccomponent(self, v:Hashable):
+        return nx.node_connected_component(self.exo_graph.to_undirected(), v)
+
+    def get_exo_ccomponent(self, v:Hashable):
+        return self.get_ccomponent(v).intersection(self.exogenous)
+
+    def get_endo_ccomponent(self, v:Hashable):
+        return self.get_ccomponent(v).intersection(self.endogenous)
 
 
 class StructuralCausalModel(DiscreteCausalDAGModel):
@@ -96,6 +127,12 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
 
 if __name__ == "__main__":
 
+    import networkx as nx
+    import bcause.factors.factor as bf
+    import bcause.util.domainutils as dutils
+    import bcause.util.graphutils as gutils
+
+
     dag = nx.DiGraph([("Y" ,"X"), ("V" ,"Y"), ("U" ,"X")])
     domains = dict(X=["x1", "x2"], Y=[0, 1], U=["u1", "u2", "u3", "u4"], V=[True, False])
 
@@ -116,10 +153,12 @@ if __name__ == "__main__":
     domu = dutils.subdomain(domains, "U")
     pu = MultinomialFactor(domu, data = [.2, .2, .1, .5])
 
-    m = StructuralCausalModel(dag, [fx, fy, pu, pv], endogenous=["X"], cast_multinomial=False)
+    m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=False)
+
+    print(m.endo_ccomponents)
+    print(m.exo_ccomponents)
 
 
-    model = m
 #
 
 
