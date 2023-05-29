@@ -93,7 +93,7 @@ class AbastractExpectationMaximization(IterativeParameterLearning):
         def get_pcounts(v):
             pa = self.prior_model.get_parents(v)
             dom = dutils.subdomain(self.prior_model.domains, *([v] + pa))
-            return MultinomialFactor(dom, data=0)
+            return MultinomialFactor(dom, values=0)
 
         return {v:get_pcounts(v) for v in self.trainable_vars}
 
@@ -169,19 +169,19 @@ if __name__ == "__main__":
 
 
     domy = dutils.subdomain(domains, *gutils.relevat_vars(dag, "Y"))
-    fy = DeterministicFactor(domy, right_vars = ["V"], data=[1,0])
+    fy = DeterministicFactor(domy, right_vars = ["V"], values=[1, 0])
 
     domx = dutils.subdomain(domains, *gutils.relevat_vars(dag, "X"))
 
     # todo: check data shape for this
     values = ["x1", "x1", "x2", "x1","x1", "x1", "x2", "x1"]
-    fx = DeterministicFactor(domx, left_vars = ["X"], data=values)
+    fx = DeterministicFactor(domx, left_vars = ["X"], values=values)
 
     domv = dutils.subdomain(domains, "V")
-    pv = MultinomialFactor(domv, data = [.1, .9])
+    pv = MultinomialFactor(domv, values= [.1, .9])
 
     domu = dutils.subdomain(domains, "U")
-    pu = MultinomialFactor(domu, data = [.2, .2, .1, .5])
+    pu = MultinomialFactor(domu, values= [.2, .2, .1, .5])
 
     m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 

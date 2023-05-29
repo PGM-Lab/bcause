@@ -140,19 +140,19 @@ if __name__ == "__main__":
     import bcause.factors.factor as bf
 
     domy = dutils.subdomain(domains, *gutils.relevat_vars(dag, "Y"))
-    fy = DeterministicFactor(domy, right_vars = ["V"], data=[1,0])
+    fy = DeterministicFactor(domy, right_vars = ["V"], values=[1, 0])
 
     domx = dutils.subdomain(domains, *gutils.relevat_vars(dag, "X"))
 
     # todo: check data shape for this
     data = ["x1", "x1", "x2", "x1","x1", "x1", "x2", "x1"]
-    fx = DeterministicFactor(domx, left_vars = ["X"], data=data)
+    fx = DeterministicFactor(domx, left_vars = ["X"], values=data)
 
     domv = dutils.subdomain(domains, "V")
-    pv = MultinomialFactor(domv, data = [.1, .9])
+    pv = MultinomialFactor(domv, values= [.1, .9])
 
     domu = dutils.subdomain(domains, "U")
-    pu = MultinomialFactor(domu, data = [.2, .2, .1, .5])
+    pu = MultinomialFactor(domu, values= [.2, .2, .1, .5])
 
     m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=False)
 

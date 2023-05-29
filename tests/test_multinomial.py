@@ -15,9 +15,9 @@ def build_factors(vtype):
     domain = dict(A=["a1", "a2"], B=[0, 1, 3])
 
     # testing factors
-    marg = MultinomialFactor(dict(A=["a1", "a2"]), data=[0.2, 0.8], vtype=vtype)
-    cond = MultinomialFactor(domain, data=[[0.2, 0.1, 0.7], [0.3, 0.6, 0.1]], right_vars=["A"], vtype=vtype)
-    join = MultinomialFactor(domain, data = [[0.1, 0.15, 0.15], [0.2, 0.4, 0.0]], vtype=vtype)
+    marg = MultinomialFactor(dict(A=["a1", "a2"]), values=[0.2, 0.8], vtype=vtype)
+    cond = MultinomialFactor(domain, values=[[0.2, 0.1, 0.7], [0.3, 0.6, 0.1]], right_vars=["A"], vtype=vtype)
+    join = MultinomialFactor(domain, values= [[0.1, 0.15, 0.15], [0.2, 0.4, 0.0]], vtype=vtype)
 
     return cond, marg, join
 

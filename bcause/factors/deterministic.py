@@ -18,16 +18,16 @@ import bcause.factors.factor as bf
 
 class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
-    def __init__(self, domain: Dict, data, left_vars:list=None, right_vars:list=None, vtype="numpy"):
+    def __init__(self, domain: Dict, values, left_vars:list=None, right_vars:list=None, vtype="numpy"):
 
         self._domain = OrderedDict(domain)
         self.set_variables(list(domain.keys()), left_vars, right_vars)
 
         if len(self.left_vars)!=1: raise ValueError("Wrong number of left variables")
 
-        if np.ndim(data)==1: data = np.reshape(data, [len(d) for d in self.right_domain.values()])
+        if np.ndim(values)==1: values = np.reshape(values, [len(d) for d in self.right_domain.values()])
 
-        self._store = store_dict[vtype](data=data, domain=self.right_domain)
+        self._store = store_dict[vtype](data=values, domain=self.right_domain)
         self.vtype = vtype
 
         def builder(**kwargs):
@@ -48,8 +48,8 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
     def to_multinomial(self, as_int=False):
         logging.debug(f"Casting deterministic function {self.name} to multinomial")
         cast = int if as_int else float
-        data = [cast(self.eval(**obs)) for obs in dutils.assingment_space(self.domain)]
-        return MultinomialFactor(self.domain, right_vars=self.right_vars, data=data, vtype=self.vtype)
+        values = [cast(self.eval(**obs)) for obs in dutils.assingment_space(self.domain)]
+        return MultinomialFactor(self.domain, right_vars=self.right_vars, values=values, vtype=self.vtype)
 
     def to_values_array(self, var_order = None) -> np.array:
         return super().to_values_array(var_order or self.right_vars)
@@ -60,7 +60,7 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             raise ValueError("Only one varible on the left is allowed")
         if left_value not in new_dom[self.left_vars[0]]:
             raise ValueError("Value not in domain")
-        return self.builder(domain=new_dom, data=[left_value])
+        return self.builder(domain=new_dom, values=[left_value])
 
     def sample(self, size:int, varnames:bool) -> float:
         raise NotImplementedError("Method not available")

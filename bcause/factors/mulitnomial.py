@@ -17,16 +17,16 @@ from bcause.util.arrayutils import normalize_array, set_value
 
 
 class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
-    def __init__(self, domain:Dict, data, left_vars:list=None, right_vars:list=None, vtype="numpy"):
+    def __init__(self, domain:Dict, values, left_vars:list=None, right_vars:list=None, vtype="numpy"):
 
         self._check_domain(domain)
 
         shape = [len(d) for d in domain.values()]
-        if np.ndim(data)==0:
-            data = [data]*int(np.prod(shape))
-        if np.ndim(data)==1: data = np.reshape(data, shape)
+        if np.ndim(values)==0:
+            values = [values] * int(np.prod(shape))
+        if np.ndim(values)==1: values = np.reshape(values, shape)
 
-        self._store = store_dict[vtype](data=data, domain=domain)
+        self._store = store_dict[vtype](data=values, domain=domain)
         self.set_variables(list(domain.keys()), left_vars, right_vars)
         self.vtype = vtype
 
@@ -52,7 +52,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         new_data = [0.0] * len(states)
         new_data[states.index(left_value)] = 1.0
 
-        return self.builder(domain=new_dom, data=new_data)
+        return self.builder(domain=new_dom, values=new_data)
 
 
     # Factor operations
@@ -60,26 +60,26 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         if len(set(observation.keys()).intersection(self._variables))==0: return self
         new_store = self.store.restrict(**observation)
         new_right_vars = [v for v in new_store.variables if v in self.right_vars]
-        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, values=new_store.data, right_vars = new_right_vars)
 
 
     def multiply(self, other):
         new_store = self.store.multiply(other.store)
         new_right_vars = [v for v in new_store.variables
                           if v not in self.left_vars and v not in other.left_vars]
-        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, values=new_store.data, right_vars = new_right_vars)
 
     def addition(self, other):
         new_store = self.store.addition(other.store)
         new_right_vars = [v for v in new_store.variables
                           if v not in self.left_vars and v not in other.left_vars]
-        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, values=new_store.data, right_vars = new_right_vars)
 
     def subtract(self, other):
         new_store = self.store.subtract(other.store)
         new_right_vars = [v for v in new_store.variables
                           if v not in self.left_vars and v not in other.left_vars]
-        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, values=new_store.data, right_vars = new_right_vars)
 
     def divide(self, other):
         import warnings
@@ -87,7 +87,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             new_store = self.store.divide(other.store)
             new_right_vars = [v for v in new_store.variables
                               if v not in self.left_vars and v not in other.left_vars]
-            out = self.builder(domain=new_store.domain, data=new_store.data, right_vars=new_right_vars)
+            out = self.builder(domain=new_store.domain, values=new_store.data, right_vars=new_right_vars)
 
             for w in W: logging.warning(f"{w.message}: {self.name}/{other.name}")
 
@@ -97,14 +97,14 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         if len(set(vars_remove).intersection(self._variables))==0: return self
         new_store = self.store.marginalize(*vars_remove)
         new_right_vars = [v for v in new_store.variables if v in self.right_vars]
-        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, values=new_store.data, right_vars = new_right_vars)
 
 
     def maxmarginalize(self, *vars_remove) -> MultinomialFactor:
         if len(set(vars_remove).intersection(self._variables))==0: return self
         new_store = self.store.maxmarginalize(*vars_remove)
         new_right_vars = [v for v in new_store.variables if v in self.right_vars]
-        return self.builder(domain=new_store.domain, data=new_store.data, right_vars = new_right_vars)
+        return self.builder(domain=new_store.domain, values=new_store.data, right_vars = new_right_vars)
 
 
 
@@ -195,20 +195,20 @@ def random_multinomial(domain:Dict, right_vars:list=None, vtype="numpy"):
     right_vars = right_vars or []
     left_dims = [i for i,v in enumerate(domain.keys()) if v not in right_vars]
     data = normalize_array(np.random.uniform(0,1, size=[len(d) for d in domain.values()]), axis=left_dims)
-    return MultinomialFactor(domain=domain, data=data, right_vars=right_vars, vtype=vtype)
+    return MultinomialFactor(domain=domain, values=data, right_vars=right_vars, vtype=vtype)
 
 
 def uniform_multinomial(domain:Dict, right_vars:list=None, vtype="numpy"):
     right_vars = right_vars or []
     left_dims = [i for i,v in enumerate(domain.keys()) if v not in right_vars]
     data = normalize_array(np.ones([len(d) for d in domain.values()]), axis=left_dims)
-    return MultinomialFactor(domain=domain, data=data, right_vars=right_vars, vtype=vtype)
+    return MultinomialFactor(domain=domain, values=data, right_vars=right_vars, vtype=vtype)
 
 def random_deterministic(dom:Dict, right_vars:list=None, vtype="numpy"):
     data = np.zeros([len(d) for d in dom.values()])
     for idx in [list(s.values()) for s in random_assignment(to_numeric_domains(dom), right_vars)]:
         set_value(1., data, idx)
-    return MultinomialFactor(domain=dom, right_vars=right_vars, data=data, vtype=vtype)
+    return MultinomialFactor(domain=dom, right_vars=right_vars, values=data, vtype=vtype)
 
 
 if __name__ == "__main__":
@@ -221,6 +221,6 @@ if __name__ == "__main__":
     data=np.array([[0.5, .4, 1.0], [0.3, 0.6, 0.1]])
     f = MultinomialFactor(domain, data, right_vars=["A"])
 
-    f2 = MultinomialFactor(left_domain, data = [0.1, 0.9])
+    f2 = MultinomialFactor(left_domain, values= [0.1, 0.9])
     f - f2
 

@@ -4,6 +4,8 @@ from itertools import product
 
 import numpy as np
 
+from bcause.util.graphutils import relevat_vars
+
 
 def state_space(domain:Dict):
     return list(product(*list(domain.values())))
@@ -85,6 +87,9 @@ def random_assignment(dom, iterate_vars = None):
 def subdomain(domains, *variables):
     if np.ndim(variables)==0: variables = [variables]
     return {v:domains[v] for v in variables}
+
+def var_parents_domain(domains, dag, var):
+    return subdomain(domains, *relevat_vars(dag, var))
 
 
 def identify_true_false(varname, dom):
