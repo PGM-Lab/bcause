@@ -30,10 +30,14 @@ fx = DeterministicFactor(domx, left_vars=["X"], data=data)
 domv = dutils.subdomain(domains, "V")
 pv = MultinomialFactor(domv, data=[.1, .9])
 
+
 domu = dutils.subdomain(domains, "U")
 pu = MultinomialFactor(domu, data=[.2, .2, .1, .5])
 
 model = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
+
+model.factors
+
 inf = CausalVariableElimination(model)
 p = inf.causal_query("X", do=dict(Y=1))
 

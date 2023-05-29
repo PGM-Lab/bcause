@@ -403,8 +403,10 @@ class TreeStore(DiscreteStore):
         return out
 
 
-store_dict = {"numpy": NumpyStore,"numpy1d": Numpy1DStore, "list":ListStore, "tree":TreeStore}
+store_dict = {"numpy": NumpyStore,"numpy1d": Numpy1DStore, "list":ListStore}#, "tree":TreeStore}
 __ALL__ = list(store_dict.keys())
+
+
 
 ####### operations
 

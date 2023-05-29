@@ -148,6 +148,9 @@ class DiscreteDAGModel(PGModel):
             data = data.to_dict("records")
         return data
 
+    def copy(self):
+        return self.builder(dag=self.graph, factors=self.factors)
+
 
 
 

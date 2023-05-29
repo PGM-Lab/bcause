@@ -17,12 +17,14 @@ from bcause.util.arrayutils import normalize_array, set_value
 
 
 class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
-
     def __init__(self, domain:Dict, data, left_vars:list=None, right_vars:list=None, vtype="numpy"):
 
         self._check_domain(domain)
 
-        if np.ndim(data)==1: data = np.reshape(data, [len(d) for d in domain.values()])
+        shape = [len(d) for d in domain.values()]
+        if np.ndim(data)==0:
+            data = [data]*int(np.prod(shape))
+        if np.ndim(data)==1: data = np.reshape(data, shape)
 
         self._store = store_dict[vtype](data=data, domain=domain)
         self.set_variables(list(domain.keys()), left_vars, right_vars)

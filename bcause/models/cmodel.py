@@ -85,6 +85,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
 
     def builder(self, **kwargs):
         if "cast_multinomial" not in kwargs: kwargs["cast_multinomial"] = self._cast_multinomial
+        if "endogenous" not in kwargs: kwargs["endogenous"] = self.endogenous
         return StructuralCausalModel(**kwargs)
 
 
