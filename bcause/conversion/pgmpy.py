@@ -17,10 +17,14 @@ def toMultinomialFactor(factor : pfd.TabularCPD, vtype="numpy") -> bfd.Multinomi
 def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
     v = list(f.left_domain.keys())[0]
     card = f.store.cardinality_dict
+    values = f.to_values_array()
+    if np.ndim(values)<2:
+        values = np.expand_dims(values, axis=0)
+
     args = dict(
         variable = v,
         variable_card = card[v],
-        values = f.to_values_array().T,
+        values = values.T,
         state_names = f.domain
     )
 

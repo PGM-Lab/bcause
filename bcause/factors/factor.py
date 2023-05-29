@@ -72,7 +72,7 @@ class DiscreteFactor(Factor):
 
     def rename_vars(self, names_mapping) -> DiscreteFactor:
         kwargs = dict()
-        kwargs["data"] = self.values
+        kwargs["values"] = self.values
         kwargs["domain"] = OrderedDict(
             [(v, d) if v not in names_mapping else (names_mapping[v], d) for v, d in self.domain.items()])
 

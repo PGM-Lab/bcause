@@ -41,10 +41,14 @@ pu = MultinomialFactor(domu, values=[.2, .2, .6, .0])
 
 model = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 
-
 # Run causal inference with Variable Elimination
 cve = CausalVariableElimination(model)
 p = cve.causal_query("Y", do=dict(X="x1"))
+
+# Run a counterfactual query
+cve.counterfactual_query("Y",do=dict(X="x1"), evidence=dict(X="x1"))
+
+
 
 # Run Variable elimination as if is a Bayesian network
 ve = VariableElimination(model)

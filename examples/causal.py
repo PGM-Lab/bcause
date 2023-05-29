@@ -38,6 +38,8 @@ model = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 
 model.factors
 
+
+
 inf = CausalVariableElimination(model)
 p = inf.causal_query("X", do=dict(Y=1))
 
