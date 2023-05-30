@@ -10,7 +10,7 @@ from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.plotutils import plot_3d
 
 log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
+logging.basicConfig(level=logging.INFO, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
 
 ## Example model
@@ -30,7 +30,8 @@ model = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 
 ## Example of empirical distribution
 import numpy as np
-py_x = MultinomialFactor(dutils.subdomain(domains, "X","Y"), [.4,.6,.6,.4])
+py_x = MultinomialFactor(dutils.subdomain(domains, "X","Y"), right_vars=["X"], values=[.4,.6,.6,.4]) # DATA
+
 
 
 # Fake optimizer
