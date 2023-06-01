@@ -22,7 +22,7 @@ def len_iterable(it:Iterable):
 def set_value(value, data, idx):
     d = data
     for i in range(np.ndim(data) - 1):
-        d = data[idx[i]]
+        d = d[idx[i]]
     d[idx[-1]] = value
 
 def as_lists(*args):

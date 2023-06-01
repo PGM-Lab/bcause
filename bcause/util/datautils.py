@@ -2,7 +2,7 @@ from bcause.factors import MultinomialFactor
 import bcause.util.domainutils as dutils
 
 
-def to_counts(domains, data=None):
+def to_counts(domains, data=None, normalize=False):
     domains = domains.copy()
     if data is not None:
         data = data[list(domains.keys())]
@@ -17,4 +17,13 @@ def to_counts(domains, data=None):
         dcounts = dict()
 
     data_counts = [0 if k not in dcounts else dcounts[k] for k in dutils.state_space(domains)]
+    if normalize:
+        N = sum(data_counts)
+        data_counts = [c/N for c in data_counts]
     return MultinomialFactor(domains, data_counts)
+
+
+def filter_data(data, obs):
+    for k,v in obs.items():
+        data = data.loc[data[k]==v]
+    return data

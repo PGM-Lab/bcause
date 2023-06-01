@@ -1,17 +1,20 @@
 from __future__ import annotations
 
+import itertools
 import logging
 from typing import Dict, Union, Hashable, Iterable
 
 import networkx as nx
-from networkx import relabel_nodes, DiGraph
 
-import bcause.util.domainutils as dutils
-import bcause.util.graphutils as gutils
+from networkx import relabel_nodes, DiGraph, topological_sort
+
+import bcause.models.info as info
 
 from bcause.factors import DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor
+from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, random_deterministic
+from bcause.models import BayesianNetwork
 from bcause.models.pgmodel import DiscreteDAGModel
+import bcause.util.domainutils as dutils
 
 
 import bcause.factors.factor as bf
@@ -34,13 +37,13 @@ class DiscreteCausalDAGModel(DiscreteDAGModel):
         return x not in self.endogenous
 
     def get_edogenous_parents(self, variable):
-        return [x for x in m.get_parents(variable) if m.is_endogenous(x)]
+        return [x for x in self.get_parents(variable) if self.is_endogenous(x)]
     def get_edogenous_children(self, variable):
-        return [x for x in m.get_children(variable) if m.is_endogenous(x)]
+        return [x for x in self.get_children(variable) if self.is_endogenous(x)]
     def get_exogenous_parents(self, variable):
-        return [x for x in m.get_parents(variable) if m.is_exogenous(x)]
+        return [x for x in self.get_parents(variable) if self.is_exogenous(x)]
     def get_exogenous_children(self, variable):
-        return [x for x in m.get_children(variable) if m.is_exogenous(x)]
+        return [x for x in self.get_children(variable) if self.is_exogenous(x)]
 
 
     @property
@@ -65,13 +68,20 @@ class DiscreteCausalDAGModel(DiscreteDAGModel):
         return [set(c).intersection(self.endogenous) for c in self.ccomponents]
 
     def get_ccomponent(self, v:Hashable):
-        return nx.node_connected_component(self.exo_graph.to_undirected(), v)
+        return info.get_ccomponent(self,v)
 
     def get_exo_ccomponent(self, v:Hashable):
-        return self.get_ccomponent(v).intersection(self.exogenous)
+        return info.get_exo_ccomponent(self,v)
 
     def get_endo_ccomponent(self, v:Hashable):
-        return self.get_ccomponent(v).intersection(self.endogenous)
+        return info.get_endo_ccomponent(self, v)
+
+    @property
+    def qgraph(self):
+        return info.get_qgraph(self)
+
+
+
 
 
 class StructuralCausalModel(DiscreteCausalDAGModel):
@@ -116,6 +126,31 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         new_endogenous = [names_mapping[x] for x in self.endogenous]
         return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=new_endogenous, cast_multinomial=self._cast_multinomial)
 
+    def fill_random_equations(self, domains):
+        for x in self.endogenous:
+            dom = dutils.var_parents_domain(domains, self.graph, x)
+            f = random_deterministic(dom, [v for v in dom.keys() if x != v])
+            self.set_factor(x, f)
+
+    def fill_random_marginals(self, domains):
+        for u in self.exogenous:
+            dom = dutils.subdomain(domains, u)
+            f = random_multinomial(dom)
+            self.set_factor(u, f)
+
+    def fill_random_factors(self, domains):
+        self.fill_random_equations(domains)
+        self.fill_random_marginals(domains)
+
+    def get_qfactors(self, v: Hashable, data=None):
+        return info.get_qfactors(self, v, data)
+
+    def get_qfactorisation(self, data=None):
+        return dict(itertools.chain(*(self.get_qfactors(c.pop(), data).items() for c in self.ccomponents)))
+
+
+    def get_endo_bnet(self, data=None):
+        return BayesianNetwork(self.qgraph, self.get_qfactorisation(data))
 
 
     def __repr__(self):
@@ -124,6 +159,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         str_card_exo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"
                                   for v, d in self._domains.items() if self.is_exogenous(v)])
         return f"<StructuralCausalModel ({str_card_endo}|{str_card_exo}), dag={gutils.dag2str(self.graph)}>"
+
 
 
 if __name__ == "__main__":

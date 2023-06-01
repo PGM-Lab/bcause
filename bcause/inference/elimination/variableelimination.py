@@ -7,15 +7,12 @@ from abc import ABC, abstractmethod
 from functools import reduce
 from typing import Callable, Union
 
-from bcause.factors.factor import Factor
 from bcause.factors.mulitnomial import MultinomialFactor
 from bcause.inference.elimination.ordering import min_weight_heuristic, Heuristic, heuristic_functions
 from bcause.inference.inference import ProbabilisticInference, CausalInference
-from bcause.models.bnet import BayesianNetwork
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.models.pgmodel import PGModel, DiscreteDAGModel
 from bcause.models.transform.simplification import minimalize
-from bcause.util.assertions import assert_dag_with_nodes
 
 
 

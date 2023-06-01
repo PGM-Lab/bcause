@@ -86,7 +86,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         with warnings.catch_warnings(record=True) as W:
             new_store = self.store.divide(other.store)
             new_right_vars = [v for v in new_store.variables
-                              if v not in self.left_vars and v not in other.left_vars]
+                              if v in self.right_vars or v in other.variables]
             out = self.builder(domain=new_store.domain, values=new_store.data, right_vars=new_right_vars)
 
             for w in W: logging.warning(f"{w.message}: {self.name}/{other.name}")
