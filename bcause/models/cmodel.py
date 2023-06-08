@@ -15,7 +15,7 @@ from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, ra
 from bcause.models import BayesianNetwork
 from bcause.models.pgmodel import DiscreteDAGModel
 import bcause.util.domainutils as dutils
-
+import bcause.util.graphutils as gutils
 
 import bcause.factors.factor as bf
 

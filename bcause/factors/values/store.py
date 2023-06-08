@@ -14,7 +14,10 @@ from bcause.util.treesutil import build_default_tree, treeNode
 
 
 class DataStore(ABC):
-    pass
+    DEFAULT_STORE = "numpy"
+    @classmethod
+    def set_default(cls, vtype:str):
+        cls.DEFAULT_STORE = vtype
 
 class DiscreteStore(DataStore):
 

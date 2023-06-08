@@ -9,7 +9,7 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
-from bcause.factors.values.store import store_dict
+from bcause.factors.values.store import store_dict, DataStore
 import bcause.factors.factor as bf
 #from . import DiscreteFactor
 from bcause.util.domainutils import assingment_space, state_space, steps, random_assignment, to_numeric_domains
@@ -17,7 +17,8 @@ from bcause.util.arrayutils import normalize_array, set_value
 
 
 class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
-    def __init__(self, domain:Dict, values, left_vars:list=None, right_vars:list=None, vtype="numpy"):
+    def __init__(self, domain:Dict, values, left_vars:list=None, right_vars:list=None, vtype=None):
+        vtype = vtype or DataStore.DEFAULT_STORE
 
         self._check_domain(domain)
 
@@ -191,20 +192,23 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
                f"values=[{self.store.values_str()}]>"
 
 
-def random_multinomial(domain:Dict, right_vars:list=None, vtype="numpy"):
+def random_multinomial(domain:Dict, right_vars:list=None, vtype=None):
+    vtype = vtype or DataStore.DEFAULT_STORE
     right_vars = right_vars or []
     left_dims = [i for i,v in enumerate(domain.keys()) if v not in right_vars]
     data = normalize_array(np.random.uniform(0,1, size=[len(d) for d in domain.values()]), axis=left_dims)
     return MultinomialFactor(domain=domain, values=data, right_vars=right_vars, vtype=vtype)
 
 
-def uniform_multinomial(domain:Dict, right_vars:list=None, vtype="numpy"):
+def uniform_multinomial(domain:Dict, right_vars:list=None, vtype=None):
+    vtype = vtype or DataStore.DEFAULT_STORE
     right_vars = right_vars or []
     left_dims = [i for i,v in enumerate(domain.keys()) if v not in right_vars]
     data = normalize_array(np.ones([len(d) for d in domain.values()]), axis=left_dims)
     return MultinomialFactor(domain=domain, values=data, right_vars=right_vars, vtype=vtype)
 
-def random_deterministic(dom:Dict, right_vars:list=None, vtype="numpy"):
+def random_deterministic(dom:Dict, right_vars:list=None, vtype=None):
+    vtype = vtype or DataStore.DEFAULT_STORE
     data = np.zeros([len(d) for d in dom.values()])
     for idx in [list(s.values()) for s in random_assignment(to_numeric_domains(dom), right_vars)]:
         set_value(1., data, idx)
