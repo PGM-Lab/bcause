@@ -4,6 +4,7 @@ import os
 from pgmpy.readwrite import BIFReader, XMLBIFReader
 
 from bcause.conversion.pgmpy import toBCauseBNet
+from bcause.factors.values.store import DataStore
 from bcause.util.assertions import assert_file_exists
 
 
@@ -14,8 +15,10 @@ def __read(reader, file, vtype):
     logging.debug(f"Loaded {model}")
     return model
 
-def fromBIF(file, vtype="numpy"):
+def fromBIF(file, vtype=None):
+    vtype = vtype or DataStore.DEFAULT_STORE
     return __read(BIFReader, file, vtype)
 
-def fromXMLBIF(file, vtype="numpy"):
+def fromXMLBIF(file, vtype=None):
+    vtype = vtype or DataStore.DEFAULT_STORE
     return __read(XMLBIFReader, file, vtype)

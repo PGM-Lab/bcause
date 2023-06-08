@@ -9,16 +9,15 @@ import numpy as np
 import bcause.util.domainutils as dutils
 
 from bcause.factors import MultinomialFactor
-from bcause.factors.values.store import store_dict
-
-
+from bcause.factors.values.store import store_dict, DataStore
 
 import bcause.factors.factor as bf
 
 
 class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
-    def __init__(self, domain: Dict, values, left_vars:list=None, right_vars:list=None, vtype="numpy"):
+    def __init__(self, domain: Dict, values, left_vars:list=None, right_vars:list=None, vtype=None):
+        vtype = vtype or DataStore.DEFAULT_STORE
 
         self._domain = OrderedDict(domain)
         self.set_variables(list(domain.keys()), left_vars, right_vars)
@@ -51,8 +50,8 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         values = [cast(self.eval(**obs)) for obs in dutils.assingment_space(self.domain)]
         return MultinomialFactor(self.domain, right_vars=self.right_vars, values=values, vtype=self.vtype)
 
-    def to_values_array(self, var_order = None) -> np.array:
-        return super().to_values_array(var_order or self.right_vars)
+    def values_array(self, var_order = None) -> np.array:
+        return super().values_array(var_order or self.right_vars)
 
     def constant(self, left_value):
         new_dom = self.left_domain

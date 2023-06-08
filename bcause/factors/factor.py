@@ -59,7 +59,7 @@ class DiscreteFactor(Factor):
     def values_dict(self) -> Dict:
         return self.store.values_dict
 
-    def to_values_array(self, var_order = None) -> np.array:
+    def values_array(self, var_order = None) -> np.array:
         var_order  = var_order or list(self.domain.keys())
         dom_order = OrderedDict([(v,self.domain[v]) for v in var_order])
         shape = [len(dom_order[v]) for v in var_order]

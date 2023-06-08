@@ -5,10 +5,12 @@ from networkx import DiGraph
 
 import bcause.models as bm
 import bcause.factors as bfd
+from bcause.factors.values.store import DataStore
 from bcause.util.domainutils import assingment_space
 
 
-def toMultinomialFactor(factor : pfd.TabularCPD, vtype="numpy") -> bfd.MultinomialFactor:
+def toMultinomialFactor(factor : pfd.TabularCPD, vtype=None) -> bfd.MultinomialFactor:
+    vtype = vtype or DataStore.DEFAULT_STORE
     domain = factor.state_names
     data = np.reshape([factor.get_value(**s) for s in assingment_space(domain)], factor.cardinality)
     right_vars = [v for v in factor.variables if v != factor.variable]
@@ -17,7 +19,7 @@ def toMultinomialFactor(factor : pfd.TabularCPD, vtype="numpy") -> bfd.Multinomi
 def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
     v = list(f.left_domain.keys())[0]
     card = f.store.cardinality_dict
-    values = f.to_values_array()
+    values = f.values_array()
     if np.ndim(values)<2:
         values = np.expand_dims(values, axis=0)
 
@@ -36,7 +38,8 @@ def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
     return pfd.TabularCPD(**args)
 
 
-def toBCauseBNet(orig : pm.BayesianNetwork, vtype="numpy") -> bm.BayesianNetwork:
+def toBCauseBNet(orig : pm.BayesianNetwork, vtype=None) -> bm.BayesianNetwork:
+    vtype = vtype or DataStore.DEFAULT_STORE
     dag = DiGraph(orig.in_edges)
     factors = {f.variable:toMultinomialFactor(f, vtype) for f in orig.cpds}
     return bm.BayesianNetwork(dag, factors)

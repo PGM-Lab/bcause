@@ -49,7 +49,6 @@ p = cve.causal_query("Y", do=dict(X="x1"))
 cve.counterfactual_query("Y",do=dict(X="x1"), evidence=dict(X="x1"))
 
 
-
 # Run Variable elimination as if is a Bayesian network
 ve = VariableElimination(model)
 ve.query("X") # P(X)
