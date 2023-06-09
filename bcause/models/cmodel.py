@@ -4,8 +4,6 @@ import itertools
 import logging
 from typing import Dict, Union, Hashable, Iterable
 
-import networkx as nx
-
 from networkx import relabel_nodes, DiGraph, topological_sort
 
 import bcause.models.info as info
@@ -21,13 +19,25 @@ import bcause.factors.factor as bf
 
 
 class DiscreteCausalDAGModel(DiscreteDAGModel):
+    '''
+    Parent class for the causal models over discrete variables with a directed acyclic structure
+    '''
+
 
     @property
     def endogenous(self):
+        '''
+        Endogenous variables
+        :return: list with all the endogenous variables in the model
+        '''
         return self._endogenous
 
     @property
     def exogenous(self):
+        '''
+        Exogenous variables
+        :return: list with all the exogenous variables in the model
+        '''
         return [v for v in self.graph.nodes if v not in self.endogenous]
 
     def is_endogenous(self, x):
@@ -48,36 +58,75 @@ class DiscreteCausalDAGModel(DiscreteDAGModel):
 
     @property
     def endo_graph(self):
+        '''
+        Graph with only the endogenous variables
+        :return: object of class nx.DiGraph
+        '''
         return self.graph.subgraph(self.endogenous)
 
     @property
     def exo_graph(self):
+        '''
+        Graph with only the exogenous variables
+        :return: object of class nx.DiGraph
+        '''
         exo_edges = [(x,y) for x,y in self.graph.edges if self.is_exogenous(x)]
         return DiGraph(self.graph.edge_subgraph(exo_edges).edges)
 
     @property
     def ccomponents(self):
+        '''
+        List of all the connected components in the causal model
+        :return: List of sets of variables
+        '''
         return list(nx.connected_components(self.exo_graph.to_undirected()))
 
     @property
     def exo_ccomponents(self):
+        '''
+        List of all the exogenous variables at each connected component in the causal model
+        :return: List of sets of variables
+        '''
         return [set(c).intersection(self.exogenous) for c in self.ccomponents]
 
     @property
     def endo_ccomponents(self):
+        '''
+        List of all the endogenous variables at each connected component in the causal model
+        :return: List of sets of variables
+        '''
         return [set(c).intersection(self.endogenous) for c in self.ccomponents]
 
     def get_ccomponent(self, v:Hashable):
+        '''
+        C-component to which a variable v belongs
+        :param v: variable in the model
+        :return: set with the variables in the component
+        '''
         return info.get_ccomponent(self,v)
 
     def get_exo_ccomponent(self, v:Hashable):
+        '''
+        Exogenous variables in a C-component to which a given variable v belongs
+        :param v: variable in the model
+        :return: set with the variables in the component
+        '''
         return info.get_exo_ccomponent(self,v)
 
     def get_endo_ccomponent(self, v:Hashable):
+        '''
+        Endogenous variables in a C-component to which a given variable v belongs
+        :param v: variable in the model
+        :return: set with the variables in the component
+        '''
         return info.get_endo_ccomponent(self, v)
 
     @property
     def qgraph(self):
+        '''
+        DAG associated to the d-decomposition of the model
+        :return:
+        '''
         return info.get_qgraph(self)
 
 
@@ -85,8 +134,14 @@ class DiscreteCausalDAGModel(DiscreteDAGModel):
 
 
 class StructuralCausalModel(DiscreteCausalDAGModel):
-    def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict,list] = None, endogenous:Iterable = None, cast_multinomial = True):
+    ''' Class defining an Structural Causal Model (SCM) over a set of discrete variables.'''
 
+    from bcause.readwrite import scmread, scmwrite
+    _reader, _writer = scmread, scmwrite
+
+
+
+    def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict,list] = None, endogenous:Iterable = None, cast_multinomial = True):
         self._initialize(dag)
         self._endogenous = endogenous or [x for x in dag if len(list(dag.predecessors(x)))>0]
         self._cast_multinomial = cast_multinomial
@@ -98,8 +153,19 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         if "endogenous" not in kwargs: kwargs["endogenous"] = self.endogenous
         return StructuralCausalModel(**kwargs)
 
+    @staticmethod
+    def from_model(model:DiscreteDAGModel) -> StructuralCausalModel:
+        return StructuralCausalModel(model.graph, model.factors)
+
 
     def set_factor(self, var:Hashable, f:bf.DiscreteFactor):
+        '''
+        Set the factor associated to a variable in the model
+        :param var: label of a variable in the model
+        :param f: discrete factor to associate to the variable. It is usually of class MultinomialFactor. In case of
+        endogenous variables objects of class DeterministicFactor are also accepted.
+        :return:
+        '''
         # SCM related check
         if self.is_endogenous(var):
             if not(isinstance(f, DeterministicFactor) or f.is_degenerate()):
@@ -111,6 +177,11 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
 
     def to_multinomial(self) -> StructuralCausalModel:
         return StructuralCausalModel(dag=self.graph, factors=self.factors, cast_multinomial=True)
+
+    @property
+    def has_deterministic(self):
+        return any([isinstance(f, DeterministicFactor) for f in self.get_factors(*self.endogenous)])
+
 
     def intervention(self, **obs):
         new_dag = gutils.remove_ingoing_edges(self.graph, obs.keys())
@@ -149,9 +220,13 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         return dict(itertools.chain(*(self.get_qfactors(c.pop(), data).items() for c in self.ccomponents)))
 
 
-    def get_endo_bnet(self, data=None):
+    def get_qbnet(self, data=None):
         return BayesianNetwork(self.qgraph, self.get_qfactorisation(data))
 
+
+    def to_bnet(self):
+        m = self.to_multinomial() if self.has_deterministic else self
+        return BayesianNetwork(m.graph, m.factors)
 
     def __repr__(self):
         str_card_endo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"
