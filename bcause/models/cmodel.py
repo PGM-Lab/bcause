@@ -6,6 +6,7 @@ from typing import Dict, Union, Hashable, Iterable
 
 from networkx import relabel_nodes, DiGraph, topological_sort
 
+import networkx as nx
 import bcause.models.info as info
 
 from bcause.factors import DeterministicFactor

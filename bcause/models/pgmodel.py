@@ -85,7 +85,7 @@ class PGModel(ABC):
         elif str(filepath).endswith(".xmlbif"):
             return cls._reader.from_xmlbif(filepath=filepath)
         elif str(filepath).endswith(".bif"):
-            return cls._reader.from_xmlbif(filepath=filepath)
+            return cls._reader.from_bif(filepath=filepath)
         else:
             raise ValueError(f"Unknown format for {filepath}")
 
