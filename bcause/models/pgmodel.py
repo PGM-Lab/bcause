@@ -16,6 +16,8 @@ from bcause.models.sampling import forward_sampling
 
 class PGModel(ABC):
 
+    _reader, _writer = None,None
+
     def _initialize(self, graph:nx.Graph):
         self._graph = graph
         self._factors = {x: None for x in graph.nodes}
@@ -60,11 +62,30 @@ class PGModel(ABC):
         # update factor dictionary
         self._factors[var] = f
 
+    def save(self, path):
+        if str(path).endswith(".uai"):
+            self._writer.to_uai(model=self,path=path)
+        elif str(path).endswith(".xmlbif"):
+            self._writer.to_xmlbif(model=self,path=path)
+        elif str(path).endswith(".bif"):
+            self._writer.to_bif(model=self,path=path)
+        else:
+            raise ValueError(f"Unknown format for {path}")
 
+
+    @classmethod
+    def read(cls, path):
+        if str(path).endswith(".uai"):
+            return cls._reader.from_uai(path=path)
+        elif str(path).endswith(".xmlbif"):
+            return cls._reader.from_xmlbif(path=path)
+        elif str(path).endswith(".bif"):
+            return cls._reader.from_xmlbif(path=path)
+        else:
+            raise ValueError(f"Unknown format for {path}")
 
 
 class DiscreteDAGModel(PGModel):
-
 
     def _initialize(self, dag:Union[nx.Graph, str]):
         if isinstance(dag, str):
@@ -150,6 +171,7 @@ class DiscreteDAGModel(PGModel):
 
     def copy(self):
         return self.builder(dag=self.graph, factors=self.factors)
+
 
 
 

@@ -8,14 +8,17 @@ from bcause.util.graphutils import dag2str
 
 
 class BayesianNetwork(DiscreteDAGModel):
+
     def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict, Iterable] = None):
 
         self._initialize(dag)
         if factors is not None: self._set_factors(factors)
 
+    from bcause.readwrite import bnwrite, bnread
+    _reader, _writer = bnread, bnwrite
+
     def builder(self, **kwargs):
         return BayesianNetwork(**kwargs)
-
 
 
     def __repr__(self):
@@ -28,6 +31,8 @@ class BayesianNetwork(DiscreteDAGModel):
             parents = self.get_parents(v)
             dom = {x: d for x, d in domains.items() if x == v or x in parents}
             self.set_factor(v, random_multinomial(dom, right_vars=parents))
+
+
 
 
 
@@ -48,8 +53,7 @@ if __name__ == "__main__":
     bnet = BayesianNetwork("[A][B|A:C][C][D|C]", factors)
 
     bnet = BayesianNetwork("[A][B|A:C][C][D|C]")
+
     bnet.randomize_factors(domains)
-
-
     print(bnet.get_domains(bnet.variables))
 

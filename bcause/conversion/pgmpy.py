@@ -3,10 +3,15 @@ import pgmpy.models as pm
 import pgmpy.factors.discrete as pfd
 from networkx import DiGraph
 
-import bcause.models as bm
 import bcause.factors as bfd
 from bcause.factors.values.store import DataStore
 from bcause.util.domainutils import assingment_space
+
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import bcause.models as bm
 
 
 def toMultinomialFactor(factor : pfd.TabularCPD, vtype=None) -> bfd.MultinomialFactor:
@@ -38,14 +43,15 @@ def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
     return pfd.TabularCPD(**args)
 
 
-def toBCauseBNet(orig : pm.BayesianNetwork, vtype=None) -> bm.BayesianNetwork:
+def toBCauseBNet(orig : pm.BayesianNetwork, vtype=None) -> 'bm.BayesianNetwork':
     vtype = vtype or DataStore.DEFAULT_STORE
     dag = DiGraph(orig.in_edges)
     factors = {f.variable:toMultinomialFactor(f, vtype) for f in orig.cpds}
+    import bcause.models as bm
     return bm.BayesianNetwork(dag, factors)
 
 
-def toPgmpyBNet(orig : bm.BayesianNetwork) -> pm.BayesianNetwork:
+def toPgmpyBNet(orig : 'bm.BayesianNetwork') -> pm.BayesianNetwork:
     dest = pm.BayesianNetwork(orig.graph)
     dest.add_cpds(*[toTabularCPT(f) for f in orig.factors.values()])
     return dest

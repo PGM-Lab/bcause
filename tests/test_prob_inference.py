@@ -6,7 +6,7 @@ from bcause.inference.datainference import LaplaceInference
 from bcause.inference.elimination.variableelimination import VariableElimination
 from bcause.models.transform.simplification import minimalize
 
-model = bnread.fromBIF("models/asia.bif")
+model = bnread.from_bif("models/asia.bif")
 
 
 def test_variable_elimination():

@@ -34,7 +34,6 @@ def as_lists(*args):
         return [as_list(elem) for elem in args]
     return as_list(args[0])
 
-
-def all_disjoint(*x):
-    return all((set(p0).isdisjoint(set(p1))) for p0, p1 in it.combinations(x, 2))
+def change_shape_order(values:list, original_shape:tuple):
+    return np.array(values).reshape(original_shape,order="F").ravel()
 
