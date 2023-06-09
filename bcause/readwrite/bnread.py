@@ -16,30 +16,30 @@ from bcause.util import domainutils as dutils
 
 
 
-def __read(reader, file, vtype):
-    assert_file_exists(file)
-    logging.info(f"Reading model in {reader.__name__.replace('Reader', '')} format from {os.path.abspath(file)}")
-    model =  toBCauseBNet(reader(file).get_model(), vtype)
+def __read(reader, filepath, vtype):
+    assert_file_exists(filepath)
+    logging.info(f"Reading model in {reader.__name__.replace('Reader', '')} format from {os.path.abspath(filepath)}")
+    model =  toBCauseBNet(reader(filepath).get_model(), vtype)
     logging.debug(f"Loaded {model}")
     return model
 
-def from_bif(file, vtype=None):
+def from_bif(filepath, vtype=None):
     vtype = vtype or DataStore.DEFAULT_STORE
-    return __read(BIFReader, file, vtype)
+    return __read(BIFReader, filepath, vtype)
 
-def from_xmlbif(file, vtype=None):
+def from_xmlbif(filepath, vtype=None):
     vtype = vtype or DataStore.DEFAULT_STORE
-    return __read(XMLBIFReader, file, vtype)
+    return __read(XMLBIFReader, filepath, vtype)
 
 
-def from_uai(path, reverse_values=True, var_prefix="V", init_var_id=0, init_var_state=0, label="BAYES"):
+def from_uai(filepath, reverse_values=True, var_prefix="V", init_var_id=0, init_var_state=0, label="BAYES"):
     from bcause.models import BayesianNetwork
 
     if not reverse_values:
         raise ValueError("Not implemented UAI with reverse_values flag as False")
 
     # Check the label
-    with open(path) as f:
+    with open(filepath) as f:
         l = f.readline().replace(" ", "").replace("\n", "")
         if l not in label:
             raise ValueError(f"Wrong label in uai file: {l}")
@@ -51,7 +51,7 @@ def from_uai(path, reverse_values=True, var_prefix="V", init_var_id=0, init_var_
                 for v in re.findall(r"[-+]?(?:\d*\.*\d+)", line):
                     yield v
 
-    numbers = get_numbers(path)
+    numbers = get_numbers(filepath)
 
     # variables and domains
     num_vars = int(next(numbers))

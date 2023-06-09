@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from pathlib import Path
 from typing import Union, Dict, Hashable
 
 import networkx as nx
@@ -62,27 +63,31 @@ class PGModel(ABC):
         # update factor dictionary
         self._factors[var] = f
 
-    def save(self, path):
-        if str(path).endswith(".uai"):
-            self._writer.to_uai(model=self,path=path)
-        elif str(path).endswith(".xmlbif"):
-            self._writer.to_xmlbif(model=self,path=path)
-        elif str(path).endswith(".bif"):
-            self._writer.to_bif(model=self,path=path)
+    def save(self, filepath):
+        filepath = Path(filepath)
+        if str(filepath).endswith(".uai"):
+            self._writer.to_uai(model=self, filepath=filepath)
+        elif str(filepath).endswith(".xmlbif"):
+            self._writer.to_xmlbif(model=self, filepath=filepath)
+        elif str(filepath).endswith(".bif"):
+            self._writer.to_bif(model=self, filepath=filepath)
         else:
-            raise ValueError(f"Unknown format for {path}")
+            raise ValueError(f"Unknown format for {filepath}")
+
+        return filepath.absolute()
 
 
     @classmethod
-    def read(cls, path):
-        if str(path).endswith(".uai"):
-            return cls._reader.from_uai(path=path)
-        elif str(path).endswith(".xmlbif"):
-            return cls._reader.from_xmlbif(path=path)
-        elif str(path).endswith(".bif"):
-            return cls._reader.from_xmlbif(path=path)
+    def read(cls, filepath):
+        filepath = Path(filepath)
+        if str(filepath).endswith(".uai"):
+            return cls._reader.from_uai(filepath=filepath)
+        elif str(filepath).endswith(".xmlbif"):
+            return cls._reader.from_xmlbif(filepath=filepath)
+        elif str(filepath).endswith(".bif"):
+            return cls._reader.from_xmlbif(filepath=filepath)
         else:
-            raise ValueError(f"Unknown format for {path}")
+            raise ValueError(f"Unknown format for {filepath}")
 
 
 class DiscreteDAGModel(PGModel):
