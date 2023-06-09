@@ -17,7 +17,8 @@ if TYPE_CHECKING:
 def toMultinomialFactor(factor : pfd.TabularCPD, vtype=None) -> bfd.MultinomialFactor:
     vtype = vtype or DataStore.DEFAULT_STORE
     domain = factor.state_names
-    data = np.reshape([factor.get_value(**s) for s in assingment_space(domain)], factor.cardinality)
+    card = [len(d) for d in domain.values()]
+    data = np.reshape([factor.get_value(**s) for s in assingment_space(domain)], card)
     right_vars = [v for v in factor.variables if v != factor.variable]
     return bfd.MultinomialFactor(domain, data, right_vars=right_vars, vtype=vtype)
 
@@ -27,6 +28,10 @@ def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
     values = f.values_array()
     if np.ndim(values)<2:
         values = np.expand_dims(values, axis=0)
+
+    if np.ndim(values) > 2:
+        shape = values.shape
+        values = values.reshape(np.prod(shape[:-1]), shape[0])
 
     args = dict(
         variable = v,

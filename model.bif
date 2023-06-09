@@ -1,0 +1,51 @@
+network unknown {
+}
+variable U1 {
+    type discrete [ 3 ] { 0, 1, 3 };
+    property weight = None ;
+}
+variable U2 {
+    type discrete [ 4 ] { 0, 1, 2, 3 };
+    property weight = None ;
+}
+variable U3 {
+    type discrete [ 4 ] { 0, 1, 2, 3 };
+    property weight = None ;
+}
+variable V1 {
+    type discrete [ 2 ] { 0, 1 };
+    property weight = None ;
+}
+variable V2 {
+    type discrete [ 2 ] { 0, 1 };
+    property weight = None ;
+}
+variable V3 {
+    type discrete [ 2 ] { 0, 1 };
+    property weight = None ;
+}
+variable V4 {
+    type discrete [ 2 ] { 0, 1 };
+    property weight = None ;
+}
+probability ( U1 ) {
+    table 0.136819799828886, 0.3184915561086636, 0.5446886440624504 ;
+}
+probability ( U2 ) {
+    table 0.17548216319464763, 0.16530866459426838, 0.36045153752835307, 0.29875763468273075 ;
+}
+probability ( U3 ) {
+    table 0.3361866819781021, 0.3769378426382723, 0.043574973055444916, 0.2433005023281808 ;
+}
+probability ( V1 | U1 ) {
+    table 0.0, 0.0, 1.0, 1.0, 1.0, 0.0 ;
+}
+probability ( V2 | V1, U2 ) {
+    table 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0 ;
+}
+probability ( V3 | V2, U3 ) {
+    table 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0 ;
+}
+probability ( V4 | V3, U2 ) {
+    table 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 ;
+}
