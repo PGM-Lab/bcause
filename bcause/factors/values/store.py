@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import copy
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from typing import Dict, Iterable, Union
 
-import numpy as np
 
 import bcause.util.domainutils as dutil
-from bcause.factors.values.operations import TreeStoreOperations, OperationSet
-from bcause.util.treesutil import build_default_tree, treeNode
+from bcause.factors.values.operations import OperationSet
 
 
 class DataStore(ABC):
@@ -82,7 +79,7 @@ class DiscreteStore(DataStore):
         pass
 
     @abstractmethod
-    def get_value(self, **observation) -> NumpyStore:
+    def get_value(self, **observation) -> DiscreteStore:
         pass
 
     @abstractmethod
@@ -165,56 +162,6 @@ class DiscreteStore(DataStore):
 
 
 
-class TreeStore(DiscreteStore):
-
-    def __init__(self, domain: Dict, data: Union[Iterable, int, float, dict]=None):
-        #defualt data
-        if data is None:
-            data = np.zeros(np.prod([len(d) for d in domain.values()]))
-        if len(domain)>0 and type(data) not in [dict, OrderedDict]:
-            data = build_default_tree(domain, data)
-        def builder(**kwargs):
-            return TreeStore(**kwargs)
-
-        self.builder = builder
-        self.set_operationSet(TreeStoreOperations)   # set implement
-        super(self.__class__, self).__init__(domain=domain, data=data)
-
-    @staticmethod
-    def _check_consistency(data, domain):
-        return True
-
-    def _copy_data(self):
-        return copy.deepcopy(self.data)
-
-    def set_value(self, value, observation):
-        def modify_dict(data, observation, value):
-            if not isinstance(data, dict) or len(observation) == 0:
-                out = value
-            elif data["var"] not in observation:
-                new_ch = dict()
-                for state, ch in data["children"].items():
-                    new_ch[state] = value if not isinstance(ch, dict) else modify_dict(ch, observation, value)
-                out = treeNode(data["var"], new_ch)
-
-            else:
-                other_obs = {v: s for v, s in observation.items() if v != data["var"]}
-                ch = data["children"][observation[data["var"]]]
-                data["children"][observation[data["var"]]] = modify_dict(ch, other_obs, value)
-                out = data
-            return out
-
-        relevant_obs = {v: s for v, s in observation.items() if v in self.domain}
-        self._data = modify_dict(self.data, relevant_obs, value)
-
-    def get_value(self, **observation):
-        return self.restrict(**observation).data
-
-    def restrict(self, **observation) -> TreeStore:
-        new_data = TreeStore.restrict_dict(self.data, observation)
-        new_dom = OrderedDict([(k, d) for k, d in self.domain.items() if k not in observation])
-        return self.builder(data = new_data, domain = new_dom)
-
 
 if __name__=="__main__":
     left_domain = dict(A=["a1", "a2"])
@@ -228,7 +175,12 @@ if __name__=="__main__":
 
     data = [[0.5, .4, 0.1], [0.3, 0.6, 0.1]]
 
+
+
     vars_remove = ["B"]
+
+    from bcause.factors.values import NumpyStore, ListStore
+
     f1 = NumpyStore(domain, data)
     f2 = ListStore(domain, data)
 
