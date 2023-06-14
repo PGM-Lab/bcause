@@ -1,6 +1,7 @@
 from bcause.factors.mulitnomial import MultinomialFactor
 from bcause.util.domainutils import assingment_space
-from bcause.factors.values.store import __ALL__ as store_types, DataStore, store_dict
+from bcause.factors.values import __ALL__ as store_types, store_dict
+from bcause.factors.values.store import DataStore
 
 import numpy as np
 import pytest

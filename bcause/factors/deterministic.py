@@ -9,7 +9,8 @@ import numpy as np
 import bcause.util.domainutils as dutils
 
 from bcause.factors import MultinomialFactor
-from bcause.factors.values.store import store_dict, DataStore
+from bcause.factors.values.store import DataStore
+from bcause.factors.values import store_dict
 
 import bcause.factors.factor as bf
 
