@@ -4,7 +4,7 @@ import logging
 import math
 from collections import OrderedDict
 from functools import reduce
-from typing import Dict, List
+from typing import Dict, List, Iterable
 
 import numpy as np
 import pandas as pd
@@ -23,11 +23,11 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         vtype = vtype or DataStore.DEFAULT_STORE
 
         self._check_domain(domain)
-
-        shape = [len(d) for d in domain.values()]
-        if np.ndim(values)==0:
-            values = [values] * int(np.prod(shape))
-        if np.ndim(values)==1: values = np.reshape(values, shape)
+        if (isinstance(values, Iterable) and not isinstance(values, dict)) or np.isscalar(values):
+            shape = [len(d) for d in domain.values()]
+            if np.ndim(values)==0:
+                values = [values] * int(np.prod(shape))
+            if np.ndim(values)==1: values = np.reshape(values, shape)
 
         self._store = store_dict[vtype](data=values, domain=domain)
         self.set_variables(list(domain.keys()), left_vars, right_vars)
