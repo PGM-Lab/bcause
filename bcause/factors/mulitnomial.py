@@ -9,7 +9,9 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
-from bcause.factors.values.store import store_dict, DataStore
+from bcause.factors.values.store import  DataStore
+from bcause.factors.values import store_dict
+
 import bcause.factors.factor as bf
 #from . import DiscreteFactor
 from bcause.util.domainutils import assingment_space, state_space, steps, random_assignment, to_numeric_domains

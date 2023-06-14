@@ -84,3 +84,5 @@ class CausalVariableElimination(CausalInference):
         super(self.__class__, self).__init__(model.to_multinomial(), prob_inf_fn)
 
 
+class MultiCausalVE(CausalInference):
+    pass
