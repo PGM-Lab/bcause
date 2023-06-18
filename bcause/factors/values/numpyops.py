@@ -105,6 +105,9 @@ class NumpyStoreOperations(OperationSet):
         for v in store.variables:
             if v in observation.keys():
                 obs_v = observation[v]
+                if isinstance(obs_v, list) and len(obs_v)==1:
+                    obs_v = obs_v[0]
+
                 if not isinstance(obs_v, list):
                     idx = np.where(np.array(store.domain[v]) == obs_v)[0][0]
                     items.append(idx)

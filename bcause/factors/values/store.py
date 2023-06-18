@@ -135,6 +135,18 @@ class DiscreteStore(DataStore):
     def sum_all(self):
         pass
 
+    def all_equal(self) -> list:
+        confs = dutil.assingment_space(self.domain)
+        val = self.get_value(**confs[0])
+        if len(confs)>1:
+            for x in confs[1:]:
+                if self.get_value(**x) != val:
+                    return False
+        return True
+
+
+
+
     @property
     def values_list(self) -> list:
         return [self.get_value(**x) for x in dutil.assingment_space(self.domain)]
