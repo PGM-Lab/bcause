@@ -1,4 +1,5 @@
 import copy
+import math
 from abc import ABC, abstractmethod
 from typing import Hashable, List, OrderedDict, Dict, Union, Iterable
 
@@ -91,9 +92,15 @@ class BTreeNodeConsecutive(BTreeNode):
     def is_on_left(self, state):
         return self._var_domain.index(state) < self._end_left_exclusive
 
-    def __repr__(self):
-        return f"<BTNode[...{self.left_states[-1]}|{self.right_states[0]}...] left: <{self.left_child}>, right: <{self.right_child}>>"
-
+    def summary(self, n=0):
+        s = f"<BTNode({self.variable})[...{self.left_states[-1]}|{self.right_states[0]}...]"
+        s += "\n"
+        s += "  "*n
+        s += f"left: <{self.left_child.summary(n+1) if isinstance(self.left_child, BTreeNode) else self.left_child}>,"
+        s += "\n"
+        s += "  "*n
+        s += f"right: <{self.right_child.summary(n+1) if isinstance(self.right_child, BTreeNode) else self.right_child}>>"
+        return s
 
 
 class BTreeStore(DiscreteStore):
@@ -104,7 +111,8 @@ class BTreeStore(DiscreteStore):
             data = np.zeros(np.prod([len(d) for d in domain.values()]))
 
         if len(domain)>0 and not isinstance(data, BTreeNode):
-            data = self._build_default_tree(domain, data)
+            from bcause.factors.values import NumpyStore
+            data = self._build_from_table(NumpyStore(domain, data))
 
         def builder(**kwargs):
             return BTreeStore(**kwargs)
@@ -113,8 +121,50 @@ class BTreeStore(DiscreteStore):
         self.set_operationSet(BTreeStoreOperations)
         super(self.__class__, self).__init__(domain=domain, data=data)
 
-    def _build_default_btree(self, domain, data):
-        pass
+    @staticmethod
+    def _build_from_table(table):
+
+        if table.all_equal():
+            return table.values_list[0]
+
+        v,tl,tr, table_left, table_right =  BTreeStore._best_split_point(table)
+
+        tree_left = BTreeStore._build_from_table(table_left)
+        tree_right = BTreeStore._build_from_table(table_right)
+
+
+        return BTreeNode.build(v, table.domain[v], left_child=tree_left, right_child=tree_right, left_states=tl)
+
+    @staticmethod
+    def _best_split_point(table):
+        info_max = float("-Inf")
+        best_var = None
+        best_left_states = None
+        best_left_table = None
+        best_right_table = None
+        for v in table.variables:
+            sum_At = table.sum_all()
+            info_At = sum_At * math.log(len(table.domain[v]) / sum_At)
+
+            for s in range(1, len(table.domain[v])):
+                tl = table.domain[v][:s]
+                tr = table.domain[v][s:]
+
+                left_table = table.restrict(**{v: tl})
+                right_table = table.restrict(**{v: tr})
+
+                sum_left = left_table.sum_all()
+                sum_right = right_table.sum_all()
+                info = info_At
+                if sum_left>0:
+                    info += sum_left * math.log(sum_left/len(tl))
+                if sum_right>0:
+                    info += sum_right * math.log(sum_right/len(tr))
+                if info_max < info:
+                    best_var, best_left_states, best_right_states = v, tl, tr
+                    best_left_table, best_right_table = left_table, right_table
+
+        return best_var, best_left_states, best_right_states, best_left_table, best_right_table
 
     @staticmethod
     def _check_consistency(data, domain):
@@ -124,13 +174,10 @@ class BTreeStore(DiscreteStore):
         return copy.deepcopy(self.data)
 
     def set_value(self, value, observation):
-        pass
+        raise NotImplementedError("method not implemented")
 
     def get_value(self, **observation):
-        pass
-
-    def restrict(self, **observation):
-        pass
+        raise NotImplementedError("method not implemented")
 
 
 
@@ -150,6 +197,13 @@ if __name__ == "__main__":
     print(nested_nodes)
 
 
+    domain = dict(A=["a1", "a2"], B=["b1", "b2", "b3","b4"])
+    new_var_order = ["B", "A"]
+    #complete vars
+    new_dom = dict([(v,domain[v]) for v in new_var_order])
+    data = [[0.2, .2, 0.5, 0.1], [0.2, 0.2, 0.6,0.0]]
 
+    bt = BTreeStore(domain, data)
+    print(bt.data.summary())
 
 

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from functools import reduce
 from typing import TYPE_CHECKING
 
 from bcause.factors.values.operations import OperationSet
-from bcause.util.treesutil import build_default_tree, treeNode
 
 if TYPE_CHECKING:
     from bcause.factors.values.btreestore import BTreeStore
