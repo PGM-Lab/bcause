@@ -74,9 +74,7 @@ class DiscreteStore(DataStore):
         return f"<{self.__class__.__name__}({vars_str}), cardinality = ({card_str})>"
 
 
-    @abstractmethod
-    def restrict(self, **observation) -> DiscreteStore:
-        pass
+
 
     @abstractmethod
     def get_value(self, **observation) -> DiscreteStore:
@@ -88,8 +86,11 @@ class DiscreteStore(DataStore):
 
     def set_operationSet(self, ops:OperationSet):
         for f in [self.set_marginalize, self.set_maxmarginalize, self.set_multiply,
-                  self.set_addition, self.set_subtract, self.set_divide]:
+                  self.set_addition, self.set_subtract, self.set_divide, self.set_restrict]:
             f(ops)
+
+    def set_restrict(self, ops:OperationSet):
+        self._restrict = ops.restrict
 
     def set_marginalize(self, ops:OperationSet):
         self._marginalize = ops.marginalize
@@ -127,6 +128,9 @@ class DiscreteStore(DataStore):
     def divide(self, other: DiscreteStore) -> DiscreteStore:
         return self._divide(self, other)
 
+    def restrict(self, **observation) -> DiscreteStore:
+        return self._restrict(self, observation)
+
     @abstractmethod
     def sum_all(self):
         pass
@@ -159,10 +163,6 @@ class DiscreteStore(DataStore):
 
 
 
-
-
-
-
 if __name__=="__main__":
     left_domain = dict(A=["a1", "a2"])
     right_domain = dict(B=[0, 1, 3])
@@ -170,12 +170,8 @@ if __name__=="__main__":
 
     new_var_order = ["B", "A"]
     #complete vars
-
     new_dom = OrderedDict([(v,domain[v]) for v in new_var_order])
-
     data = [[0.5, .4, 0.1], [0.3, 0.6, 0.1]]
-
-
 
     vars_remove = ["B"]
 

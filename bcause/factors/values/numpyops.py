@@ -14,14 +14,14 @@ if TYPE_CHECKING:
 class NumpyStoreOperations(OperationSet):
 
     @staticmethod
-    def marginalize(store: 'DataStore', vars_remove: list):
+    def marginalize(store: 'NumpyStore', vars_remove: list) -> 'NumpyStore':
         idx_vars = tuple(store.get_var_index(v) for v in vars_remove)
         new_data = np.sum(store.data, axis=idx_vars)
         new_dom = OrderedDict([(v,d) for v, d in store.domain.items() if v not in vars_remove])
         return store.builder(data=new_data, domain=new_dom)
 
     @staticmethod
-    def maxmarginalize(store: 'DataStore', vars_remove: list):
+    def maxmarginalize(store: 'NumpyStore', vars_remove: list) -> 'NumpyStore':
         idx_vars = tuple(store.get_var_index(v) for v in vars_remove)
         new_data = np.max(store.data, axis=idx_vars)
         new_dom = OrderedDict([(v,d) for v, d in store.domain.items() if v not in vars_remove])
@@ -52,7 +52,7 @@ class NumpyStoreOperations(OperationSet):
 
 
     @staticmethod
-    def _reorder(store, *new_var_order):
+    def _reorder(store, *new_var_order) -> 'NumpyStore':
         if len(store.variables)<2:
             return store
 
@@ -70,7 +70,7 @@ class NumpyStoreOperations(OperationSet):
         return store.builder(data = new_data, domain = new_dom)
 
     @staticmethod
-    def _extend_domain(store, **extra_dom):
+    def _extend_domain(store, **extra_dom) -> 'NumpyStore':
 
         extra_dom = OrderedDict({v:c for v,c in extra_dom.items() if v not in store.variables})
         add_card = tuple([len(d) for d in extra_dom.values()])
@@ -83,19 +83,38 @@ class NumpyStoreOperations(OperationSet):
 
 
     @staticmethod
-    def multiply(store: 'DataStore', other: 'DataStore') -> 'DataStore':
+    def multiply(store: 'NumpyStore', other: 'NumpyStore') -> 'NumpyStore':
         return NumpyStoreOperations._generic_combine(store, other, lambda x, y: x * y)
 
     @staticmethod
-    def addition(store: 'DataStore', other: 'DataStore') -> 'DataStore':
+    def addition(store: 'NumpyStore', other: 'NumpyStore') -> 'NumpyStore':
         return NumpyStoreOperations._generic_combine(store, other, lambda x, y: x + y)
 
     @staticmethod
-    def subtract(store: 'DataStore', other: 'DataStore') -> 'DataStore':
+    def subtract(store: 'NumpyStore', other: 'NumpyStore') -> 'NumpyStore':
         return NumpyStoreOperations._generic_combine(store, other, lambda x, y: x - y)
 
     @staticmethod
-    def divide(store: 'DataStore', other: 'DataStore') -> 'DataStore':
+    def divide(store: 'NumpyStore', other: 'NumpyStore') -> 'NumpyStore':
         return NumpyStoreOperations._generic_combine(store, other, lambda x, y: np.nan_to_num(x / y))
 
+    @staticmethod
+    def restrict(store : 'NumpyStore', observation:dict) -> 'NumpyStore':
+        items = []
+        new_dom = OrderedDict()
+        for v in store.variables:
+            if v in observation.keys():
+                obs_v = observation[v]
+                if not isinstance(obs_v, list):
+                    idx = np.where(np.array(store.domain[v]) == obs_v)[0][0]
+                    items.append(idx)
+                else:
+                    idx = [np.where(np.array(store.domain[v]) == x)[0][0] for x in obs_v]
+                    items.append(idx)
+                    new_dom[v] = [x for x in store.domain[v] if x in obs_v]
+            else:
+                items.append(slice(None))
+                new_dom[v] = store.domain[v]
+        new_data = store._data[tuple(items)].copy()
+        return store.builder(domain=new_dom, data=new_data)
 

@@ -10,12 +10,12 @@ from bcause.factors.values.operations import OperationSet
 
 
 if TYPE_CHECKING:
-    from bcause.factors.values import DataStore, ListStore, NumpyStore
+    from bcause.factors.values import ListStore
 
 
 class  ListStoreOperations(OperationSet):
     @staticmethod
-    def marginalize(store: 'DataStore', vars_remove: list):
+    def marginalize(store: 'ListStore', vars_remove: list) -> 'ListStore':
         space_remove = dutil.assingment_space({v: d for v, d in store.domain.items() if v in vars_remove})
         new_dom = OrderedDict([(v,d) for v, d in store.domain.items() if v not in vars_remove])
         iterators = [dutil.index_iterator(store.domain, s) for s in space_remove]
@@ -24,7 +24,7 @@ class  ListStoreOperations(OperationSet):
         return store.builder(data=new_data, domain=new_dom)
 
     @staticmethod
-    def maxmarginalize(store: 'DataStore', vars_remove: list):
+    def maxmarginalize(store: 'ListStore', vars_remove: list) -> 'ListStore':
         space_remove = dutil.assingment_space({v: d for v, d in store.domain.items() if v in vars_remove})
         new_dom = OrderedDict([(v,d) for v, d in store.domain.items() if v not in vars_remove])
         iterators = [dutil.index_iterator(store.domain, s) for s in space_remove]
@@ -50,18 +50,26 @@ class  ListStoreOperations(OperationSet):
         return op1.builder(data=new_data, domain=new_domain)
 
     @staticmethod
-    def multiply(store: 'DataStore', other: 'DataStore') -> 'DataStore':
+    def multiply(store: 'ListStore', other: 'ListStore') -> 'ListStore':
         return  ListStoreOperations._generic_combine(store, other, lambda x, y: x * y)
 
     @staticmethod
-    def addition(store: 'DataStore', other: 'DataStore') -> 'DataStore':
+    def addition(store: 'ListStore', other: 'ListStore') -> 'ListStore':
         return  ListStoreOperations._generic_combine(store, other, lambda x, y: x + y)
 
     @staticmethod
-    def subtract(store: 'DataStore', other: 'DataStore') -> 'DataStore':
+    def subtract(store: 'ListStore', other: 'ListStore') -> 'ListStore':
         return  ListStoreOperations._generic_combine(store, other, lambda x, y: x - y)
 
     @staticmethod
-    def divide(store: 'DataStore', other: 'DataStore') -> 'DataStore':
+    def divide(store: 'ListStore', other: 'ListStore') -> 'ListStore':
         return  ListStoreOperations._generic_combine(store, other, lambda x, y: x / y)
 
+    @staticmethod
+    def restrict(store : 'ListStore', observation:dict) -> 'ListStore':
+        if any([type(v)==list for v in observation.values()]):
+            raise NotImplementedError("Restriction to an extended configuration not implemented")
+        idx = list(dutil.index_iterator(store.domain, observation))
+        new_data = [store._data[i] for i in idx]
+        new_dom = OrderedDict([(k, d) for k, d in store.domain.items() if k not in observation])
+        return store.builder(data= new_data, domain = new_dom)

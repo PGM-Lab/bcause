@@ -1,5 +1,11 @@
+import copy
 from abc import ABC, abstractmethod
-from typing import Hashable, List
+from typing import Hashable, List, OrderedDict, Dict, Union, Iterable
+
+import numpy as np
+
+from bcause.factors.values.btreeops import BTreeStoreOperations
+from bcause.factors.values.store import DiscreteStore
 
 
 class BTreeNode(ABC):
@@ -89,6 +95,45 @@ class BTreeNodeConsecutive(BTreeNode):
         return f"<BTNode[...{self.left_states[-1]}|{self.right_states[0]}...] left: <{self.left_child}>, right: <{self.right_child}>>"
 
 
+
+class BTreeStore(DiscreteStore):
+
+    def __init__(self, domain: Dict, data: Union[Iterable, int, float, dict]=None):
+        #defualt data
+        if data is None:
+            data = np.zeros(np.prod([len(d) for d in domain.values()]))
+
+        if len(domain)>0 and not isinstance(data, BTreeNode):
+            data = self._build_default_tree(domain, data)
+
+        def builder(**kwargs):
+            return BTreeStore(**kwargs)
+
+        self.builder = builder
+        self.set_operationSet(BTreeStoreOperations)
+        super(self.__class__, self).__init__(domain=domain, data=data)
+
+    def _build_default_btree(self, domain, data):
+        pass
+
+    @staticmethod
+    def _check_consistency(data, domain):
+        return True
+
+    def _copy_data(self):
+        return copy.deepcopy(self.data)
+
+    def set_value(self, value, observation):
+        pass
+
+    def get_value(self, **observation):
+        pass
+
+    def restrict(self, **observation):
+        pass
+
+
+
 if __name__ == "__main__":
 
     variable = "U"
@@ -103,3 +148,8 @@ if __name__ == "__main__":
     nested_nodes = BTreeNode.build("X", ["x1", "x2"], 0.33, n1)
 
     print(nested_nodes)
+
+
+
+
+
