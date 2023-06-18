@@ -48,18 +48,6 @@ class NumpyStore(DiscreteStore):
     def get_value(self, **observation):
         return np.atleast_1d(self.restrict(**observation).data)[0]
 
-    def restrict(self, **observation) -> NumpyStore:
-        items = []
-        for v in self.variables:
-            if v in observation.keys():
-                idx = np.where(np.array(self.domain[v]) == observation[v])[0][0]
-                items.append(idx)
-            else:
-                items.append(slice(None))
-        new_data = self._data[tuple(items)].copy()
-        new_dom = OrderedDict([(k,d) for k,d in self.domain.items() if k not in observation])
-        return NumpyStore(new_dom, new_data)
-
 
 class Numpy1DStore(DiscreteStore):
 
@@ -92,8 +80,12 @@ class Numpy1DStore(DiscreteStore):
         return self.restrict(**observation).data[0]
 
     def restrict(self, **observation) -> Numpy1DStore:
+        if any([type(v)==list for v in observation.values()]):
+            raise NotImplementedError("Restriction to an extended configuration not implemented")
         idx = list(dutil.index_iterator(self.domain, observation))
         new_data = [self._data[i] for i in idx]
         new_dom = OrderedDict([(k, d) for k, d in self.domain.items() if k not in observation])
         return self.builder(data = new_data, domain = new_dom)
+
+
 

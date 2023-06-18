@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 
 import bcause.util.domainutils as dutil
-from bcause.util.treesutil import build_default_tree, treeNode
 
 
 if TYPE_CHECKING:
@@ -45,6 +44,11 @@ class OperationSet(ABC):
     def divide(store : 'DataStore', other: 'DataStore') -> 'DataStore':
         pass
 
+    @staticmethod
+    @abstractmethod
+    def restrict(store : 'DataStore', observation:dict) -> 'DataStore':
+        pass
+
 
 class GenericOperations(OperationSet):
     @staticmethod
@@ -59,7 +63,7 @@ class GenericOperations(OperationSet):
         raise NotImplementedError("Operation not implemented")
 
     @staticmethod
-    def _generic_combine(op1:  'ListStore', op2:  'ListStore', operation:callable) ->  'ListStore':
+    def _generic_combine(op1:  'DataStore', op2:  'DataStore', operation:callable) ->  'ListStore':
 
         if op1.__class__.__name__ != op2.__class__.__name__:
             raise ValueError("Combination with non-compatible data structure")
@@ -91,6 +95,8 @@ class GenericOperations(OperationSet):
     def divide(store: 'DataStore', other: 'DataStore') -> 'DataStore':
         return GenericOperations._generic_combine(store, other, lambda x, y: x / y)
 
-
+    @staticmethod
+    def restrict(store : 'DataStore', observarion:dict) -> 'DataStore':
+        raise NotImplementedError("Not implemented")
 
 

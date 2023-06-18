@@ -39,13 +39,8 @@ class ListStore(DiscreteStore):
         idx = list(dutil.index_iterator(self.domain, observation))[0]
         self._data[idx] = value
 
-    def get_value(self, **observation):
+    def get_value(self, **observation) -> 'ListStore':
         return self.restrict(**observation).data[0]
 
-    def restrict(self, **observation) -> ListStore:
-        idx = list(dutil.index_iterator(self.domain, observation))
-        new_data = [self._data[i] for i in idx]
-        new_dom = OrderedDict([(k, d) for k, d in self.domain.items() if k not in observation])
-        return self.builder(data= new_data, domain = new_dom)
 
 

@@ -103,3 +103,12 @@ class TreeDictStoreOperations(OperationSet):
     @staticmethod
     def divide(store: 'TreeDictStore', other: 'TreeDictStore') -> 'TreeDictStore':
         return TreeDictStoreOperations._generic_combine(store, other, lambda x, y: x / y)
+
+
+    @staticmethod
+    def restrict(store : 'TreeDictStore', observation:dict) -> 'TreeDictStore':
+        if any([type(v)==list for v in observation.values()]):
+            raise NotImplementedError("Restriction to an extended configuration not implemented")
+        new_data = TreeDictStoreOperations._restrict_dict(store.data, observation)
+        new_dom = OrderedDict([(k, d) for k, d in store.domain.items() if k not in observation])
+        return store.builder(data = new_data, domain = new_dom)

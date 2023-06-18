@@ -62,7 +62,3 @@ class TreeDictStore(DiscreteStore):
     def get_value(self, **observation):
         return self.restrict(**observation).data
 
-    def restrict(self, **observation) -> TreeDictStore:
-        new_data = TreeDictStoreOperations._restrict_dict(self.data, observation)
-        new_dom = OrderedDict([(k, d) for k, d in self.domain.items() if k not in observation])
-        return self.builder(data = new_data, domain = new_dom)
