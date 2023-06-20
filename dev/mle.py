@@ -1,5 +1,5 @@
 '''
-Maximum likelihood estimation () of credal networks
+Maximum likelihood estimation (MLE) of credal networks
 
 Runs multiple MLE (function multi_mle()) of parameters in a predefined credal network in order to 
 approximate the simplex representing all acceptable parameters of the network.
