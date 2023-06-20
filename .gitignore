@@ -136,3 +136,5 @@ dmypy.json
 #custom
 *_ignored*
 *_ig*
+/results
+/.vs
