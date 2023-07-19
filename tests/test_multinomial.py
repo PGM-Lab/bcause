@@ -158,3 +158,23 @@ def test_values_dict(vtype):
     actual = marg.values_list
     expected = [0.2, 0.8]
     assert actual==expected
+
+
+
+@pytest.mark.parametrize("vtype", store_types)
+def test_scalar_ops(vtype):
+    cond, _, _ = build_factors(vtype)
+
+    actual = (cond * 100).values_list
+    expected = [20.0, 10.0, 70.0, 30.0, 60.0, 10.0]
+    assert actual == expected
+
+    actual = (cond + 100).values_list
+    expected = [100.2, 100.1, 100.7, 100.3, 100.6, 100.1]
+    assert actual == expected
+
+    actual = (cond / 2).values_list
+    expected = [0.1, 0.05, 0.35, 0.15, 0.3, 0.05]
+    assert actual == expected
+
+
