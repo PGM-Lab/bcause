@@ -4,7 +4,7 @@ import logging
 import math
 from collections import OrderedDict
 from functools import reduce
-from typing import Dict, List, Iterable
+from typing import Dict, List, Iterable, Union
 
 import numpy as np
 import pandas as pd
@@ -66,19 +66,30 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return self.builder(domain=new_store.domain, values=new_store.data, right_vars = new_right_vars)
 
 
-    def multiply(self, other):
+
+    def _prepare_operand(self, f):
+        # if it's a scalar, transform it in a constant factor
+        if type(f) in [int,float]: f = self.builder(domain=dict(), values=[f])
+        return f
+
+    def multiply(self, other : Union[MultinomialFactor, int, float]):
+
+        other = self._prepare_operand(other)
         new_store = self.store.multiply(other.store)
         new_right_vars = [v for v in new_store.variables
                           if v not in self.left_vars and v not in other.left_vars]
         return self.builder(domain=new_store.domain, values=new_store.data, right_vars = new_right_vars)
 
     def addition(self, other):
+
+        other = self._prepare_operand(other)
         new_store = self.store.addition(other.store)
         new_right_vars = [v for v in new_store.variables
                           if v not in self.left_vars and v not in other.left_vars]
         return self.builder(domain=new_store.domain, values=new_store.data, right_vars = new_right_vars)
 
     def subtract(self, other):
+        other = self._prepare_operand(other)
         new_store = self.store.subtract(other.store)
         new_right_vars = [v for v in new_store.variables
                           if v not in self.left_vars and v not in other.left_vars]
@@ -87,6 +98,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
     def divide(self, other):
         import warnings
         with warnings.catch_warnings(record=True) as W:
+            other = self._prepare_operand(other)
             new_store = self.store.divide(other.store)
             new_right_vars = [v for v in new_store.variables
                               if v in self.right_vars or v in other.variables]
