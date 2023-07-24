@@ -206,11 +206,14 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
                f"values=[{self.store.values_str()}]>"
 
 
-def random_multinomial(domain:Dict, right_vars:list=None, vtype=None):
+def random_multinomial(domain:Dict, right_vars:list=None, vtype=None, allow_zero=True):
     vtype = vtype or DataStore.DEFAULT_STORE
     right_vars = right_vars or []
     left_dims = [i for i,v in enumerate(domain.keys()) if v not in right_vars]
-    data = normalize_array(np.random.uniform(0,1, size=[len(d) for d in domain.values()]), axis=left_dims)
+    if allow_zero:
+        data = normalize_array(np.random.uniform(0,1, size=[len(d) for d in domain.values()]), axis=left_dims)
+    else:
+        data = normalize_array(-1*np.random.uniform(-1, 0, size=[len(d) for d in domain.values()]), axis=left_dims)
     return MultinomialFactor(domain=domain, values=data, right_vars=right_vars, vtype=vtype)
 
 

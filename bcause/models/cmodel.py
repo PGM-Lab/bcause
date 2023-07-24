@@ -4,6 +4,7 @@ import itertools
 import logging
 from typing import Dict, Union, Hashable, Iterable
 
+from matplotlib import pyplot as plt
 from networkx import relabel_nodes, DiGraph, topological_sort
 
 import networkx as nx
@@ -142,10 +143,13 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
 
 
 
-    def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict,list] = None, endogenous:Iterable = None, cast_multinomial = True):
+    def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict,list] = None, endogenous:Iterable = None,
+                 cast_multinomial:bool = True, check_factors:bool = True):
         self._initialize(dag)
         self._endogenous = endogenous or [x for x in dag if len(list(dag.predecessors(x)))>0]
         self._cast_multinomial = cast_multinomial
+        self._check_factors = check_factors
+
         if factors is not None:
             self._set_factors(factors)
 
@@ -198,6 +202,16 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         new_endogenous = [names_mapping[x] for x in self.endogenous]
         return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=new_endogenous, cast_multinomial=self._cast_multinomial)
 
+
+
+    def randomize_factors(self, variables, in_place = False, allow_zero = True):
+        m = self if in_place else self.copy()
+        for x in variables:
+            dom = dutils.var_parents_domain(m.domains, m.graph, x)
+            f = random_multinomial(dom, [v for v in dom.keys() if x != v], allow_zero=allow_zero)
+            m.set_factor(x, f)
+        return m
+
     def fill_random_equations(self, domains):
         for x in self.endogenous:
             dom = dutils.var_parents_domain(domains, self.graph, x)
@@ -236,6 +250,10 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
                                   for v, d in self._domains.items() if self.is_exogenous(v)])
         return f"<StructuralCausalModel ({str_card_endo}|{str_card_exo}), dag={gutils.dag2str(self.graph)}>"
 
+
+    def draw(self):
+        nx.draw_shell(self.graph, arrows=True, with_labels=True)
+        plt.show()
 
 
 if __name__ == "__main__":

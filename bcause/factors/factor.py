@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from functools import reduce
 from typing import Dict, List
 
 import numpy as np
@@ -31,6 +32,41 @@ class Factor(ABC):
     @abstractmethod
     def sample_conditional(self, observations:list[Dict], varnames:bool) -> float:
         pass
+
+    @abstractmethod
+    def restrict(self, **observation: Dict) -> Factor:
+        pass
+
+    def R(self, **observation: Dict) -> Factor:
+        return self.restrict(**observation)
+
+    @abstractmethod
+    def multiply(self, other) -> Factor:
+        pass
+
+    @abstractmethod
+    def addition(self, other) -> Factor:
+        pass
+
+    @abstractmethod
+    def subtract(self, other) -> Factor:
+        pass
+
+    @abstractmethod
+    def divide(self, other) -> Factor:
+        pass
+
+    @abstractmethod
+    def marginalize(self, *vars_remove) -> Factor:
+        pass
+
+    @abstractmethod
+    def maxmarginalize(self, *vars_remove) -> Factor:
+        pass
+
+    @staticmethod
+    def combine_all(*factors) -> Factor:
+        return reduce((lambda f1, f2: f1 * f2), factors)
 
 
 class DiscreteFactor(Factor):
@@ -83,36 +119,7 @@ class DiscreteFactor(Factor):
 
         return self.builder(**kwargs)
 
-    @abstractmethod
-    def restrict(self, **observation: Dict) -> DiscreteFactor:
-        pass
 
-    def R(self, **observation: Dict) -> DiscreteFactor:
-        return self.restrict(**observation)
-
-    @abstractmethod
-    def multiply(self, other) -> DiscreteFactor:
-        pass
-
-    @abstractmethod
-    def addition(self, other) -> DiscreteFactor:
-        pass
-
-    @abstractmethod
-    def subtract(self, other) -> DiscreteFactor:
-        pass
-
-    @abstractmethod
-    def divide(self, other) -> DiscreteFactor:
-        pass
-
-    @abstractmethod
-    def marginalize(self, *vars_remove) -> DiscreteFactor:
-        pass
-
-    @abstractmethod
-    def maxmarginalize(self, *vars_remove) -> DiscreteFactor:
-        pass
 
 class ConditionalFactor(Factor):
     @property

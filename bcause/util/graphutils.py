@@ -1,3 +1,5 @@
+import itertools
+
 import networkx as nx
 
 import logging
@@ -57,9 +59,12 @@ def dsep_nodes(dag: nx.DiGraph, target, evidence_nodes):
 
     dsep = set(
         [v for v in dag.nodes if
-         nx.d_separated(dag, x=set(target), y={v}, z=set(evidence_nodes)) and v not in evidence_nodes])
+         nx.d_separated(dag, x=set(target), y={v}, z=set(evidence_nodes)-{v})])
     logging.debug(f"D-separated nodes wrt {target} given {evidence_nodes} are: {dsep}")
     return dsep
+
+def dcon_nodes(dag: nx.DiGraph, target, evidence_nodes):
+    return set(dag.nodes).difference(dsep_nodes(dag,target,evidence_nodes)).difference({target})
 
 
 def remove_outgoing_edges(dag: nx.DiGraph, parent_vars: list) -> nx.DiGraph:
@@ -95,3 +100,26 @@ def disconnected_nodes(G:nx.Graph, target):
     return set([x for x in G.nodes if not connected(G, target, x)])
 
 
+def markov_blanket(dag, v, hidden=None):
+
+    # Usual case with no hidden
+    if hidden is None or len(hidden)==0:
+        children = set(dag.successors(v))
+        parents = set(dag.predecessors(v))
+        pa_ch = set(itertools.chain(*[list(dag.predecessors(ch)) for ch in children]))
+        return children | parents | pa_ch.difference({v})
+
+    # Case in which some variables are hidden
+    observed = set(dag.nodes).difference(set(hidden) | {v})
+    return dcon_nodes(dag, v, observed)
+
+'''
+
+dag = nx.DiGraph([("A","B"),("B","C"),("D","C"),("D","G"),("C","E"),("E","F")])
+
+v = "C"
+
+
+dcon_nodes(dag, v, evidence_nodes=["C","B",])
+
+'''

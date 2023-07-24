@@ -9,9 +9,10 @@ from bcause.util.graphutils import dag2str
 
 class BayesianNetwork(DiscreteDAGModel):
 
-    def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict, Iterable] = None):
+    def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict, Iterable] = None, check_factors:bool = True):
 
         self._initialize(dag)
+        self._check_factors = check_factors
         if factors is not None: self._set_factors(factors)
 
     from bcause.readwrite import bnwrite, bnread

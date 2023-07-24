@@ -12,7 +12,7 @@ from bcause.models.cmodel import StructuralCausalModel
 dag = nx.DiGraph([("V1", "V2"), ("V2", "V3"),("V3", "V4"),("U1", "V1"),("U2", "V2"),("U2", "V4"),("U3", "V3")])
 model = StructuralCausalModel(dag)
 domains = dict(V1=[0,1],V2=[0,1],V3=[False, True], V4=["a","b"], U1=[0,1,3],U2=[0,1,2,3],U3=[0,1,2,3])
-from bcause.util.random import seed
+from bcause.util.randomUtil import seed
 seed(1)
 model.fill_random_factors(domains)
 data = model.sample(1000, as_pandas=True)
