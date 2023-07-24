@@ -1,4 +1,7 @@
 '''
+
+Note: this cannot be called MLE, which is the name of another existing method.
+
 Maximum likelihood estimation (MLE) of credal networks
 
 Runs multiple MLE (function multi_mle()) of parameters in a predefined credal network in order to 

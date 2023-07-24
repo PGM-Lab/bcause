@@ -7,6 +7,10 @@ from bcause.models.cmodel import StructuralCausalModel
 
 
 class GradientLikelihood(IterativeParameterLearning):
+    '''
+    This class implements a method for running a single optimization of the exogenous variables in a SCM.
+    '''
+
     def __init__(self, prior_model: StructuralCausalModel, trainable_vars: list = None):
         self._prior_model = prior_model
         self._trainable_vars = trainable_vars
