@@ -1,149 +1,102 @@
 
 
 
-
 import networkx as nx
+import numpy as np
+import pandas as pd
+
+from functools import cache
 
 import bcause as bc
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.graphutils import *
 
+class DataDepAnalysis(object):
 
-# Define a DAG and the domains
-dag = nx.DiGraph([("V1", "V2"), ("V2", "V3"),("V3", "V4"),("U1", "V1"),("U2", "V2"),("U2", "V4"),("U3", "V3")])
-model = StructuralCausalModel(dag)
-domains = dict(V1=[0,1],V2=[0,1],V3=[0,1],V4=[0,1], U1=[0,1,3],U2=[0,1,2,3],U3=[0,1,2,3])
-bc.random.seed(1)
-model.fill_random_factors(domains)
-data = model.sample(1000, as_pandas=True)[["V1","V2","V3","V4"]]
+    def __init__(self, dag, data):
+        self._data = data
+        self._dag = dag
+        self._data_unique = data.drop_duplicates().to_dict("records")
 
+    def expectation_relevant_vars(self,v):
+        return relevat_vars(self._dag,v)
 
-dag = nx.DiGraph([("U","X"),("U","Y"),("X","Y")])
-model = StructuralCausalModel(dag)
-domains = dict(U = [0,1,2,3], X=[0,1], Y=[0,1])
-bc.random.seed(1)
-model.fill_random_factors(domains)
-data = model.sample(1000, as_pandas=True)[["X","Y"]]
+    def posterior_relevant_vars(self, v, evidence_nodes):
+        return list(dcon_nodes(self._dag, v, evidence_nodes))
 
-data["S"] = data.Y == 0
 
-data.loc[-data.S, "X"] = np.nan
-data.loc[-data.S, "Y"] = np.nan
-dag.add_edge("X","S")
-dag.add_edge("Y","S")
 
+    @cache
+    def get_minimal_obs_blanket(self, target):
+        def dsep_filter(d):
+            evidence_vars = [v for v in d.keys() if not pd.isna(d[v])]
+            connected_vars = dcon_nodes(self._dag, target, evidence_vars) | {target}
+            return {k: v for k, v in d.items() if k in connected_vars and k in evidence_vars}
 
-model.draw()
+        return self.__obs_unique([dsep_filter(d) for d in self._data_unique])
 
+    @staticmethod
+    def __obs_unique(obs_list):
+        obs_eq = lambda d1, d2: d1.keys() == d2.keys() and all([d1[k] == d2[k] for k in d1.keys()])
 
-class c():
-    pass
+        idx = list(range(len(obs_list)))
 
+        for i in range(len(obs_list) - 1, 0, -1):
+            for j in range(i - 1, -1, -1):
+                if obs_eq(obs_list[i], obs_list[j]):
+                    del idx[i]
+                    break
+        return [obs_list[i] for i in idx]
 
-self = c()
 
 
-dag.edges
-self._dag = dag
-self._data = data
+if __name__ == "__main__":
 
-import matplotlib.pyplot as plt
 
+    # Define a DAG and the domains
+    dag = nx.DiGraph([("V1", "V2"), ("V2", "V3"),("V3", "V4"),("U1", "V1"),("U2", "V2"),("U2", "V4"),("U3", "V3")])
+    model = StructuralCausalModel(dag)
+    domains = dict(V1=[0,1],V2=[0,1],V3=[0,1],V4=[0,1], U1=[0,1,3],U2=[0,1,2,3],U3=[0,1,2,3])
+    bc.randomUtil.seed(1)
+    model.fill_random_factors(domains)
+    data = model.sample(1000, as_pandas=True)[["V1","V2","V3","V4"]]
 
-# expectation_vars
 
-v = "V2"
-def expectation_relevant_vars(self,v):
-    return relevat_vars(self._dag,v)
+    dag = nx.DiGraph([("U","X"),("U","Y"),("X","Y")])
+    model = StructuralCausalModel(dag)
+    domains = dict(U = [0,1,2,3], X=[0,1], Y=[0,1])
+    bc.randomUtil.seed(1)
+    model.fill_random_factors(domains)
+    data = model.sample(20, as_pandas=True)[["X","Y"]]
 
-def posterior_relevant_vars(self, v, evidence_nodes):
-    return list(dcon_nodes(self._dag, v, evidence_nodes))
+    data["S"] = data.X == 0
 
+    data.loc[-data.S, "X"] = np.nan
+    data.loc[-data.S, "Y"] = np.nan
+    dag.add_edge("X","S")
+    dag.add_edge("Y","S")
 
+    dag.add_edge("H","U")
 
 
+    data = data.append(dict(U=3), ignore_index=True)
+    data = data.append(dict(U=2, H="h1"), ignore_index=True)
+    data = data.append(dict(U=np.nan, H="h2"), ignore_index=True)
 
-import math
-import numpy as np
 
-v = "U"
+    print(data)
 
-_, vals = list(unique.iterrows())[1]
-vals = dict(vals)
 
-self._dag.edges
+    deps = DataDepAnalysis(dag, data)
 
-def get_minimal_obs_blanket(v, fixed_obs=None):
-    fixed_obs = fixed_obs or dict()
+    print(deps.get_minimal_obs_blanket("U"))
+    print(deps.get_minimal_obs_blanket("U"))
 
-    hidden = [x for x,val in fixed_obs.items() if np.isnan(val)]
-    blanket = list(markov_blanket(self._dag, v, hidden))
-    unique = self._data[blanket].drop_duplicates()
-    out = list()
+    target = "U"
 
-    # set fixed obs
-    for x,val in fixed_obs.items():
-        if x in unique.columns:
-            unique[x] = val
-            unique = unique.drop_duplicates()
+    obs_blanket = deps.get_minimal_obs_blanket(target)
+    [(obs, len(data.loc[data[obs.keys()].isin(obs.values()).all(axis=1), :])) for obs in obs_blanket]
 
 
-    # for each possible value in the markov blanket
-    for _, vals in unique.iterrows():
 
-        new_hidden = [x for x, val in vals.items() if np.isnan(val)]
-
-        if set(hidden) != set(new_hidden):
-            out += get_minimal_obs_blanket(v, fixed_obs=dict(vals))
-        else:
-            out.append(dict(vals))
-
-
-    return out
-
-
-get_minimal_obs_blanket("U")
-
-
-fixed_obs = dict(V4=np.nan)
-
-[x for x,val in fixed_obs.items() if np.isnan(val)]
-
-get_minimal_obs_blanket("U2", dict(V4=np.nan))
-# if it has no missing, compute the relevant and add it
-#if not np.isnan(vals.values).any():
-
-
-
-# if it has missing fix those in the mb and then consider all unique of the rest
-
-
-
-
-# markov_blanket with hidden:
-
-# observe all the rest
-
-
-
-
-
-
-# get_data_expectation
-
-# get_counts_expectation
-
-#get_data_posterior
-
-#get_counts_posterior
-
-
-# [x for x in self._dag.nodes if x not in  and v != x]
-
-
-markov_blanket(dag,v)
-
-hidden = set(["V1"])
-
-observed = set(dag.nodes).difference(set(hidden) | {v})
-dcon_nodes(dag, v, observed)
+    len(data)

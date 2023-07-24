@@ -23,6 +23,7 @@ class PGModel(ABC):
         self._graph = graph
         self._factors = {x: None for x in graph.nodes}
         self._domains = {x: None for x in graph.nodes}
+        self._check_factors = True
 
     @property
     def graph(self) -> nx.Graph:
@@ -33,28 +34,35 @@ class PGModel(ABC):
         return list(self._graph.nodes)
 
     @property
-    def factors(self) -> Union[Dict,list]:
+    def factors(self) -> Dict:
         return self._factors
+
+    @property
+    def factor_list(self) -> Union[Dict,list]:
+        return list(self._factors.values())
 
     def get_factors(self, *variables) -> list:
         return [self._factors[v] for v in variables]
 
 
     def set_factor(self, var:Hashable, f:bf.DiscreteFactor):
-        # check type
-        if not isinstance(f, bf.DiscreteFactor):
-            raise ValueError(f"Factor {var} must  be discrete")
-        if not isinstance(f, bf.ConditionalFactor): raise ValueError(f"Factor {var} must  be conditional")
 
-        # check left right variables
-        if set(self.get_parents(var)) != set(f.right_vars): raise ValueError(f"Wrong right variables in factor for {var}")
-        if set([var]) != set(f.left_vars):
-            raise ValueError("Wrong left variables in factor")
 
-        # check domains
-        for v in f.variables:
-            if v in self._domains and self._domains[v] != None:
-                    if set(self._domains[v]) != set(f.domain[v]): raise ValueError(f"Inconsistent domain for {v} when setting {var}")
+        if self._check_factors:
+            # check type
+            if not isinstance(f, bf.DiscreteFactor):
+                raise ValueError(f"Factor {var} must  be discrete")
+            if not isinstance(f, bf.ConditionalFactor): raise ValueError(f"Factor {var} must  be conditional")
+
+            # check left right variables
+            if set(self.get_parents(var)) != set(f.right_vars): raise ValueError(f"Wrong right variables in factor for {var}")
+            if set([var]) != set(f.left_vars):
+                raise ValueError("Wrong left variables in factor")
+
+            # check domains
+            for v in f.variables:
+                if v in self._domains and self._domains[v] != None:
+                        if set(self._domains[v]) != set(f.domain[v]): raise ValueError(f"Inconsistent domain for {v} when setting {var}")
 
         # Update domains
         if var not in self._domains or self._domains[var] == None:

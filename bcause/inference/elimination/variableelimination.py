@@ -17,7 +17,7 @@ from bcause.models.transform.simplification import minimalize
 
 
 class VariableElimination(ProbabilisticInference):
-    def __init__(self, model: DiscreteDAGModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = True):
+    def __init__(self, model: DiscreteDAGModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = False):
 
         # Default value for heuristic
         heuristic = heuristic or min_weight_heuristic
@@ -47,10 +47,11 @@ class VariableElimination(ProbabilisticInference):
         if not self._compiled:
             raise ValueError("Model not compiled")
 
-        to_remove = [v for v in self._inference_model.variables if v not in self._target and v not in self._evidence.keys()]
+        factors = list(self._inference_model.factors.values())
+        vars_in_factors = list(reduce(lambda d1,d2 : d1 | d2, [f.domain.keys() for f in factors]))
+        to_remove = [v for v in vars_in_factors if v not in self._target and v not in self._evidence.keys()]
         ordering = self._heuristic(self._inference_model.graph, to_remove=to_remove,
                                    varsizes=self._inference_model.varsizes)
-        factors = list(self._inference_model.factors.values())
 
         logging.info(f"Starting Variable elimination loop. Ordering: {ordering}")
         logging.debug(f"Current factor list: {[f.name for f in factors]}")
@@ -70,6 +71,9 @@ class VariableElimination(ProbabilisticInference):
 
             logging.debug(f"Updated factor list: {[f.name for f in factors]}")
 
+
+
+        p = reduce((lambda f1, f2: f1 * f2), factors)
         # combine resulting factors and set evidence
         joint = reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
         result = joint / (joint ** self._target)

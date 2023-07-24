@@ -34,8 +34,8 @@ def test_laplace_inference():
             dict(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes")),
             ]
 
-    from bcause import random
-    random.seed(1)
+    from bcause import randomUtil
+    randomUtil.seed(1)
     data = model.sample(5000, as_pandas=True)
 
     inf = LaplaceInference(data, model.domains)
