@@ -9,6 +9,8 @@ from bcause.models.cmodel import StructuralCausalModel
 from bcause.models.pgmodel import DiscreteDAGModel
 from bcause.util.datadeps import DataDepAnalysis
 
+from bcause.util import domainutils as dutils
+
 
 class AbastractExpectationMaximization(IterativeParameterLearning):
     @abstractmethod
@@ -45,10 +47,9 @@ class ExpectationMaximization(AbastractExpectationMaximization):
 
     def _get_obs_counts(self, target):
         obs_blanket = self._datadeps.get_minimal_obs_blanket(target)
-        return [(obs, len(data.loc[data[obs.keys()].isin(obs.values()).all(axis=1), :])) for obs in obs_blanket]
+        return [(obs, len(self._data.loc[self._data[obs.keys()].isin(obs.values()).all(axis=1), :])) for obs in obs_blanket]
 
     def _expectation(self, **kwargs):
-        print(self.model.factors)
         self._inf = self._inference_method(self._model, preprocess_flag=False)
         pcounts = self._get_pseudocounts_dict()
         for v in self.trainable_vars:
@@ -79,6 +80,7 @@ class ExpectationMaximization(AbastractExpectationMaximization):
 
         self._datadeps = DataDepAnalysis(self.model.graph, data)
         self._variables = list(data.columns)
+        self._data = data
 
     def _stop_learning(self) -> bool:
         # todo: add stopping criteria

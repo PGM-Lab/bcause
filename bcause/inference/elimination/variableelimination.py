@@ -83,7 +83,7 @@ class VariableElimination(ProbabilisticInference):
 
 
 class CausalVariableElimination(CausalInference):
-    def __init__(self, model: StructuralCausalModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = True):
+    def __init__(self, model: StructuralCausalModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = False):
         prob_inf_fn = lambda m : VariableElimination(m, heuristic, preprocess_flag)
         super(self.__class__, self).__init__(model.to_multinomial(), prob_inf_fn)
 
