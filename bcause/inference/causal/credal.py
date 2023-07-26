@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import Callable
 
 import numpy as np
@@ -35,7 +36,7 @@ class CausalMultiInference(CausalInference):
         if len(self._models)<1: raise ValueError("Required at least 1 precise model")
         self._model = self._models[0]
         self._causal_inf = [self._causal_inf_fn(m) for m in self._models]
-        self._compiled = False
+        self._compiled = True
         return self
 
     def query(self, target, do, evidence=None, counterfactual=False, targets_subgraphs = None):
@@ -57,6 +58,27 @@ class CausalMultiInference(CausalInference):
                 result = IntervalProbFactor.from_precise(result)
 
         return result
+
+
+
+class CausalObservationalInference(ABC):
+    @property
+    def data(self):
+        return self._data
+
+class EMCC(CausalMultiInference, CausalObservationalInference):
+    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True, max_iter=100, num_runs=10):
+        self._data = data
+        self._prior_model = model
+        self._num_runs = num_runs
+        self._max_iter = max_iter
+        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result)
+
+    def compile(self, *args, **kwargs) -> Inference:
+        agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter)
+        agg.run(num_models=self._num_runs)
+        self.set_models(agg.models)
+        return super().compile()
 
 
 if __name__=="__main__":
@@ -90,13 +112,7 @@ if __name__=="__main__":
 
     data = m.sample(10000, as_pandas=True)[m.endogenous]
 
-    print(m)
-    em = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False))
-
-    agg = SimpleModelAggregatorEM(m, data, max_iter=10)
-    agg.run(num_models=5)
-
-    inf = CausalMultiInference(agg.models, interval_result=True).compile()
+    inf = EMCC(m, data, num_runs=10, max_iter=3)
 
     print(inf.causal_query("X", do=dict(Y=0)))
     print(inf.counterfactual_query("X", do=dict(Y=0)))
