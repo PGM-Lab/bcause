@@ -1,11 +1,11 @@
 import logging
 from abc import abstractmethod, ABC
-from collections.abc import Iterable
 from typing import Callable
 
 from pgmpy.inference import Inference
 
 from bcause.factors.factor import Factor
+
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.models.pgmodel import PGModel
 from bcause.models.transform.combination import fusion_roots
@@ -154,6 +154,10 @@ class CausalInference(Inference):
 
     def prob_necessity_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         pass
+
+    def _process_output(self, result, obs):
+        return result.get_value(**obs)
+
     def prob_necessity(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         # PN: P(X_{Y=f} = f |X=t, Y=t)   Y->X
 
@@ -162,11 +166,11 @@ class CausalInference(Inference):
         Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
 
         # Run the query
-        return self.counterfactual_query(
+        return self._process_output(self.counterfactual_query(
             effect,
             do={cause: Fcause},
             evidence={cause: Tcause, effect: Teffect}
-        ).get_value(**{effect: Feffect})
+        ), {effect: Feffect})
 
     def prob_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         # PS: P(X_{Y=t} = t |X=f, Y=f)   Y->X
@@ -176,10 +180,54 @@ class CausalInference(Inference):
         Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
 
         # Run the query
-        return self.counterfactual_query(
+        return self._process_output(self.counterfactual_query(
             effect,
             do={cause: Tcause},
             evidence={cause: Fcause, effect: Feffect}
-        ).get_value(**{effect: Teffect})
+        ), {effect: Teffect})
+
+
+
+class CausalMultiInference(CausalInference):
+    def __init__(self, models: list[StructuralCausalModel], causal_inf_fn: Callable):
+        self._models = models
+        self._model = models[0]
+        self._causal_inf = [causal_inf_fn(m) for m in models]
+
+
+    def compile(self, *args, **kwargs) -> Inference:
+        pass
+
+    def _preprocess(self, *args, **kwargs) -> PGModel:
+        pass
+
+
+    @property
+    def counterfactual(self):
+        return self._counterfactual
+
+    def run(self) -> Factor:
+        pass
+
+    def query(self, target, do, evidence=None, counterfactual=False, targets_subgraphs = None):
+        return [inf.query(target,do,evidence,counterfactual,targets_subgraphs) for inf in self._causal_inf]
+
+    def _process_output(self, result, obs):
+        return [r.get_value(**obs) for r in result]
+
+
+'''
+    def causal_query(self, target, do, evidence=None):
+        return [inf.query(target,do,evidence,counterfactual,targets_subgraphs) for inf in self._causal_inf]
+    def counterfactual_query(self, target, do, evidence=None, targets_subgraphs = None):
+        raise NotImplementedError()
+    def prob_necessity_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
+        raise NotImplementedError()
+    def prob_necessity(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
+        raise NotImplementedError()
+
+    def prob_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
+        raise NotImplementedError()
+'''
 
 

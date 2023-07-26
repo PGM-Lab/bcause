@@ -87,6 +87,3 @@ class CausalVariableElimination(CausalInference):
         prob_inf_fn = lambda m : VariableElimination(m, heuristic, preprocess_flag)
         super(self.__class__, self).__init__(model.to_multinomial(), prob_inf_fn)
 
-
-class MultiCausalVE(CausalInference):
-    pass
