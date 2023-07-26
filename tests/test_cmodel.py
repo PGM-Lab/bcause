@@ -3,7 +3,7 @@ import networkx as nx
 from networkx.utils import graphs_equal
 
 import bcause as bc
-from bcause.inference.elimination.variableelimination import CausalVariableElimination
+from bcause.inference.causal.elimination import CausalVariableElimination
 from bcause.models.cmodel import StructuralCausalModel
 
 from numpy.testing import assert_array_almost_equal

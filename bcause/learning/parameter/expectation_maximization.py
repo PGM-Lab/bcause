@@ -3,13 +3,12 @@ from abc import abstractmethod
 import pandas as pd
 
 from bcause.factors import MultinomialFactor, DeterministicFactor
-from bcause.inference.elimination.variableelimination import VariableElimination
+from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.models.pgmodel import DiscreteDAGModel
 from bcause.util.datadeps import DataDepAnalysis
 
-from bcause.util import domainutils as dutils
 
 
 class AbastractExpectationMaximization(IterativeParameterLearning):
@@ -31,6 +30,7 @@ class AbastractExpectationMaximization(IterativeParameterLearning):
 
     def _get_pseudocounts_dict(self) -> dict:
         def get_pcounts(v):
+            from bcause.util import domainutils as dutils
             pa = self.prior_model.get_parents(v)
             dom = dutils.subdomain(self.prior_model.domains, *([v] + pa))
             return MultinomialFactor(dom, values=0)
@@ -88,8 +88,6 @@ class ExpectationMaximization(AbastractExpectationMaximization):
 
 
 if __name__ == "__main__":
-    import logging, sys
-
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 
     # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')

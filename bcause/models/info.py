@@ -43,10 +43,10 @@ def get_qgraph(model:DiscreteCausalDAGModel):
 
 def get_qfactors(model:StructuralCausalModel, v:Hashable, data=None):
     if data is None:
-        import bcause.inference.elimination.variableelimination as ve
+        import bcause.inference.probabilistic.elimination as ve
         inf = ve.VariableElimination(model)
     else:
-        import bcause.inference.datainference as di
+        import bcause.inference.probabilistic.datainference as di
         inf = di.LaplaceInference(data, model.domains)
 
     ccomp = model.get_endo_ccomponent(v)

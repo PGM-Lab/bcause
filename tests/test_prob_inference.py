@@ -2,8 +2,8 @@ import pytest
 from numpy.testing import assert_array_almost_equal
 
 import bcause.readwrite.bnread as bnread
-from bcause.inference.datainference import LaplaceInference
-from bcause.inference.elimination.variableelimination import VariableElimination
+from bcause.inference.probabilistic.datainference import LaplaceInference
+from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.models.transform.simplification import minimalize
 
 model = bnread.from_bif("models/asia.bif")

@@ -104,9 +104,8 @@ def identify_true_false(varname, dom):
     if dtypes[0] in [int, float]:
         tf = [d for d in dom if d==True] + [d for d in dom if d==False]
     elif dtypes[0] == str:
-        tf = [d for d in dom if d.lower() == varname.lower()+"1"] + [d for d in dom if d.lower() == varname.lower()+"0"]
+        tf = [d for d in dom if d.lower() == varname.lower()+"1"] + [d for d in dom if d.lower() == varname.lower()+"0"] + [d for d in dom if d.lower() == varname.lower()+"2"]
 
-    print(tf)
     if len(tf)!=2: raise ValueError("Cannot identify true/false states: wrong values or data types")
 
     return tf[0],tf[1]

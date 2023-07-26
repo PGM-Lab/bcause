@@ -3,15 +3,13 @@ from __future__ import annotations
 import inspect
 import logging
 import time
-from abc import ABC, abstractmethod
 from functools import reduce
 from typing import Callable, Union
 
 from bcause.factors.mulitnomial import MultinomialFactor
-from bcause.inference.elimination.ordering import min_weight_heuristic, Heuristic, heuristic_functions
-from bcause.inference.inference import ProbabilisticInference, CausalInference
-from bcause.models.cmodel import StructuralCausalModel
-from bcause.models.pgmodel import PGModel, DiscreteDAGModel
+from bcause.inference.ordering import min_weight_heuristic, Heuristic, heuristic_functions
+from bcause.inference.probabilistic.probabilistic import ProbabilisticInference
+from bcause.models.pgmodel import DiscreteDAGModel
 from bcause.models.transform.simplification import minimalize
 
 
@@ -81,9 +79,4 @@ class VariableElimination(ProbabilisticInference):
         logging.info(f"Finished variable elimination in {self.time} ms.")
         return result
 
-
-class CausalVariableElimination(CausalInference):
-    def __init__(self, model: StructuralCausalModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = False):
-        prob_inf_fn = lambda m : VariableElimination(m, heuristic, preprocess_flag)
-        super(self.__class__, self).__init__(model.to_multinomial(), prob_inf_fn)
 
