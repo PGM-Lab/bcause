@@ -4,6 +4,7 @@ import itertools
 import logging
 from typing import Dict, Union, Hashable, Iterable
 
+import pandas as pd
 from matplotlib import pyplot as plt
 from networkx import relabel_nodes, DiGraph, topological_sort
 
@@ -242,6 +243,11 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
     def to_bnet(self):
         m = self.to_multinomial() if self.has_deterministic else self
         return BayesianNetwork(m.graph, m.factors)
+
+
+    def sampleEndogenous(self, n_samples: int, as_pandas = True) -> Union[list[Dict], pd.DataFrame]:
+        return self.sample(n_samples, as_pandas)[self.endogenous]
+
 
     def __repr__(self):
         str_card_endo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"

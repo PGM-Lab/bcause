@@ -78,7 +78,15 @@ class CausalInference(Inference):
         return self.query(target, do, evidence=evidence, counterfactual=True, targets_subgraphs=targets_subgraphs)
 
     def prob_necessity_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
-        pass
+        # Determine the true and false states
+        Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
+        Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
+
+        # Run the query
+        return self._process_output(self.counterfactual_query(
+            effect,
+            do=[{cause: Fcause}, {cause: Tcause}],
+        ), {effect + "_1": Feffect, effect + "_2": Teffect})
 
     def _process_output(self, result, obs):
         return result.get_value(**obs)
@@ -95,7 +103,7 @@ class CausalInference(Inference):
             effect,
             do={cause: Fcause},
             evidence={cause: Tcause, effect: Teffect}
-        ), {effect: Feffect})
+        ), {effect+"_1": Feffect})
 
     def prob_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         # PS: P(X_{Y=t} = t |X=f, Y=f)   Y->X
@@ -109,4 +117,4 @@ class CausalInference(Inference):
             effect,
             do={cause: Tcause},
             evidence={cause: Fcause, effect: Feffect}
-        ), {effect: Teffect})
+        ), {effect+"_1": Teffect})

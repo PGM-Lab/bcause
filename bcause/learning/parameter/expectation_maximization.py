@@ -44,6 +44,7 @@ class ExpectationMaximization(AbastractExpectationMaximization):
         self._prior_model = prior_model
         self._trainable_vars = trainable_vars
         self._inference_method = inference_method
+        self._converged_vars = set()
 
     def _get_obs_counts(self, target):
         obs_blanket = self._datadeps.get_minimal_obs_blanket(target)
@@ -52,7 +53,7 @@ class ExpectationMaximization(AbastractExpectationMaximization):
     def _expectation(self, **kwargs):
         self._inf = self._inference_method(self._model, preprocess_flag=False)
         pcounts = self._get_pseudocounts_dict()
-        for v in self.trainable_vars:
+        for v in set(self.trainable_vars).difference(self._converged_vars):
 
             for obs, c in self._get_obs_counts(v):
                 relevant = [v] + self._prior_model.get_parents(v)
@@ -64,7 +65,7 @@ class ExpectationMaximization(AbastractExpectationMaximization):
 
     def _maximization(self, pcounts, **kwargs):
         new_probs = dict()
-        for v in self.trainable_vars:
+        for v in set(self.trainable_vars).difference(self._converged_vars):
             joint_counts = pcounts[v]
             new_probs[v] = joint_counts / (joint_counts.marginalize(v))
 
@@ -83,8 +84,16 @@ class ExpectationMaximization(AbastractExpectationMaximization):
         self._data = data
 
     def _stop_learning(self) -> bool:
-        # todo: add stopping criteria
-        return False
+        from scipy.special import rel_entr
+
+        for v in self._trainable_vars:
+            if v not in self._converged_vars:
+                P = self.model_evolution[-2].factors[v]
+                Q = self.model_evolution[-1].factors[v]
+                kl_div = sum(rel_entr(P.values, Q.values))
+                if kl_div == 0:
+                    self._converged_vars = self._converged_vars | {v}
+        return set(self._trainable_vars) == self._converged_vars
 
 
 if __name__ == "__main__":
@@ -120,7 +129,7 @@ if __name__ == "__main__":
 
     print(m)
     em = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False))
-    em.run(data, max_iter=4)
+    em.run(data, max_iter=10)
 
     print(em.prior_model)
 

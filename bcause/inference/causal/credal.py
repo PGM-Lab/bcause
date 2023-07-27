@@ -48,6 +48,8 @@ class CausalMultiInference(CausalInference):
         if obs is not None:
             if isinstance(result, list):
                 result = [r.get_value(**obs) for r in result]
+            elif isinstance(result, IntervalProbFactor):
+                result = result.restrict(**obs).values
             else:
                 result = result.get_value(**obs)
 
@@ -59,6 +61,10 @@ class CausalMultiInference(CausalInference):
 
         return result
 
+    def set_interval_result(self, value:bool):
+        self._interval_result = value
+
+
 
 
 class CausalObservationalInference(ABC):
@@ -67,19 +73,24 @@ class CausalObservationalInference(ABC):
         return self._data
 
 class EMCC(CausalMultiInference, CausalObservationalInference):
-    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True, max_iter=100, num_runs=10):
+    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True, max_iter=100, num_runs=10, parallel = False):
         self._data = data
         self._prior_model = model
         self._num_runs = num_runs
         self._max_iter = max_iter
+        self._agg = None
+        self._parallel = parallel
         super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result)
 
     def compile(self, *args, **kwargs) -> Inference:
-        agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter)
-        agg.run(num_models=self._num_runs)
-        self.set_models(agg.models)
+        self._agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter, parallel=self._parallel)
+        self._agg.run(num_models=self._num_runs)
+        self.set_models(self._agg.models)
         return super().compile()
 
+    def get_model_evolution(self, index):
+        if self._agg is not None:
+            return self._agg.learn_objects[index].model_evolution
 
 if __name__=="__main__":
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'

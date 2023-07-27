@@ -175,7 +175,7 @@ class DiscreteDAGModel(PGModel):
         return self.builder(dag=new_dag, factors=new_factors)
 
 
-    def sample(self, n_samples: int, as_pandas = False) -> Union[list[Dict], pd.DataFrame]:
+    def sample(self, n_samples: int, as_pandas = True) -> Union[list[Dict], pd.DataFrame]:
         logging.info(f"Sampling {n_samples} instances from model")
         data = forward_sampling(self, n_samples=n_samples)
         if not as_pandas:

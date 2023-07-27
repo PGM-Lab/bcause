@@ -7,7 +7,26 @@ from bcause.learning.parameter import ParameterLearning
 from bcause.learning.parameter.expectation_maximization import ExpectationMaximization
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.models.pgmodel import PGModel
+from bcause.util.watch import Watch
 
+
+# def single_run(model, trainlable_vars, data, max_iter):
+#     print("start single generate")
+#     em = ExpectationMaximization(model.randomize_factors(trainlable_vars, allow_zero=False),
+#                                  trainable_vars=trainlable_vars)
+#     em.run(data, max_iter=max_iter)
+#     #self._learn_objects.append(em)
+#
+#     print("end single generate")
+#
+#     return em
+
+
+
+
+
+def thread(self, i):
+    return self.single_generate(i)
 
 class ModelAggregator(ABC):
 
@@ -16,7 +35,6 @@ class ModelAggregator(ABC):
         self.reset()
 
     def reset(self):
-        print("reset models")
         self._final_models = []
         self._generated_models = []
         self._learn_objects = []
@@ -29,18 +47,12 @@ class ModelAggregator(ABC):
         return self._final_models
 
     def generate(self, num_models : int):
-        print(self._parallel)
         if num_models<1: raise ValueError(f"Wrong number of models: {num_models}")
-        # if not self._parallel:
-        self._generated_models += [self._single_generate(i) for i in range(num_models)]
-        # else:
-        #
-        #     def thread(self, i):
-        #         return self._single_generate(i)
-        #
-        #     processes = [Process(target=thread, args=(self,i,)) for i in range(num_models)]
-        #     self._generated_models += [p.start() for p in processes]
-        #     for p in processes: p.join()
+        if not self._parallel:
+            self._generated_models += [self._single_generate(i) for i in range(num_models)]
+        else:
+            from joblib import Parallel, delayed
+            self._generated_models +=  Parallel(n_jobs=-1, backend="threading") (delayed(self._single_generate)(i) for i in range(num_models))
 
     @abstractmethod
     def _single_generate(self, i):
@@ -64,7 +76,14 @@ class ModelAggregatorEM(ModelAggregator):
         em = ExpectationMaximization(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars)
         em.run(self._data, max_iter=self._max_iter)
         self._learn_objects.append(em)
+
+
         return em.model
+
+
+    def single_generate(self, i):
+        return self._single_generate()
+
 
 class SimpleModelAggregatorEM(SimpleModelAggregator, ModelAggregatorEM):
 
@@ -110,17 +129,22 @@ if __name__ == "__main__":
 
     m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 
-    data = m.sample(10000, as_pandas=True)[m.endogenous]
+    data = m.sample(1000, as_pandas=True)[m.endogenous]
 
     print(m)
+
+
     em = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False))
 
-    agg = SimpleModelAggregatorEM(m, data, max_iter=10, parallel=True)
+    agg = SimpleModelAggregatorEM(m, data, max_iter=20, parallel=True)
 
-    agg.run(2)
+    Watch.start()
+    agg.run(10)
+    Watch.stop_print()
 
-    for l in agg.learn_objects:
-        print(len(l.model_evolution))
-
-    for m in agg.models:
-        print(m.factors)
+    #
+    # for l in agg.learn_objects:
+    #     print(len(l.model_evolution))
+    #
+    # for m in agg.models:
+    #     print(m.factors)
