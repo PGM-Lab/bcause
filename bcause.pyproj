@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>2db57eef-80ff-4ea6-bbc5-71a78e3bd9a2</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>dev\mle.py</StartupFile>
+    <StartupFile>examples\useful_code_for_gradient.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -28,18 +28,34 @@
     <Compile Include="bcause\factors\deterministic.py" />
     <Compile Include="bcause\factors\factor.py" />
     <Compile Include="bcause\factors\mulitnomial.py" />
+    <Compile Include="bcause\factors\values\btreeops.py" />
+    <Compile Include="bcause\factors\values\btreestore.py" />
+    <Compile Include="bcause\factors\values\listops.py" />
+    <Compile Include="bcause\factors\values\liststore.py" />
+    <Compile Include="bcause\factors\values\numpyops.py" />
+    <Compile Include="bcause\factors\values\numpystore.py" />
+    <Compile Include="bcause\factors\values\operations.py" />
     <Compile Include="bcause\factors\values\store.py" />
+    <Compile Include="bcause\factors\values\treedictops.py" />
+    <Compile Include="bcause\factors\values\treedictstore.py" />
     <Compile Include="bcause\factors\values\__init__.py" />
     <Compile Include="bcause\factors\__init__.py" />
+    <Compile Include="bcause\inference\datainference.py" />
     <Compile Include="bcause\inference\elimination\ordering.py" />
     <Compile Include="bcause\inference\elimination\variableelimination.py" />
     <Compile Include="bcause\inference\elimination\__init__.py" />
     <Compile Include="bcause\inference\inference.py" />
     <Compile Include="bcause\inference\__init__.py" />
+    <Compile Include="bcause\learning\causal\__init__.py" />
     <Compile Include="bcause\learning\parameter.py" />
+    <Compile Include="bcause\learning\parameter\expectation_maximization.py" />
+    <Compile Include="bcause\learning\parameter\gradient.py" />
+    <Compile Include="bcause\learning\parameter\parameter.py" />
+    <Compile Include="bcause\learning\parameter\__init__.py" />
     <Compile Include="bcause\learning\__init__.py" />
     <Compile Include="bcause\models\bnet.py" />
     <Compile Include="bcause\models\cmodel.py" />
+    <Compile Include="bcause\models\info.py" />
     <Compile Include="bcause\models\pgmodel.py" />
     <Compile Include="bcause\models\sampling.py" />
     <Compile Include="bcause\models\transform\combination.py" />
@@ -49,13 +65,17 @@
     <Compile Include="bcause\models\__init__.py" />
     <Compile Include="bcause\readwrite\bnread.py" />
     <Compile Include="bcause\readwrite\bnwrite.py" />
+    <Compile Include="bcause\readwrite\scmread.py" />
+    <Compile Include="bcause\readwrite\scmwrite.py" />
     <Compile Include="bcause\readwrite\__init__.py" />
     <Compile Include="bcause\util\arrayutils.py" />
     <Compile Include="bcause\util\assertions.py" />
+    <Compile Include="bcause\util\datadeps.py" />
     <Compile Include="bcause\util\datautils.py" />
     <Compile Include="bcause\util\domainutils.py" />
     <Compile Include="bcause\util\graphutils.py" />
     <Compile Include="bcause\util\plotutils.py" />
+    <Compile Include="bcause\util\randomUtil.py" />
     <Compile Include="bcause\util\treesutil.py" />
     <Compile Include="bcause\util\__init__.py" />
     <Compile Include="bcause\__init__.py" />
@@ -63,7 +83,9 @@
     <Compile Include="dev\mle_aux.py" />
     <Compile Include="dev\optimization.py" />
     <Compile Include="examples\causal.py" />
+    <Compile Include="examples\data_store.py" />
     <Compile Include="examples\simple_jrsme.py" />
+    <Compile Include="examples\useful_code_for_gradient.py" />
     <Compile Include="tests\test_bnet.py" />
     <Compile Include="tests\test_inference.py" />
     <Compile Include="tests\test_multinomial.py" />
@@ -80,11 +102,14 @@
     <Folder Include="bcause\inference\elimination\__pycache__\" />
     <Folder Include="bcause\inference\__pycache__\" />
     <Folder Include="bcause\learning\" />
+    <Folder Include="bcause\learning\causal\" />
+    <Folder Include="bcause\learning\parameter\" />
     <Folder Include="bcause\models\" />
     <Folder Include="bcause\models\transform\" />
     <Folder Include="bcause\models\transform\__pycache__\" />
     <Folder Include="bcause\models\__pycache__\" />
     <Folder Include="bcause\readwrite\" />
+    <Folder Include="bcause\readwrite\__pycache__\" />
     <Folder Include="bcause\util\" />
     <Folder Include="bcause\util\__pycache__\" />
     <Folder Include="bcause\__pycache__\" />
@@ -99,7 +124,16 @@
     <Folder Include="tests\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="bcause\factors\values\__pycache__\btreeops.cpython-39.pyc" />
+    <Content Include="bcause\factors\values\__pycache__\btreestore.cpython-39.pyc" />
+    <Content Include="bcause\factors\values\__pycache__\listops.cpython-39.pyc" />
+    <Content Include="bcause\factors\values\__pycache__\liststore.cpython-39.pyc" />
+    <Content Include="bcause\factors\values\__pycache__\numpyops.cpython-39.pyc" />
+    <Content Include="bcause\factors\values\__pycache__\numpystore.cpython-39.pyc" />
+    <Content Include="bcause\factors\values\__pycache__\operations.cpython-39.pyc" />
     <Content Include="bcause\factors\values\__pycache__\store.cpython-39.pyc" />
+    <Content Include="bcause\factors\values\__pycache__\treedictops.cpython-39.pyc" />
+    <Content Include="bcause\factors\values\__pycache__\treedictstore.cpython-39.pyc" />
     <Content Include="bcause\factors\values\__pycache__\__init__.cpython-39.pyc" />
     <Content Include="bcause\factors\__pycache__\deterministic.cpython-39.pyc" />
     <Content Include="bcause\factors\__pycache__\factor.cpython-39.pyc" />
@@ -115,13 +149,18 @@
     <Content Include="bcause\models\transform\__pycache__\__init__.cpython-39.pyc" />
     <Content Include="bcause\models\__pycache__\bnet.cpython-39.pyc" />
     <Content Include="bcause\models\__pycache__\cmodel.cpython-39.pyc" />
+    <Content Include="bcause\models\__pycache__\info.cpython-39.pyc" />
     <Content Include="bcause\models\__pycache__\pgmodel.cpython-39.pyc" />
     <Content Include="bcause\models\__pycache__\sampling.cpython-39.pyc" />
     <Content Include="bcause\models\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="bcause\readwrite\__pycache__\bnwrite.cpython-39.pyc" />
+    <Content Include="bcause\readwrite\__pycache__\__init__.cpython-39.pyc" />
     <Content Include="bcause\util\__pycache__\arrayutils.cpython-39.pyc" />
     <Content Include="bcause\util\__pycache__\assertions.cpython-39.pyc" />
     <Content Include="bcause\util\__pycache__\domainutils.cpython-39.pyc" />
     <Content Include="bcause\util\__pycache__\graphutils.cpython-39.pyc" />
+    <Content Include="bcause\util\__pycache__\plotutils.cpython-39.pyc" />
+    <Content Include="bcause\util\__pycache__\randomUtil.cpython-39.pyc" />
     <Content Include="bcause\util\__pycache__\treesutil.cpython-39.pyc" />
     <Content Include="bcause\util\__pycache__\__init__.cpython-39.pyc" />
     <Content Include="bcause\__pycache__\__init__.cpython-39.pyc" />
