@@ -16,7 +16,7 @@ data = model.sample(1000, as_pandas=True)
 U="U2"
 
 # endogenous children
-V = model.get_edogenous_children(U)
+V = model.get_edogenous_children(U) # TODO: rename to get_e*N*dogenous_children
 
 # get the endogenous parents
 Y = list(itertools.chain(*[model.get_edogenous_parents(v) for v in V]))

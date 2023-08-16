@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from pgmpy.readwrite import BIFWriter, XMLBIFWriter # TODO: raises Exception - "No module named 'pgmpy'"
+from pgmpy.readwrite import BIFWriter, XMLBIFWriter
 from bcause.util.assertions import assert_file_exists
 
 
