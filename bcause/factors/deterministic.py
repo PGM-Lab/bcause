@@ -17,10 +17,11 @@ import bcause.factors.factor as bf
 
 class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
-    def __init__(self, domain: Dict, values, left_vars:list=None, right_vars:list=None, vtype=None):
+    def __init__(self, domain: Dict, values, left_vars:list=None, right_vars:list=None, vtype=None): # TODO: what is left_vars and right_vars related to? P(LEFT|RIGHT)?
+                                                                                                     #       If so, left_vars->event and right_vars->evidence(s) or condition(s)
         vtype = vtype or DataStore.DEFAULT_STORE
 
-        self._domain = OrderedDict(domain)
+        self._domain = OrderedDict(domain) # TODO: Rafa, I think dict() also keeps the order of insertion from Python 3.7
         self.set_variables(list(domain.keys()), left_vars, right_vars)
 
         if len(self.left_vars)!=1: raise ValueError("Wrong number of left variables")

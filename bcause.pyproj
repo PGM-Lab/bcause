@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>2db57eef-80ff-4ea6-bbc5-71a78e3bd9a2</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>examples\useful_code_for_gradient.py</StartupFile>
+    <StartupFile>bcause\learning\parameter\gradient.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

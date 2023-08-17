@@ -88,7 +88,7 @@ def remove_nodes(dag: nx.DiGraph, nodes: list) -> nx.DiGraph:
 
 
 # relevant vars in DAG
-def relevat_vars(dag: nx.DiGraph, v):
+def relevat_vars(dag: nx.DiGraph, v):  # TODO: -> releva*n*t_vars
     return list(dag.predecessors(v)) + [v]
 
 def connected(G:nx.Graph, target, y):
