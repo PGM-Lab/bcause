@@ -4,9 +4,10 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Union, Dict, Hashable
+from typing import Union, Dict, Hashable, List
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 from networkx import relabel_nodes
 
@@ -96,6 +97,19 @@ class PGModel(ABC):
             return cls._reader.from_bif(filepath=filepath)
         else:
             raise ValueError(f"Unknown format for {filepath}")
+
+
+    def log_prob(self, observations:List[dict], variables:List[Hashable]=None):
+        variables = variables or self.variables
+        return np.sum([f.log_prob(observations) for f in self.get_factors(*variables)], axis=0)
+
+
+    def prob(self, observations:List[dict]):
+        return np.prod([f.prob(observations) for f in self.factor_list], axis=0)
+
+
+
+
 
 
 class DiscreteDAGModel(PGModel):

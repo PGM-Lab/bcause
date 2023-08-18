@@ -29,6 +29,8 @@ class CausalInference(Inference):
         do_vars = list(do.keys()) if isinstance(do,dict) else sum([list(d.keys()) for d in do],[])
         assert_dag_with_nodes(self.model.graph, do_vars)
 
+        evidence = {**evidence, **do}
+
         self._inference_model = self._preprocess()
         self._inf = self._prob_inf_fn(self._inference_model)
         self._inf.compile(target, evidence)

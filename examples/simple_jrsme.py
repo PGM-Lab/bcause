@@ -72,3 +72,4 @@ joint_xy.marginalize("X")
 marg_x = joint_xy.marginalize("X")
 cond_y= joint_xy / marg_x
 
+
