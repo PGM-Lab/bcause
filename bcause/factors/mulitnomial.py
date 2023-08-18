@@ -210,6 +210,7 @@ def random_multinomial(domain:Dict, right_vars:list=None, vtype=None, allow_zero
     vtype = vtype or DataStore.DEFAULT_STORE
     right_vars = right_vars or []
     left_dims = [i for i,v in enumerate(domain.keys()) if v not in right_vars]
+
     if allow_zero:
         data = normalize_array(np.random.uniform(0,1, size=[len(d) for d in domain.values()]), axis=left_dims)
     else:

@@ -38,4 +38,20 @@ state_space(domYV)
 
 
 
+# maximum log-likelihood for a model wrt a dataset
+model.max_log_likelihood(data)
+
+# log-likelihood of a model wrt a dataset
+model.log_likelihood(data)
+
+
+# decomposition of the max-log-likelihood for each endogenous c-component
+model.max_log_likelihood(data, variables=["V1"]) + \
+model.max_log_likelihood(data, variables=["V2","V4"]) + \
+model.max_log_likelihood(data, variables=["V3"])
+
+# decomposition of the log-likelihood for each endogenous c-component
+model.log_likelihood(data, variables=["V1"]) + \
+model.log_likelihood(data, variables=["V2","V4"]) + \
+model.log_likelihood(data, variables=["V3"])
 

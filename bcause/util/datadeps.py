@@ -59,7 +59,7 @@ if __name__ == "__main__":
     domains = dict(V1=[0,1],V2=[0,1],V3=[0,1],V4=[0,1], U1=[0,1,3],U2=[0,1,2,3],U3=[0,1,2,3])
     bc.randomUtil.seed(1)
     model.fill_random_factors(domains)
-    data = model.sample(1000, as_pandas=True)[["V1","V2","V3","V4"]]
+    data = model.sample(1000, as_pandas=True)[["V1", "V2", "V3", "V4"]]
 
 
     dag = nx.DiGraph([("U","X"),("U","Y"),("X","Y")])
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     domains = dict(U = [0,1,2,3], X=[0,1], Y=[0,1])
     bc.randomUtil.seed(1)
     model.fill_random_factors(domains)
-    data = model.sample(20, as_pandas=True)[["X","Y"]]
+    data = model.sample(20, as_pandas=True)[["X", "Y"]]
 
     data["S"] = data.X == 0
 

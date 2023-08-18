@@ -4,7 +4,8 @@ import time
 import pandas as pd
 
 from bcause.factors import MultinomialFactor
-from bcause.inference.inference import ProbabilisticInference, Inference
+from bcause.inference.inference import Inference
+from bcause.inference.probabilistic.probabilistic import ProbabilisticInference
 from bcause.util.arrayutils import as_lists
 from bcause.util.datautils import filter_data, to_counts
 import bcause.util.domainutils as dutils
