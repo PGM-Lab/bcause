@@ -58,7 +58,7 @@ class GradientLikelihood(IterativeParameterLearning):
         self._data = data
 
 
-    def negative_log_likelihood(raw_params, py_x, fy):
+    def negative_log_likelihood(self, raw_params, py_x, fy):
         """
         Calculate the negative log-likelihood for the given raw (unconstrainted) parameters.
 
@@ -70,7 +70,11 @@ class GradientLikelihood(IterativeParameterLearning):
             float: evaluation of the objective function, i.e, negative ML
         """
         # TODO: can be subtantially optimized
-        constrained_params = transform_params(raw_params) # constrained_params are all positive and sum up to 1
+        constrained_params = self.transform_params(raw_params) # constrained_params are all positive and sum up to 1
+
+        # TODO: add here this
+        self._prior_model.log_likelihood(data, variables=["V1"])
+
         neg_log_lkh = .0
         for x in domains['X']:
             for y in domains['Y']:
@@ -83,7 +87,7 @@ class GradientLikelihood(IterativeParameterLearning):
         return neg_log_lkh
 
 
-    def transform_params(raw_params):
+    def transform_params(self, raw_params):
         """
         Transform the raw parameters to satisfy the constraints (all positive and sum up to 1).
         """
@@ -96,7 +100,7 @@ class GradientLikelihood(IterativeParameterLearning):
         return normalized_params
 
 
-    def inverse_transform_params(constrained_params):
+    def inverse_transform_params(self, constrained_params):
         """
         Inverse transform the constrained parameters to obtain the raw parameters (a vector of floats).
         """
@@ -106,7 +110,7 @@ class GradientLikelihood(IterativeParameterLearning):
         return raw_params
 
 
-    def maximum_likelihood_estimation(initial_params, py_x, fy):
+    def maximum_likelihood_estimation(self, initial_params, py_x, fy):
         """
         Perform maximum likelihood estimation (MLE) for a given model and data starting at initial_params.
 
@@ -119,14 +123,14 @@ class GradientLikelihood(IterativeParameterLearning):
 
         trajectory = []  # saves each iteration of the optimization process
         def callback(xk):
-            trajectory.append(transform_params(xk)) # save the constrainted parameters
+            trajectory.append(self.transform_params(xk)) # save the constrainted parameters
 
         # Perform optimization using scipy's minimize function
-        result = minimize(negative_log_likelihood, inverse_transform_params(initial_params), 
+        result = minimize(self.negative_log_likelihood, self.inverse_transform_params(initial_params), 
                           args = (py_x, fy), tol = 1e-3, callback = callback) # default: method='BFGS'
 
         # Transform the estimated raw parameters to the constrained parameters
-        estimated_params = transform_params(result.x)
+        estimated_params = self.transform_params(result.x)
         #print(f'{estimated_params}=')
         #print(f'sum_params = {estimated_params.sum()}')
 
@@ -157,14 +161,25 @@ class GradientLikelihood(IterativeParameterLearning):
 
     def step(self):
         # one gradient descent (MLE) process
-        domains = self._prior_model.get_domains(self.trainable_vars)
-
-        dirich_distr = [1.0] * len(domains['U'])
-        initial_params = np.random.dirichlet(dirich_distr, 1) # 1 (vector) sample u_0 such that u_0i > 0 and sum(u_0i) = 1
-        result = maximum_likelihood_estimation(initial_params, py_x, fy) # TODO: rename to avoid MLE in the name
-        new_probs = result['params']
-        self._update_model(new_probs)
-        #trajectories.append(result['trajectory']) # TODO: store also the trajectory
+        m = self._prior_model
+        domains = m.get_domains(self.trainable_vars)
+        for U in m.exo_ccomponents: # we do MLE separately for each c-component (due to the theory (d-separation?))
+            assert len(U) == 1, f'Quasi-Markovianity violated! ({len(U)=})'
+            U = U.pop() # get this only element of U
+            dirich_distr = [1.0] * len(m.domains[U])
+            initial_params = np.random.dirichlet(dirich_distr, 1) # 1 (vector) sample u_0 such that u_0i > 0 and sum(u_0i) = 1
+            child_of_U = list(m.graph.succ[U].keys())[0] # TODO: rafa, do we have a tool that returns the children of an exogeneous node?
+            fy = m.factors[child_of_U]
+            if len(fy.right_vars) == 1:
+                py_x = None # 
+            elif len(fy.right_vars) > 1:
+                py_x = fy
+            else: # len(fy.right_vars) == 0:
+                raise Exception('Unsupported')
+            self.maximum_likelihood_estimation(initial_params, py_x, fy) # TODO: rename to avoid MLE in the name
+            new_probs = result['params']
+            self._update_model(new_probs)
+            #trajectories.append(result['trajectory']) # TODO: store also the trajectory
 
 
 
