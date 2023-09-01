@@ -73,17 +73,17 @@ class GradientLikelihood(IterativeParameterLearning):
         constrained_params = self.transform_params(raw_params) # constrained_params are all positive and sum up to 1
 
         # TODO: add here this
-        self._prior_model.log_likelihood(data, variables=["V1"])
+        neg_log_lkh = -self._prior_model.log_likelihood(data, variables=fy.left_vars) # TODO: but the parameters are NOT an argument here!!!
 
-        neg_log_lkh = .0
-        for x in domains['X']:
-            for y in domains['Y']:
-                N_xy = py_x.values_dict[(('X', x), ('Y', y))]
-                sum_lkh_xy = .0
-                for i_u, u in enumerate(domains['U']):
-                    sum_lkh_xy += fy.values_dict[(('X', x), ('U', u), ('Y', y))] * constrained_params[i_u]
-                neg_log_lkh -= N_xy * np.log(sum_lkh_xy)
-        #print(f'{neg_log_lkh=} {constrained_params=}')
+        #neg_log_lkh = .0
+        #for x in domains['X']:
+        #    for y in domains['Y']:
+        #        N_xy = py_x.values_dict[(('X', x), ('Y', y))]
+        #        sum_lkh_xy = .0
+        #        for i_u, u in enumerate(domains['U']):
+        #            sum_lkh_xy += fy.values_dict[(('X', x), ('U', u), ('Y', y))] * constrained_params[i_u]
+        #        neg_log_lkh -= N_xy * np.log(sum_lkh_xy)
+        ##print(f'{neg_log_lkh=} {constrained_params=}')
         return neg_log_lkh
 
 
@@ -168,54 +168,66 @@ class GradientLikelihood(IterativeParameterLearning):
             U = U.pop() # get this only element of U
             dirich_distr = [1.0] * len(m.domains[U])
             initial_params = np.random.dirichlet(dirich_distr, 1) # 1 (vector) sample u_0 such that u_0i > 0 and sum(u_0i) = 1
-            child_of_U = list(m.graph.succ[U].keys())[0] # TODO: rafa, do we have a tool that returns the children of an exogeneous node?
-            fy = m.factors[child_of_U]
+            children_of_U = list(m.graph.succ[U].keys())[0] # TODO: rafa, do we have a tool that returns the children of an exogeneous node?
+            fy = m.factors[children_of_U]
             if len(fy.right_vars) == 1:
                 py_x = None # 
             elif len(fy.right_vars) > 1:
                 py_x = fy
             else: # len(fy.right_vars) == 0:
                 raise Exception('Unsupported')
-            self.maximum_likelihood_estimation(initial_params, py_x, fy) # TODO: rename to avoid MLE in the name
-            new_probs = result['params']
-            self._update_model(new_probs)
+            results = self.maximum_likelihood_estimation(initial_params, py_x, fy) # TODO: rename to avoid MLE in the name
+            new_probs = results['params'] 
+            self._update_model(new_probs) # TODO: the data structure of new_probs is unclear
             #trajectories.append(result['trajectory']) # TODO: store also the trajectory
 
+
+def tick(n, var_label = None):
+    use_var_label = True # switch to False to avoid using var_label
+    if use_var_label and var_label:
+        ticks = []
+        for i in range(n):
+            ticks.append(f'{var_label}{i+1}')
+    else:
+        ticks = list(range(n))
+    return ticks
 
 
 if __name__ == "__main__":
     import logging, sys
-
-    log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
-
-    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
-
     import networkx as nx
-
-    dag = nx.DiGraph([("Y", "X"), ("V", "Y"), ("U", "X")])
-    domains = dict(X=["x1", "x2"], Y=[0, 1], U=["u1", "u2", "u3", "u4"], V=["v1", "v2"]) # TODO: why Y=[0, 1]? Why not Y=["y1", "y2"]?
-
     import bcause.util.domainutils as dutils
     import bcause.util.graphutils as gutils
 
-    antecedents = gutils.relevat_vars(dag, "Y") # get antecedents of "Y" + "Y"
-    domy = dutils.subdomain(domains, *antecedents) # get domains of antecedents
-    fy = DeterministicFactor(domy, right_vars=["V"], values=[1, 0])
+    log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
+    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
-    domx = dutils.subdomain(domains, *gutils.relevat_vars(dag, "X"))
+    # basic definition & paper2code mapping
+    DAG = nx.DiGraph([("X1", "X2"), ("U1", "X1"), ("U2", "X2")]) # definition of \mathcal{G}
+    if 0:
+        import matplotlib.pyplot as plt
+        pos = nx.spring_layout(DAG)  # Position nodes using a spring layout algorithm
+        nx.draw(DAG, pos, with_labels=True, node_size=1000, node_color="lightblue", font_size=10, font_color="black", arrowsize=20)
+        plt.show()
+    domains = dict(X1=tick(2, 'x1'), X2=tick(2, 'x2'), U1=tick(2, 'u1'), U2=tick(4, 'u2')) # definition of \dom{X1}, \dom{X2}, \dom{U1}, \dom{U2}
 
-    values = ["x1", "x1", "x2", "x1", "x1", "x1", "x2", "x1"]
-    fx = DeterministicFactor(domx, left_vars=["X"], values=values)
+    parents_X1 = gutils.relevat_vars(DAG, "X1") # \mathrm{Pa}_{X_1} \cup {X1}
+    dom_X1 = dutils.subdomain(domains, *parents_X1) # get domains of parents_X1
+    f_X1 = DeterministicFactor(dom_X1, right_vars=["U1"], values=["x12", "x11"]) # SE f_X1 
 
-    domv = dutils.subdomain(domains, "V")
-    pv = MultinomialFactor(domv, values=[.1, .9])
+    dom_X2 = dutils.subdomain(domains, *gutils.relevat_vars(DAG, "X2"))
+    values = ["x21", "x21", "x22", "x21", "x21", "x21", "x22", "x21"]
+    f_X2 = DeterministicFactor(dom_X2, left_vars=["X2"], values=values) # SE f_X2
 
-    domu = dutils.subdomain(domains, "U")
-    pu = MultinomialFactor(domu, values=[.2, .2, .1, .5])
+    dom_U1 = dutils.subdomain(domains, "U1")
+    p_U1 = MultinomialFactor(dom_U1, values=[.5, .5]) # P(U1)
 
-    m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
+    dom_U2 = dutils.subdomain(domains, "U2")
+    p_U2 = MultinomialFactor(dom_U2, values=[.2, .2, .1, .5]) # P(U2)
 
-    data = m.sample(1000, as_pandas=True)[m.endogenous]
+    m = StructuralCausalModel(DAG, [f_X2, f_X1, p_U2, p_U1], cast_multinomial=True) # an instance of the SCM based the graph DAG with SE f_X2, f_X1 and given distributions of U2 and U1
+
+    data = m.sample(10, as_pandas=True)[m.endogenous] # \mathcal{D}
     #data = data.append(dict(Y=0, X="x1", U="u1"), ignore_index=True)
 
     gl = GradientLikelihood(m)
@@ -228,3 +240,5 @@ if __name__ == "__main__":
 
     #print the resulting model
     print(gl.model)
+
+
