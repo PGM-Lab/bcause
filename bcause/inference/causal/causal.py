@@ -26,10 +26,21 @@ class CausalInference(Inference):
         self._counterfactual = counterfactual
 
         logging.info(f"Starting causal inference: target={str(target)}  intervention={str(do)} evidence={str(evidence)}")
-        do_vars = list(do.keys()) if isinstance(do,dict) else sum([list(d.keys()) for d in do],[])
+
+
+        do_vars = list(do.keys()) if isinstance(do, dict) else sum([list(d.keys()) for d in do], [])
         assert_dag_with_nodes(self.model.graph, do_vars)
 
-        evidence = {**evidence, **do}
+        if counterfactual:
+            do = do if isinstance(self._do, list) else [self._do]
+            new_do = dict()
+            for i in range(len(do)):
+                for k, v in do[i].items():
+                    new_do[f"{k}_{i+1}"] = v
+            do = new_do
+
+
+        #evidence = {**evidence, **do}
 
         self._inference_model = self._preprocess()
         self._inf = self._prob_inf_fn(self._inference_model)
@@ -86,8 +97,9 @@ class CausalInference(Inference):
 
         # Run the query
         return self._process_output(self.counterfactual_query(
-            effect,
+            [effect]*2,
             do=[{cause: Fcause}, {cause: Tcause}],
+            targets_subgraphs=[1,2]
         ), {effect + "_1": Feffect, effect + "_2": Teffect})
 
     def _process_output(self, result, obs):
@@ -104,7 +116,7 @@ class CausalInference(Inference):
         return self._process_output(self.counterfactual_query(
             effect,
             do={cause: Fcause},
-            evidence={cause: Tcause, effect: Teffect}
+            evidence={cause: Tcause, effect: Teffect},
         ), {effect+"_1": Feffect})
 
     def prob_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):

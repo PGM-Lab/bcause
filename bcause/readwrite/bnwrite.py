@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 
 from pgmpy.readwrite import BIFWriter, XMLBIFWriter
+
+from bcause.factors import MultinomialFactor
 from bcause.util.assertions import assert_file_exists
 
 
@@ -47,6 +49,11 @@ def to_uai(model:'BayesianNetwork', filepath, reverse_values=True, label="BAYES"
     for v in model.variables:
         f = model.factors[v]
         var_order = f.variables
+
+        if label=="CAUSAL" and v in model.endogenous and isinstance(f, MultinomialFactor):
+            f = f.to_deterministic()
+            var_order = [x for x in var_order if x != v]
+
         if not reverse_values:
             var_order = var_order[::-1]
         values = f.values_array(var_order).flatten()

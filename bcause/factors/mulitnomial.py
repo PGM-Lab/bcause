@@ -40,6 +40,14 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
         self.builder = builder
 
+    def to_deterministic(self):
+        if len(self.left_vars) != 1:
+            raise ValueError("Wrong number of variables on the left")
+
+        v = self.left_vars[0]
+        values = self.values_array().argmax(axis=self.variables.index(v))
+        from bcause.factors import DeterministicFactor
+        return DeterministicFactor(self.domain, left_vars=[v], values=values)
 
     def constant(self, left_value):
 
@@ -204,6 +212,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         card_str = ",".join([f"{v}:{cardinality_dict[v]}" for v in self._variables])
         return f"<{self.__class__.__name__} {self.name}, cardinality = ({card_str}), " \
                f"values=[{self.store.values_str()}]>"
+
 
 
 def random_multinomial(domain:Dict, right_vars:list=None, vtype=None, allow_zero=True):

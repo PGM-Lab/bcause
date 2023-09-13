@@ -65,10 +65,13 @@ class VariableElimination(ProbabilisticInference):
             # marginalize variable
             fnew = join ** select_var
             # updage factor list
-            factors = [f for f in factors if f not in relevant] + [fnew]
+
+
+            factors = [f for f in factors if f not in relevant]
+            if len(fnew.left_vars)>0:
+                factors += [fnew]
 
             logging.debug(f"Updated factor list: {[f.name for f in factors]}")
-
 
 
         p = reduce((lambda f1, f2: f1 * f2), factors)
