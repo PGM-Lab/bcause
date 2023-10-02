@@ -1,11 +1,15 @@
+from collections import defaultdict
 import pandas as pd
 import numpy as np
 from scipy.optimize import minimize
+import itertools
 
+import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor
 from bcause.factors.mulitnomial import random_multinomial
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
+from bcause.util.domainutils import assingment_space, state_space
 
 
 class GradientLikelihood(IterativeParameterLearning):
@@ -41,8 +45,8 @@ class GradientLikelihood(IterativeParameterLearning):
         for v in missing_vars: data[v] = float("nan")
 
         # Set as trainable variables those with missing
-        self._trainable_vars = self.trainable_vars or list(data.columns[data.isna().any()]) # TODO: a bit confusing what't the difference between self._trainable_vars and self.trainable_vars
-                                                                                            #       Moreover, it looks they are equal. (if one is changed, the second one also changes)
+        self._trainable_vars = self.trainable_vars or list(data.columns[data.isna().any()]) 
+                                                                                            
 
         print(f"trainable: {self.trainable_vars}")
 
@@ -58,59 +62,25 @@ class GradientLikelihood(IterativeParameterLearning):
         self._data = data
 
 
-    def negative_log_likelihood(self, raw_params, py_x, fy):
-        """
-        Calculate the negative log-likelihood for the given raw (unconstrainted) parameters.
+    def negative_log_likelihood(self, theta, N_bmVbmY, P_bmVbmYu):
+        log_likelihood = .0
+        m = self._prior_model
+        for id_v in P_bmVbmYu:
+            for id_y in P_bmVbmYu[id_v]:
+                sum_lkh_bmvbmy = .0
+                for u in P_bmVbmYu[id_v][id_y]:
+                    sum_lkh_bmvbmy += P_bmVbmYu[id_v][id_y][u] * theta[u]
+                log_likelihood += N_bmVbmY[id_v][id_y] * np.log(sum_lkh_bmvbmy)
 
-        Parameters:
-            raw_params:     unconstrainted parameters that are being optimized
-            py_x:           P(Y|X)
-            fy:             f_y
-        Returns:
-            float: evaluation of the objective function, i.e, negative ML
-        """
-        # TODO: can be subtantially optimized
-        constrained_params = self.transform_params(raw_params) # constrained_params are all positive and sum up to 1
-
-        # TODO: add here this
-        neg_log_lkh = -self._prior_model.log_likelihood(data, variables=fy.left_vars) # TODO: but the parameters are NOT an argument here!!!
-
-        #neg_log_lkh = .0
-        #for x in domains['X']:
-        #    for y in domains['Y']:
-        #        N_xy = py_x.values_dict[(('X', x), ('Y', y))]
-        #        sum_lkh_xy = .0
-        #        for i_u, u in enumerate(domains['U']):
-        #            sum_lkh_xy += fy.values_dict[(('X', x), ('U', u), ('Y', y))] * constrained_params[i_u]
-        #        neg_log_lkh -= N_xy * np.log(sum_lkh_xy)
-        ##print(f'{neg_log_lkh=} {constrained_params=}')
-        return neg_log_lkh
+        #log_likelihood = np.sum(counts * np.log(np.sum(theta * pa_probs, axis=1)))
+        return -log_likelihood  # We negate the value to convert maximization to minimization
 
 
-    def transform_params(self, raw_params):
-        """
-        Transform the raw parameters to satisfy the constraints (all positive and sum up to 1).
-        """
-        # Apply the exponential function to ensure positivity
-        positive_params = np.exp(raw_params)
-    
-        # Normalize the parameters to sum up to 1
-        normalized_params = positive_params / np.sum(positive_params)
-        
-        return normalized_params
+    def constraint(self,theta):
+        return np.sum(theta) - 1  # The probabilities should sum up to 1
 
 
-    def inverse_transform_params(self, constrained_params):
-        """
-        Inverse transform the constrained parameters to obtain the raw parameters (a vector of floats).
-        """
-        # Apply the log function to reverse the exponential transformation
-        raw_params = np.log(constrained_params)
-        
-        return raw_params
-
-
-    def maximum_likelihood_estimation(self, initial_params, py_x, fy):
+    def maximum_likelihood_estimation(self, initial_params, N_bmVbmY, P_bmVbmYu):
         """
         Perform maximum likelihood estimation (MLE) for a given model and data starting at initial_params.
 
@@ -123,14 +93,19 @@ class GradientLikelihood(IterativeParameterLearning):
 
         trajectory = []  # saves each iteration of the optimization process
         def callback(xk):
-            trajectory.append(self.transform_params(xk)) # save the constrainted parameters
+            trajectory.append(xk) # save the parameters
+
+        # Constraint dictionary
+        con = {'type': 'eq', 'fun': self.constraint}
 
         # Perform optimization using scipy's minimize function
-        result = minimize(self.negative_log_likelihood, self.inverse_transform_params(initial_params), 
-                          args = (py_x, fy), tol = 1e-3, callback = callback) # default: method='BFGS'
+        result = minimize(self.negative_log_likelihood, initial_params, 
+                          args = (N_bmVbmY, P_bmVbmYu), constraints=con, 
+                          bounds=[(0, 1)]*initial_params.size,
+                          tol = 1e-3, callback = callback) # default: method='SLSQP'
 
         # Transform the estimated raw parameters to the constrained parameters
-        estimated_params = self.transform_params(result.x)
+        estimated_params = result.x
         #print(f'{estimated_params}=')
         #print(f'sum_params = {estimated_params.sum()}')
 
@@ -158,25 +133,79 @@ class GradientLikelihood(IterativeParameterLearning):
     #        trajectories.append(result['trajectory'])
     #    return solutions, trajectories
 
+    def prepare_MLE(self):
+        # compute counts and pa_probs
+        pass
 
     def step(self):
         # one gradient descent (MLE) process
         m = self._prior_model
         domains = m.get_domains(self.trainable_vars)
-        for U in m.exo_ccomponents: # we do MLE separately for each c-component (due to the theory (d-separation?))
+        for U in m.exo_ccomponents: # we do MLE separately for each c-component 
             assert len(U) == 1, f'Quasi-Markovianity violated! ({len(U)=})'
             U = U.pop() # get this only element of U
+            if U != 'U3':
+                continue # DEBUG: skip this trivial case for now
             dirich_distr = [1.0] * len(m.domains[U])
             initial_params = np.random.dirichlet(dirich_distr, 1) # 1 (vector) sample u_0 such that u_0i > 0 and sum(u_0i) = 1
-            children_of_U = list(m.graph.succ[U].keys())[0] # TODO: rafa, do we have a tool that returns the children of an exogeneous node?
-            fy = m.factors[children_of_U]
-            if len(fy.right_vars) == 1:
-                py_x = None # 
-            elif len(fy.right_vars) > 1:
-                py_x = fy
-            else: # len(fy.right_vars) == 0:
-                raise Exception('Unsupported')
-            results = self.maximum_likelihood_estimation(initial_params, py_x, fy) # TODO: rename to avoid MLE in the name
+
+            ### get the quantities named as in our paper ###
+            # endogenous children
+            bmV = m.get_edogenous_children(U) 
+
+            # get the endogenous parents
+            bmY = list(itertools.chain(*[m.get_edogenous_parents(V) for V in bmV]))
+
+            # remove the variables in V
+            bmY = [V for V in bmY if V not in bmV]
+
+            # get the joint domains of Y union V
+            dom_bmYbmV = m.get_domains(bmY+bmV)
+
+            # get all possible assignments in a domain
+            #assingment_space(dom_bmYbmV)
+
+            # get all possible states in a domain
+            #state_space(dom_bmYbmV)
+            
+            data = self._data
+
+            N_bmVbmY = defaultdict(lambda : {}) # data counts
+            P_bmVbmYu = defaultdict(lambda : {}) # SEs probabilities
+            for bmv in assingment_space(m.get_domains(bmV)):
+                id_v = tuple(bmv.items())
+                for bmy in assingment_space(m.get_domains(bmY)):
+                    id_y = tuple(bmy.items())
+                    filtered_data = data[
+                        (data[list(bmv.keys())] == list(bmv.values())).all(axis=1) &
+                        (data[list(bmy.keys())] == list(bmy.values())).all(axis=1)
+                    ]
+                    N = len(filtered_data)
+                    N_bmVbmY[id_v][id_y] = N
+
+                    P_bmVbmYu[id_v][id_y] = {}
+                    for u in m.get_domains(U)[U]:
+                        # compute \prod_{V \in \bmV} P(v|Pa(V))
+                        P_v_pav = 1
+                        for V in bmV:
+                            P_v_pav_key = []
+                            for var in m.factors[V].variables:
+                                if var in m.exogenous:
+                                    key = (var, u)
+                                elif var in bmV:
+                                    key = (var, bmv[var])
+                                elif var in bmY:
+                                    key = (var, bmy[var])
+                                else:
+                                    raise Exception(f'Unclassfiable variable! ({var})')
+                                P_v_pav_key.append(key)
+                            if m.factors[V].values_dict[tuple(P_v_pav_key)] == 0: # TODO: assure that values_dict contain Integer values!
+                                P_v_pav = 0
+                                break # once we got 0, the product must be zero, so we finish immediately
+                        P_bmVbmYu[id_v][id_y][u] = P_v_pav
+
+            self.prepare_MLE() # TODO: strcit to vyse sem
+            results = self.maximum_likelihood_estimation(initial_params, N_bmVbmY, P_bmVbmYu) # TODO: rename to avoid MLE in the name
             new_probs = results['params'] 
             self._update_model(new_probs) # TODO: the data structure of new_probs is unclear
             #trajectories.append(result['trajectory']) # TODO: store also the trajectory
@@ -193,22 +222,18 @@ def tick(n, var_label = None):
     return ticks
 
 
-if __name__ == "__main__":
-    import logging, sys
-    import networkx as nx
-    import bcause.util.domainutils as dutils
-    import bcause.util.graphutils as gutils
+def show_dag(DAG):
+    import matplotlib.pyplot as plt
+    pos = nx.spring_layout(DAG)  # Position nodes using a spring layout algorithm
+    nx.draw(DAG, pos, with_labels=True, node_size=1000, node_color="lightblue", font_size=10, font_color="black", arrowsize=20)
+    plt.show()
 
-    log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
-    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
+def define_model1():
     # basic definition & paper2code mapping
     DAG = nx.DiGraph([("X1", "X2"), ("U1", "X1"), ("U2", "X2")]) # definition of \mathcal{G}
     if 0:
-        import matplotlib.pyplot as plt
-        pos = nx.spring_layout(DAG)  # Position nodes using a spring layout algorithm
-        nx.draw(DAG, pos, with_labels=True, node_size=1000, node_color="lightblue", font_size=10, font_color="black", arrowsize=20)
-        plt.show()
+        show_dag(DAG)
     domains = dict(X1=tick(2, 'x1'), X2=tick(2, 'x2'), U1=tick(2, 'u1'), U2=tick(4, 'u2')) # definition of \dom{X1}, \dom{X2}, \dom{U1}, \dom{U2}
 
     parents_X1 = gutils.relevat_vars(DAG, "X1") # \mathrm{Pa}_{X_1} \cup {X1}
@@ -226,7 +251,29 @@ if __name__ == "__main__":
     p_U2 = MultinomialFactor(dom_U2, values=[.2, .2, .1, .5]) # P(U2)
 
     m = StructuralCausalModel(DAG, [f_X2, f_X1, p_U2, p_U1], cast_multinomial=True) # an instance of the SCM based the graph DAG with SE f_X2, f_X1 and given distributions of U2 and U1
+    return m
 
+
+def define_model2():
+    dag = nx.DiGraph([("V1", "V2"), ("V2", "V3"),("V3", "V4"),("U1", "V1"),("U2", "V2"),("U2", "V4"),("U3", "V3")])
+    #show_dag(dag)
+    model = StructuralCausalModel(dag)
+    domains = dict(V1=[0,1],V2=[0,1],V3=[0,1],V4=[0,1], U1=[0,1,2,3],U2=[0,1,2,3],U3=[0,1,2,3]) 
+    bc.randomUtil.seed(1)
+    model.fill_random_factors(domains)
+    return model
+
+
+if __name__ == "__main__":
+    import logging, sys
+    import networkx as nx
+    import bcause.util.domainutils as dutils
+    import bcause.util.graphutils as gutils
+
+    log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
+    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
+
+    m = define_model2()
     data = m.sample(10, as_pandas=True)[m.endogenous] # \mathcal{D}
     #data = data.append(dict(Y=0, X="x1", U="u1"), ignore_index=True)
 
