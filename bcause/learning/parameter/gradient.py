@@ -1,8 +1,22 @@
+"""
+Compute the PMF of exogenous variables given data for endogenous variable using
+gradient descent method for negative likelihood objective function
+
+TODO:
+1) to check corectness, implement Theorem 1 from Causal EM paper
+2) render canonical SEs
+With RAFA:
+3) which example models to use
+4) which metrics to use for a comparision with EM
+5) how to present the results (visuals)
+"""
+
 from collections import defaultdict
 import pandas as pd
 import numpy as np
 from scipy.optimize import minimize
 import itertools
+import random 
 
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor
@@ -144,7 +158,7 @@ class GradientLikelihood(IterativeParameterLearning):
         for U in m.exo_ccomponents: # we do MLE separately for each c-component 
             assert len(U) == 1, f'Quasi-Markovianity violated! ({len(U)=})'
             U = U.pop() # get this only element of U
-            if U != 'U3':
+            if U != 'U':
                 continue # DEBUG: skip this trivial case for now
             dirich_distr = [1.0] * len(m.domains[U])
             initial_params = np.random.dirichlet(dirich_distr, 1) # 1 (vector) sample u_0 such that u_0i > 0 and sum(u_0i) = 1
@@ -206,8 +220,8 @@ class GradientLikelihood(IterativeParameterLearning):
 
             self.prepare_MLE() # TODO: strcit to vyse sem
             results = self.maximum_likelihood_estimation(initial_params, N_bmVbmY, P_bmVbmYu) # TODO: rename to avoid MLE in the name
-            new_probs = results['params'] 
-            self._update_model(new_probs) # TODO: the data structure of new_probs is unclear
+            new_probs = {U : MultinomialFactor(m.get_domains(U), values=results['params'])}
+            self._update_model(new_probs) 
             #trajectories.append(result['trajectory']) # TODO: store also the trajectory
 
 
@@ -227,6 +241,25 @@ def show_dag(DAG):
     pos = nx.spring_layout(DAG)  # Position nodes using a spring layout algorithm
     nx.draw(DAG, pos, with_labels=True, node_size=1000, node_color="lightblue", font_size=10, font_color="black", arrowsize=20)
     plt.show()
+
+
+
+def define_model0():
+    dag = nx.DiGraph([("X", "Y"), ("U", "Y"), ("V", "X")])
+    if 0:
+        show_dag(DAG)
+    domains = dict(X=["x1", "x2"], Y=["y1","y2"], U=[0, 1, 2, 3], V=["v1", "v2"])
+    domx = dutils.var_parents_domain(domains,dag,"X")
+    fx = DeterministicFactor(domx, right_vars=["V"], values=["x1", "x2"]).to_multinomial()
+    domy = dutils.var_parents_domain(domains,dag,"Y")
+    values = ["y1", "y1", "y2", "y1", "y2", "y2", "y1", "y1"] 
+    fy = DeterministicFactor(domy, left_vars=["Y"], values=values,vtype="list").to_multinomial()
+    domv = dutils.subdomain(domains, "V")
+    pv = MultinomialFactor(domv, values=[.5, .5])
+    domu = dutils.subdomain(domains, "U")
+    pu = MultinomialFactor(domu, values=[.2, .2, .6, .0])
+    model = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
+    return model
 
 
 def define_model1():
@@ -273,8 +306,10 @@ if __name__ == "__main__":
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
     # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
-    m = define_model2()
-    data = m.sample(10, as_pandas=True)[m.endogenous] # \mathcal{D}
+    m = define_model0()
+    import numpy as np
+    np.random.seed(407)
+    data = m.sample(1000, as_pandas=True)[m.endogenous] # \mathcal{D}
     #data = data.append(dict(Y=0, X="x1", U="u1"), ignore_index=True)
 
     gl = GradientLikelihood(m)
