@@ -33,6 +33,7 @@ def get_qgraph(model:DiscreteCausalDAGModel):
     for c_comp in model.endo_ccomponents:
         c_comp = [v for v in order if v in c_comp]
         pa_c = set(itertools.chain(*[model.get_edogenous_parents(v) for v in c_comp]))
+        pa_c = pa_c.difference(c_comp)
         for i in range(len(c_comp)):
             x = c_comp[i]
             for p in list(pa_c) + c_comp[0:i]:

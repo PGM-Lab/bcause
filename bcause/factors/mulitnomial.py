@@ -214,7 +214,6 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
                f"values=[{self.store.values_str()}]>"
 
 
-
 def random_multinomial(domain:Dict, right_vars:list=None, vtype=None, allow_zero=True):
     vtype = vtype or DataStore.DEFAULT_STORE
     right_vars = right_vars or []
