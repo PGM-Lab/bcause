@@ -4,7 +4,7 @@ gradient descent method for negative likelihood objective function
 
 TODO:
 1) to check corectness, implement Theorem 1 from Causal EM paper
-2) render canonical SEs
+2) render canonical SEs (according to Rafa's mail from 3.10)
 With RAFA:
 3) which example models to use
 4) which metrics to use for a comparision with EM
