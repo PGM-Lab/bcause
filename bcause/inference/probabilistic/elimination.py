@@ -15,7 +15,7 @@ from bcause.models.transform.simplification import minimalize
 
 
 class VariableElimination(ProbabilisticInference):
-    def __init__(self, model: DiscreteDAGModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = False):
+    def __init__(self, model: DiscreteDAGModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = True):
 
         # Default value for heuristic
         heuristic = heuristic or min_weight_heuristic
@@ -60,8 +60,8 @@ class VariableElimination(ProbabilisticInference):
             logging.debug(f"Removing variable {select_var}. Relevant factors: {[f.name for f in relevant]}")
 
             # combine them all
-            relevant_restr = [f.R(**self._evidence) for f in relevant]
-            join = reduce((lambda f1, f2: f1 * f2), relevant_restr)
+            # relevant_restr = [f.R(**self._evidence) for f in relevant]
+            join = reduce((lambda f1, f2: f1 * f2), relevant)
             # marginalize variable
             fnew = join ** select_var
             # updage factor list

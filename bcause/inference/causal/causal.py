@@ -40,7 +40,7 @@ class CausalInference(Inference):
             do = new_do
 
 
-        #evidence = {**evidence, **do}
+        evidence = {**evidence, **do}
 
         self._inference_model = self._preprocess()
         self._inf = self._prob_inf_fn(self._inference_model)

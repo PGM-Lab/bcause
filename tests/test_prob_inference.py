@@ -20,7 +20,7 @@ def test_variable_elimination():
 
     expected = [0.43597059999999993, 0.552808, 0.6339968796061018, 0.06482800000000001, 0.633997, 0.62592 ]
 
-    inf = VariableElimination(model)
+    inf = VariableElimination(model, preprocess_flag=True)
     actual = [inf.query(**arg).values[0] for arg in args]
     assert_array_almost_equal(actual, expected)
 
@@ -56,12 +56,12 @@ def test_laplace_inference():
                           ('dysp', {'smoke': 'yes'}, {'xray'}),
                           ('smoke', {'dysp': 'yes'}, {'xray'}),
                           ('either', None, {'bronc', 'dysp', 'xray'}),
-                          ('xray', {'tub': 'yes'}, {'asia', 'bronc', 'dysp'}),
-                          ('lung', {'asia': 'yes'}, {'asia','bronc', 'dysp', 'either', 'tub', 'xray'}),
+                          ('xray', {'tub': 'yes'}, {'bronc', 'dysp'}),
+                          ('lung', {'asia': 'yes'}, {'bronc', 'dysp', 'either', 'tub', 'xray'}),
                           ('lung', {'asia': 'yes', 'either': 'yes'}, {'bronc', 'dysp', 'xray'}),
                           ('smoke',
                            {'asia': 'yes'},
-                           {'asia','bronc', 'dysp', 'either', 'lung', 'tub', 'xray'})]
+                           {'bronc', 'dysp', 'either', 'lung', 'tub', 'xray'})]
                          )
 def test_minimalize(target, evidence, expected):
 

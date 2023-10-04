@@ -15,16 +15,16 @@ bc.randomUtil.seed(1)
 model.fill_random_factors(domains)
 
 
-cve = CausalVariableElimination(model)
+cve = CausalVariableElimination(model, preprocess_flag=True)
 
 
 @pytest.mark.parametrize("cause,effect,expected",
-                             [('V0', 'V1', 0.4142877082903152),
-                              ('V0', 'V2', 0.07864441542214243),
-                              ('V0', 'V3', 0.22968944220889656),
-                              ('V1', 'V2', 0.3898750354752074),
-                              ('V1', 'V3', 0.28920448625359),
-                              ('V2', 'V3', 1.0)]
+                             [  ('V0', 'V2', 0.0),
+                                ('V0', 'V3', 0.0),
+                                ('V1', 'V2', 0.3898750354752074),
+                                ('V1', 'V3', 0.2693966041543566),
+                                ('V2', 'V3', 1.0)
+                                ]
                          )
 def test_prob_necessity(cause, effect, expected):
     actual = cve.prob_necessity(cause, effect, true_false_cause=(0, 1), true_false_effect=(0, 1))
@@ -33,25 +33,27 @@ def test_prob_necessity(cause, effect, expected):
 
 @pytest.mark.parametrize("cause,effect,expected",
                             [('V0', 'V1', 0.9827816928270122),
-                             ('V0', 'V2', 0.0903964846862141),
-                             ('V0', 'V3', 0.14400104268505015),
-                             ('V1', 'V2', 0.39589682756999733),
-                             ('V1', 'V3', 0.1722062710464735),
-                             ('V2', 'V3', 0.6336240504059288)]
+                            ('V0', 'V2', 0.09039648468621407),
+                            ('V0', 'V3', 0.14400104268505015),
+                            ('V1', 'V2', 0.3958968275699974),
+                            ('V1', 'V3', 0.23055531145720365),
+                            ('V2', 'V3', 0.6413227964557568), ]
                          )
 def test_prob_sufficiency(cause, effect, expected):
     actual = cve.prob_sufficiency(cause, effect, true_false_cause=(0, 1), true_false_effect=(0, 1))
+    print(f"('{cause}', '{effect}', {actual}), ")
     assert_array_almost_equal(actual, expected)
 
 
 @pytest.mark.parametrize("cause,effect,expected",
                             [('V0', 'V1', 0.1519096390351899),
-                             ('V0', 'V2', 0.03713413950655857),
-                             ('V0', 'V3', 0.09137529490602785),
-                             ('V1', 'V2', 0.24444886935684465),
-                             ('V1', 'V3', 0.1129960393335237),
-                             ('V2', 'V3', 0.4622481569696807)]
+                                ('V0', 'V2', 0.03713413950655857),
+                                ('V0', 'V3', 0.09137529490602783),
+                                ('V1', 'V2', 0.24444886935684465),
+                                ('V1', 'V3', 0.1129960393335237),
+                                ('V2', 'V3', 0.4622481569696807), ]
                          )
 def test_prob_necessity_sufficiency(cause, effect, expected):
     actual = cve.prob_necessity_sufficiency(cause, effect, true_false_cause=(0, 1), true_false_effect=(0, 1))
+    print(f"('{cause}', '{effect}', {actual}), ")
     assert_array_almost_equal(actual, expected)

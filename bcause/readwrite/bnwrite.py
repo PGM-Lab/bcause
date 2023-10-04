@@ -28,9 +28,11 @@ def to_bif(model:'BayesianNetwork', filepath):
 def to_xmlbif(model:'BayesianNetwork', filepath):
     __write(XMLBIFWriter, model, filepath)
 
-def to_uai(model:'BayesianNetwork', filepath, reverse_values=True, label="BAYES", integer_varlist = None):
+def to_uai(model:'BayesianNetwork', filepath, reverse_values=False, label="BAYES", integer_varlist = None):
 
     integer_varlist = integer_varlist or []
+
+    print(reverse_values)
 
     out = f"{label}\n"
     out += f"{len(model.variables)}\n"
@@ -65,6 +67,8 @@ def to_uai(model:'BayesianNetwork', filepath, reverse_values=True, label="BAYES"
     filepath = Path(filepath)
     folder = filepath.parent
     assert_file_exists(folder)
+
+    print(out)
     with open(filepath, "w+") as file:
         # Writing data to a file
         file.write(out)

@@ -20,10 +20,10 @@ def from_uai(filepath, reverse_values=True, var_prefix="V", init_var_id=0, init_
 
 
 
-def from_uai(filepath, reverse_values=True, var_prefix="V", init_var_id=0, init_var_state=0, label="CAUSAL", cast_multinomial=True):
+def from_uai(filepath, reverse_values=False, var_prefix="V", init_var_id=0, init_var_state=0, label="CAUSAL", cast_multinomial=True):
     from bcause.models import BayesianNetwork
 
-    if not reverse_values:
+    if reverse_values:
         raise ValueError("Not implemented UAI with reverse_values flag as False")
 
     # Check the label

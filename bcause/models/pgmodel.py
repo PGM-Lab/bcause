@@ -72,10 +72,10 @@ class PGModel(ABC):
         # update factor dictionary
         self._factors[var] = f
 
-    def save(self, filepath):
+    def save(self, filepath, **kwargs):
         filepath = Path(filepath)
         if str(filepath).endswith(".uai"):
-            self._writer.to_uai(model=self, filepath=filepath)
+            self._writer.to_uai(model=self, filepath=filepath, **kwargs)
         elif str(filepath).endswith(".xmlbif"):
             self._writer.to_xmlbif(model=self, filepath=filepath)
         elif str(filepath).endswith(".bif"):

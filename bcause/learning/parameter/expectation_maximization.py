@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from functools import reduce
 
 import pandas as pd
 
@@ -48,12 +49,15 @@ class ExpectationMaximization(AbastractExpectationMaximization):
 
     def _get_obs_counts(self, target):
         obs_blanket = self._datadeps.get_minimal_obs_blanket(target)
-        return [(obs, len(self._data.loc[self._data[obs.keys()].isin(obs.values()).all(axis=1), :])) for obs in obs_blanket]
+        return [(obs, sum(reduce( lambda x,y : x&y, [self._data[v] == s for v,s in obs.items()]))) for obs in obs_blanket]
+
+
 
     def _expectation(self, **kwargs):
         self._inf = self._inference_method(self._model, preprocess_flag=False)
         pcounts = self._get_pseudocounts_dict()
         for v in set(self.trainable_vars).difference(self._converged_vars):
+
 
             for obs, c in self._get_obs_counts(v):
                 relevant = [v] + self._prior_model.get_parents(v)
@@ -68,7 +72,6 @@ class ExpectationMaximization(AbastractExpectationMaximization):
         for v in set(self.trainable_vars).difference(self._converged_vars):
             joint_counts = pcounts[v]
             new_probs[v] = joint_counts / (joint_counts.marginalize(v))
-
         return new_probs
 
     def _process_data(self, data: pd.DataFrame):
