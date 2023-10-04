@@ -175,7 +175,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         '''
         # SCM related check
         if self.is_endogenous(var):
-            if not(isinstance(f, DeterministicFactor) or f.is_degenerate()):
+            if self._check_factors and not(isinstance(f, DeterministicFactor) or f.is_degenerate()):
                 raise ValueError("Factor must be deterministic or degenerate")
             if self._cast_multinomial and isinstance(f, DeterministicFactor):
                 f = f.to_multinomial()

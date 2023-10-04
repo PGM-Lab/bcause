@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 
 from pgmpy.readwrite import BIFWriter, XMLBIFWriter
+
+from bcause.factors import MultinomialFactor
 from bcause.util.assertions import assert_file_exists
 
 
@@ -26,9 +28,11 @@ def to_bif(model:'BayesianNetwork', filepath):
 def to_xmlbif(model:'BayesianNetwork', filepath):
     __write(XMLBIFWriter, model, filepath)
 
-def to_uai(model:'BayesianNetwork', filepath, reverse_values=True, label="BAYES", integer_varlist = None):
+def to_uai(model:'BayesianNetwork', filepath, reverse_values=False, label="BAYES", integer_varlist = None):
 
     integer_varlist = integer_varlist or []
+
+    print(reverse_values)
 
     out = f"{label}\n"
     out += f"{len(model.variables)}\n"
@@ -47,6 +51,11 @@ def to_uai(model:'BayesianNetwork', filepath, reverse_values=True, label="BAYES"
     for v in model.variables:
         f = model.factors[v]
         var_order = f.variables
+
+        if label=="CAUSAL" and v in model.endogenous and isinstance(f, MultinomialFactor):
+            f = f.to_deterministic()
+            var_order = [x for x in var_order if x != v]
+
         if not reverse_values:
             var_order = var_order[::-1]
         values = f.values_array(var_order).flatten()
@@ -58,6 +67,8 @@ def to_uai(model:'BayesianNetwork', filepath, reverse_values=True, label="BAYES"
     filepath = Path(filepath)
     folder = filepath.parent
     assert_file_exists(folder)
+
+    print(out)
     with open(filepath, "w+") as file:
         # Writing data to a file
         file.write(out)

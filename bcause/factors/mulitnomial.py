@@ -4,7 +4,7 @@ import logging
 import math
 from collections import OrderedDict
 from functools import reduce
-from typing import Dict, List, Iterable, Union
+from typing import Dict, List, Iterable, Union, Hashable
 
 import numpy as np
 import pandas as pd
@@ -40,6 +40,14 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
         self.builder = builder
 
+    def to_deterministic(self):
+        if len(self.left_vars) != 1:
+            raise ValueError("Wrong number of variables on the left")
+
+        v = self.left_vars[0]
+        values = self.values_array().argmax(axis=self.variables.index(v))
+        from bcause.factors import DeterministicFactor
+        return DeterministicFactor(self.domain, left_vars=[v], values=values)
 
     def constant(self, left_value):
 

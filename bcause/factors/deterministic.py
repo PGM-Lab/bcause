@@ -5,6 +5,7 @@ from collections import OrderedDict
 from typing import Dict, List
 
 import numpy as np
+import pandas as pd
 
 import bcause.util.domainutils as dutils
 
@@ -37,6 +38,20 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             return DeterministicFactor(**kwargs, vtype=vtype)
 
         self.builder = builder
+
+    @staticmethod
+    def from_data_frame(df, domains, left_var=None):
+        columns = list(df.columns)
+        left_var = left_var or columns[-1]
+
+        for v in columns:
+            df[v] = pd.Categorical(df[v], domains[v])
+
+        df = df.sort_values(by=columns)
+
+        domf = dutils.subdomain(domains, *columns)
+        values = list(df[left_var].values)
+        return DeterministicFactor(domf, left_vars=left_var, values=values)
 
     @property
     def domain(self) -> Dict:
