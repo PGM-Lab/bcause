@@ -3,7 +3,7 @@ import pytest
 
 import bcause as bc
 from bcause.factors.imprecise import IntervalProbFactor
-from bcause.inference.causal.credal import EMCC
+from bcause.inference.causal.multi import EMCC
 from bcause.inference.causal.elimination import CausalVariableElimination
 from bcause.models.cmodel import StructuralCausalModel
 

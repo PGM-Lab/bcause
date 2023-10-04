@@ -21,7 +21,6 @@ class ParameterLearning(ABC):
 class IterativeParameterLearning(ParameterLearning):
 
 
-
     def step(self, data:pd.DataFrame=None):
         if data is not None: self._process_data(data)
         new_probs = self._calculate_updated_factors()

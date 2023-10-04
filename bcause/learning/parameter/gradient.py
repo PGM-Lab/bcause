@@ -96,6 +96,7 @@ class GradientLikelihood(IterativeParameterLearning):
 
     def maximum_likelihood_estimation(self, initial_params, N_bmVbmY, P_bmVbmYu):
         """
+        TODO: DO NOT NAME IT "maximum likelihood estimation (MLE)"
         Perform maximum likelihood estimation (MLE) for a given model and data starting at initial_params.
 
         Parameters:
@@ -151,6 +152,7 @@ class GradientLikelihood(IterativeParameterLearning):
         # compute counts and pa_probs
         pass
 
+# TODO: do not overwrite method step
     def step(self):
         # one gradient descent (MLE) process
         m = self._prior_model
@@ -315,10 +317,10 @@ if __name__ == "__main__":
     gl = GradientLikelihood(m)
     gl.run(data,max_iter=3)
 
-    # print the model evolution
-    for model_i in gl.model_evolution:
-        print(model_i.get_factors(*model_i.exogenous))
-
+    # # print the model evolution
+    # for model_i in gl.model_evolution:
+    #     print(model_i.get_factors(*model_i.exogenous))
+    #
 
     #print the resulting model
     print(gl.model)

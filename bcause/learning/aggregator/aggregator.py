@@ -73,17 +73,10 @@ class SimpleModelAggregator(ModelAggregator):
 
 class ModelAggregatorEM(ModelAggregator):
     def _single_generate(self, i):
-        em = ExpectationMaximization(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars)
-        em.run(self._data, max_iter=self._max_iter)
-        self._learn_objects.append(em)
-
-
-        return em.model
-
-
-    def single_generate(self, i):
-        return self._single_generate()
-
+        optimizer = ExpectationMaximization(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars)
+        optimizer.run(self._data, max_iter=self._max_iter)
+        self._learn_objects.append(optimizer)
+        return optimizer.model
 
 class SimpleModelAggregatorEM(SimpleModelAggregator, ModelAggregatorEM):
 
@@ -93,6 +86,29 @@ class SimpleModelAggregatorEM(SimpleModelAggregator, ModelAggregatorEM):
         self._trainlable_vars = trainable_vars or model.exogenous
         self._max_iter = max_iter
         super().__init__(parallel=parallel)
+
+
+class ModelAggregatorGD(ModelAggregator):
+    def _single_generate(self, i):
+        # TODO: replace this 2 first lines with the optimization using
+        optimizer = ExpectationMaximization(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars)
+        optimizer.run(self._data, max_iter=self._max_iter)
+        self._learn_objects.append(optimizer)
+        return optimizer.model
+
+
+class SimpleModelAggregatorGD(SimpleModelAggregator, ModelAggregatorGD):
+
+    def __init__(self, model, data, trainable_vars=None, max_iter=200, parallel=False):
+        # TODO: set here the specific arguments for Gradient descent
+        self._model = model
+        self._data = data
+        self._trainlable_vars = trainable_vars or model.exogenous
+        self._max_iter = max_iter
+        super().__init__(parallel=parallel)
+
+
+
 
 
 
