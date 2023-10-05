@@ -5,10 +5,15 @@ gradient descent method for negative likelihood objective function
 TODO:
 1) to check corectness, implement Theorem 1 from Causal EM paper
 2) render canonical SEs (according to Rafa's mail from 3.10)
-With RAFA:
+With RAFA: (it about effectivity - if some approach is usual, let's use it for the following)
 3) which example models to use
 4) which metrics to use for a comparision with EM
 5) how to present the results (visuals)
+
+TODO2:
+- what can be accessed from outside (e.g. tol) should be in the constructor
+- to test that gradient likelihood is correct, check the likelihood of the optimal model with 
+  the likelihood of the true model
 """
 
 from collections import defaultdict
@@ -20,7 +25,7 @@ import random
 
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial
+from bcause.factors.mulitnomial import random_multinomial   # TODO: "mulitnomial"
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.domainutils import assingment_space, state_space
@@ -153,18 +158,20 @@ class GradientLikelihood(IterativeParameterLearning):
         pass
 
 # TODO: do not overwrite method step
+# rather, move this to self._updated_factor()
     def step(self):
         # one gradient descent (MLE) process
         m = self._prior_model
         domains = m.get_domains(self.trainable_vars)
         for U in m.exo_ccomponents: # we do MLE separately for each c-component 
-            assert len(U) == 1, f'Quasi-Markovianity violated! ({len(U)=})'
+            assert len(U) == 1, f'Quasi-Markovianity violated! ({len(U)=})' # remove this, we assume the model is correct
             U = U.pop() # get this only element of U
             if U != 'U':
                 continue # DEBUG: skip this trivial case for now
-            dirich_distr = [1.0] * len(m.domains[U])
-            initial_params = np.random.dirichlet(dirich_distr, 1) # 1 (vector) sample u_0 such that u_0i > 0 and sum(u_0i) = 1
-
+            #dirich_distr = [1.0] * len(m.domains[U])
+            #initial_params = np.random.dirichlet(dirich_distr, 1) # 1 (vector) sample u_0 such that u_0i > 0 and sum(u_0i) = 1
+            initial_params = m.factors[U].values
+            
             ### get the quantities named as in our paper ###
             # endogenous children
             bmV = m.get_edogenous_children(U) 
@@ -315,7 +322,7 @@ if __name__ == "__main__":
     #data = data.append(dict(Y=0, X="x1", U="u1"), ignore_index=True)
 
     gl = GradientLikelihood(m)
-    gl.run(data,max_iter=3)
+    gl.run(data,max_iter=1)
 
     # # print the model evolution
     # for model_i in gl.model_evolution:

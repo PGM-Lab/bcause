@@ -87,8 +87,12 @@
     <Compile Include="examples\simple_jrsme.py" />
     <Compile Include="examples\useful_code_for_gradient.py" />
     <Compile Include="tests\test_bnet.py" />
-    <Compile Include="tests\test_inference.py" />
+    <Compile Include="tests\test_cmodel.py" />
+    <Compile Include="tests\test_counterfactual.py" />
+    <Compile Include="tests\test_emcc.py" />
     <Compile Include="tests\test_multinomial.py" />
+    <Compile Include="tests\test_prob_inference.py" />
+    <Compile Include="tests\test_readwrite.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="bcause\" />
