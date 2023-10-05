@@ -1,0 +1,147 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>2db57eef-80ff-4ea6-bbc5-71a78e3bd9a2</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>dev\mle.py</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>bcause</Name>
+    <RootNamespace>bcause</RootNamespace>
+    <TestFramework>Pytest</TestFramework>
+    <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="bcause\conversion\pgmpy.py" />
+    <Compile Include="bcause\conversion\__init__.py" />
+    <Compile Include="bcause\factors\deterministic.py" />
+    <Compile Include="bcause\factors\factor.py" />
+    <Compile Include="bcause\factors\mulitnomial.py" />
+    <Compile Include="bcause\factors\values\store.py" />
+    <Compile Include="bcause\factors\values\__init__.py" />
+    <Compile Include="bcause\factors\__init__.py" />
+    <Compile Include="bcause\inference\elimination\ordering.py" />
+    <Compile Include="bcause\inference\elimination\variableelimination.py" />
+    <Compile Include="bcause\inference\elimination\__init__.py" />
+    <Compile Include="bcause\inference\inference.py" />
+    <Compile Include="bcause\inference\__init__.py" />
+    <Compile Include="bcause\learning\parameter.py" />
+    <Compile Include="bcause\learning\__init__.py" />
+    <Compile Include="bcause\models\bnet.py" />
+    <Compile Include="bcause\models\cmodel.py" />
+    <Compile Include="bcause\models\pgmodel.py" />
+    <Compile Include="bcause\models\sampling.py" />
+    <Compile Include="bcause\models\transform\combination.py" />
+    <Compile Include="bcause\models\transform\conversion.py" />
+    <Compile Include="bcause\models\transform\simplification.py" />
+    <Compile Include="bcause\models\transform\__init__.py" />
+    <Compile Include="bcause\models\__init__.py" />
+    <Compile Include="bcause\readwrite\bnread.py" />
+    <Compile Include="bcause\readwrite\bnwrite.py" />
+    <Compile Include="bcause\readwrite\__init__.py" />
+    <Compile Include="bcause\util\arrayutils.py" />
+    <Compile Include="bcause\util\assertions.py" />
+    <Compile Include="bcause\util\datautils.py" />
+    <Compile Include="bcause\util\domainutils.py" />
+    <Compile Include="bcause\util\graphutils.py" />
+    <Compile Include="bcause\util\plotutils.py" />
+    <Compile Include="bcause\util\treesutil.py" />
+    <Compile Include="bcause\util\__init__.py" />
+    <Compile Include="bcause\__init__.py" />
+    <Compile Include="dev\mle.py" />
+    <Compile Include="dev\mle_aux.py" />
+    <Compile Include="dev\optimization.py" />
+    <Compile Include="examples\causal.py" />
+    <Compile Include="examples\simple_jrsme.py" />
+    <Compile Include="tests\test_bnet.py" />
+    <Compile Include="tests\test_inference.py" />
+    <Compile Include="tests\test_multinomial.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="bcause\" />
+    <Folder Include="bcause\conversion\" />
+    <Folder Include="bcause\factors\" />
+    <Folder Include="bcause\factors\values\" />
+    <Folder Include="bcause\factors\values\__pycache__\" />
+    <Folder Include="bcause\factors\__pycache__\" />
+    <Folder Include="bcause\inference\" />
+    <Folder Include="bcause\inference\elimination\" />
+    <Folder Include="bcause\inference\elimination\__pycache__\" />
+    <Folder Include="bcause\inference\__pycache__\" />
+    <Folder Include="bcause\learning\" />
+    <Folder Include="bcause\models\" />
+    <Folder Include="bcause\models\transform\" />
+    <Folder Include="bcause\models\transform\__pycache__\" />
+    <Folder Include="bcause\models\__pycache__\" />
+    <Folder Include="bcause\readwrite\" />
+    <Folder Include="bcause\util\" />
+    <Folder Include="bcause\util\__pycache__\" />
+    <Folder Include="bcause\__pycache__\" />
+    <Folder Include="dev\" />
+    <Folder Include="docs\" />
+    <Folder Include="examples\" />
+    <Folder Include="examples\.vs\" />
+    <Folder Include="examples\.vs\examples\" />
+    <Folder Include="examples\.vs\examples\v17\" />
+    <Folder Include="models\" />
+    <Folder Include="requirements\" />
+    <Folder Include="tests\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="bcause\factors\values\__pycache__\store.cpython-39.pyc" />
+    <Content Include="bcause\factors\values\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="bcause\factors\__pycache__\deterministic.cpython-39.pyc" />
+    <Content Include="bcause\factors\__pycache__\factor.cpython-39.pyc" />
+    <Content Include="bcause\factors\__pycache__\mulitnomial.cpython-39.pyc" />
+    <Content Include="bcause\factors\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="bcause\inference\elimination\__pycache__\ordering.cpython-39.pyc" />
+    <Content Include="bcause\inference\elimination\__pycache__\variableelimination.cpython-39.pyc" />
+    <Content Include="bcause\inference\elimination\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="bcause\inference\__pycache__\inference.cpython-39.pyc" />
+    <Content Include="bcause\inference\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="bcause\models\transform\__pycache__\combination.cpython-39.pyc" />
+    <Content Include="bcause\models\transform\__pycache__\simplification.cpython-39.pyc" />
+    <Content Include="bcause\models\transform\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="bcause\models\__pycache__\bnet.cpython-39.pyc" />
+    <Content Include="bcause\models\__pycache__\cmodel.cpython-39.pyc" />
+    <Content Include="bcause\models\__pycache__\pgmodel.cpython-39.pyc" />
+    <Content Include="bcause\models\__pycache__\sampling.cpython-39.pyc" />
+    <Content Include="bcause\models\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="bcause\util\__pycache__\arrayutils.cpython-39.pyc" />
+    <Content Include="bcause\util\__pycache__\assertions.cpython-39.pyc" />
+    <Content Include="bcause\util\__pycache__\domainutils.cpython-39.pyc" />
+    <Content Include="bcause\util\__pycache__\graphutils.cpython-39.pyc" />
+    <Content Include="bcause\util\__pycache__\treesutil.cpython-39.pyc" />
+    <Content Include="bcause\util\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="bcause\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="docs\project_description.md" />
+    <Content Include="examples\.vs\examples\project-colors.json" />
+    <Content Include="examples\.vs\examples\v17\.suo" />
+    <Content Include="examples\.vs\slnx.sqlite" />
+    <Content Include="examples\.vs\VSWorkspaceState.json" />
+    <Content Include="models\asia.bif" />
+    <Content Include="models\asia.uai" />
+    <Content Include="models\asia.xml" />
+    <Content Include="requirements\dev.txt" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>

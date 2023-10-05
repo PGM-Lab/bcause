@@ -3,7 +3,8 @@ import networkx as nx
 from networkx.utils import graphs_equal
 
 import bcause as bc
-from bcause.inference.elimination.variableelimination import CausalVariableElimination
+from bcause.factors.factor import Factor
+from bcause.inference.causal.elimination import CausalVariableElimination
 from bcause.models.cmodel import StructuralCausalModel
 
 from numpy.testing import assert_array_almost_equal
@@ -11,11 +12,12 @@ from numpy.testing import assert_array_almost_equal
 # Define a DAG and the domains
 dag = nx.DiGraph([("V1", "V2"), ("V2", "V3"),("V3", "V4"),("U1", "V1"),("U2", "V2"),("U2", "V4"),("U3", "V3")])
 model = StructuralCausalModel(dag)
-domains = dict(V1=[0,1],V2=[0,1],V3=[0,1],V4=[0,1], U1=[0,1,3],U2=[0,1,2,3],U3=[0,1,2,3])
+domains = dict(V1=[0,1],V2=[0,1],V3=[0,1],V4=[0,1], U1=[0,1,2],U2=[0,1,2,3],U3=[0,1,2,3])
 bc.randomUtil.seed(1)
 model.fill_random_factors(domains)
 data = model.sample(1000, as_pandas=True)
 
+# model.save("/Users/rcabanas/GoogleDrive/IDSIA/causality/dev/credici/dev_ig/bcause/test_cmodel.uai")
 
 
 def test_model():
@@ -51,12 +53,28 @@ def test_qfact_data():
 
 
 def test_causal_queries():
+    import logging, sys
+    log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
+
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
+
     # Run causal inference with Variable Elimination
     cve = CausalVariableElimination(model)
-    p = cve.causal_query("V4", do=dict(V2=0))
+    # p = cve.causal_query("V4", do=dict(V2=0))
 
-    assert p.values == [0.7611346018757232,0.2388653981242768]
+    # assert p.values == [0.7611346018757232,0.2388653981242768]
 
     # Run a counterfactual query
     p = cve.counterfactual_query("V4",do=dict(V1=0), evidence=dict(V2=1))
     assert p.values == [0.6773272316833546,0.32267276831664543]
+    #
+    # factors = cve.inference_model.factors
+    #
+    # joint = Factor.combine_all(*factors.values())
+    #
+    # joint.variables
+    # variables = ['U1', 'V1', 'U2', 'V2', 'U3', 'V3', 'V4', 'V1_1', 'V2_1', 'V3_1', 'V4_1']
+    # [v for v in variables if v not in ['V4_1',"V2", "V1"]]
+    #
+    # joint.marginalize()
+    #

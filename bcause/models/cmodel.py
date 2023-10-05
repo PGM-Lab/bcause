@@ -4,6 +4,8 @@ import itertools
 import logging
 from typing import Dict, Union, Hashable, Iterable
 
+import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from networkx import relabel_nodes, DiGraph, topological_sort
 
@@ -173,7 +175,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         '''
         # SCM related check
         if self.is_endogenous(var):
-            if not(isinstance(f, DeterministicFactor) or f.is_degenerate()):
+            if self._check_factors and not(isinstance(f, DeterministicFactor) or f.is_degenerate()):
                 raise ValueError("Factor must be deterministic or degenerate")
             if self._cast_multinomial and isinstance(f, DeterministicFactor):
                 f = f.to_multinomial()
@@ -242,6 +244,21 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
     def to_bnet(self):
         m = self.to_multinomial() if self.has_deterministic else self
         return BayesianNetwork(m.graph, m.factors)
+
+
+    def sampleEndogenous(self, n_samples: int, as_pandas = True) -> Union[list[Dict], pd.DataFrame]:
+        return self.sample(n_samples, as_pandas)[self.endogenous]
+
+    def log_likelihood(self, data, variables=None):
+        bn = self.get_qbnet()
+        obs = data.to_dict("records")
+        return np.sum(bn.log_prob(obs, variables))
+
+
+    def max_log_likelihood(self, data, variables=None):
+        bn = self.get_qbnet(data)
+        obs = data.to_dict("records")
+        return np.sum(bn.log_prob(obs,variables))
 
     def __repr__(self):
         str_card_endo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"

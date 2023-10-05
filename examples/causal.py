@@ -7,7 +7,7 @@ import bcause.util.domainutils as dutils
 import bcause.util.graphutils as gutils
 from bcause.factors import DeterministicFactor
 from bcause.factors.mulitnomial import MultinomialFactor
-from bcause.inference.elimination.variableelimination import CausalVariableElimination
+from bcause.inference.causal.elimination import CausalVariableElimination
 from bcause.models.cmodel import StructuralCausalModel
 
 log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
@@ -43,4 +43,6 @@ inf = CausalVariableElimination(model)
 p = inf.causal_query("X", do=dict(Y=1))
 
 
+
+MultinomialFactor(dutils.subdomain(domains, "X"), values= [120, 80])
 

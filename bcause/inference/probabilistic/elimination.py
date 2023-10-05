@@ -3,21 +3,19 @@ from __future__ import annotations
 import inspect
 import logging
 import time
-from abc import ABC, abstractmethod
 from functools import reduce
 from typing import Callable, Union
 
 from bcause.factors.mulitnomial import MultinomialFactor
-from bcause.inference.elimination.ordering import min_weight_heuristic, Heuristic, heuristic_functions
-from bcause.inference.inference import ProbabilisticInference, CausalInference
-from bcause.models.cmodel import StructuralCausalModel
-from bcause.models.pgmodel import PGModel, DiscreteDAGModel
+from bcause.inference.ordering import min_weight_heuristic, Heuristic, heuristic_functions
+from bcause.inference.probabilistic.probabilistic import ProbabilisticInference
+from bcause.models.pgmodel import DiscreteDAGModel
 from bcause.models.transform.simplification import minimalize
 
 
 
 class VariableElimination(ProbabilisticInference):
-    def __init__(self, model: DiscreteDAGModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = False):
+    def __init__(self, model: DiscreteDAGModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = True):
 
         # Default value for heuristic
         heuristic = heuristic or min_weight_heuristic
@@ -62,31 +60,27 @@ class VariableElimination(ProbabilisticInference):
             logging.debug(f"Removing variable {select_var}. Relevant factors: {[f.name for f in relevant]}")
 
             # combine them all
-            relevant_restr = [f.R(**self._evidence) for f in relevant]
-            join = reduce((lambda f1, f2: f1 * f2), relevant_restr)
+            # relevant_restr = [f.R(**self._evidence) for f in relevant]
+            join = reduce((lambda f1, f2: f1 * f2), relevant)
             # marginalize variable
             fnew = join ** select_var
             # updage factor list
-            factors = [f for f in factors if f not in relevant] + [fnew]
+
+
+            factors = [f for f in factors if f not in relevant]
+            if len(fnew.left_vars)>0:
+                factors += [fnew]
 
             logging.debug(f"Updated factor list: {[f.name for f in factors]}")
-
 
 
         p = reduce((lambda f1, f2: f1 * f2), factors)
         # combine resulting factors and set evidence
         joint = reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
         result = joint / (joint ** self._target)
+        #result = result.R(**self._evidence)
         self.time = (time.time()-tstart)*1000
         logging.info(f"Finished variable elimination in {self.time} ms.")
         return result
 
 
-class CausalVariableElimination(CausalInference):
-    def __init__(self, model: StructuralCausalModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = True):
-        prob_inf_fn = lambda m : VariableElimination(m, heuristic, preprocess_flag)
-        super(self.__class__, self).__init__(model.to_multinomial(), prob_inf_fn)
-
-
-class MultiCausalVE(CausalInference):
-    pass

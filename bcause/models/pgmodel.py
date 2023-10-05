@@ -4,9 +4,10 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Union, Dict, Hashable
+from typing import Union, Dict, Hashable, List
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 from networkx import relabel_nodes
 
@@ -71,10 +72,10 @@ class PGModel(ABC):
         # update factor dictionary
         self._factors[var] = f
 
-    def save(self, filepath):
+    def save(self, filepath, **kwargs):
         filepath = Path(filepath)
         if str(filepath).endswith(".uai"):
-            self._writer.to_uai(model=self, filepath=filepath)
+            self._writer.to_uai(model=self, filepath=filepath, **kwargs)
         elif str(filepath).endswith(".xmlbif"):
             self._writer.to_xmlbif(model=self, filepath=filepath)
         elif str(filepath).endswith(".bif"):
@@ -96,6 +97,19 @@ class PGModel(ABC):
             return cls._reader.from_bif(filepath=filepath)
         else:
             raise ValueError(f"Unknown format for {filepath}")
+
+
+    def log_prob(self, observations:List[dict], variables:List[Hashable]=None):
+        variables = variables or self.variables
+        return np.sum([f.log_prob(observations) for f in self.get_factors(*variables)], axis=0)
+
+
+    def prob(self, observations:List[dict]):
+        return np.prod([f.prob(observations) for f in self.factor_list], axis=0)
+
+
+
+
 
 
 class DiscreteDAGModel(PGModel):
@@ -175,7 +189,7 @@ class DiscreteDAGModel(PGModel):
         return self.builder(dag=new_dag, factors=new_factors)
 
 
-    def sample(self, n_samples: int, as_pandas = False) -> Union[list[Dict], pd.DataFrame]:
+    def sample(self, n_samples: int, as_pandas = True) -> Union[list[Dict], pd.DataFrame]:
         logging.info(f"Sampling {n_samples} instances from model")
         data = forward_sampling(self, n_samples=n_samples)
         if not as_pandas:

@@ -1,13 +1,15 @@
 from abc import abstractmethod
+from functools import reduce
 
 import pandas as pd
 
 from bcause.factors import MultinomialFactor, DeterministicFactor
-from bcause.inference.elimination.variableelimination import VariableElimination
+from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.models.pgmodel import DiscreteDAGModel
 from bcause.util.datadeps import DataDepAnalysis
+
 
 
 class AbastractExpectationMaximization(IterativeParameterLearning):
@@ -29,6 +31,7 @@ class AbastractExpectationMaximization(IterativeParameterLearning):
 
     def _get_pseudocounts_dict(self) -> dict:
         def get_pcounts(v):
+            from bcause.util import domainutils as dutils
             pa = self.prior_model.get_parents(v)
             dom = dutils.subdomain(self.prior_model.domains, *([v] + pa))
             return MultinomialFactor(dom, values=0)
@@ -42,16 +45,19 @@ class ExpectationMaximization(AbastractExpectationMaximization):
         self._prior_model = prior_model
         self._trainable_vars = trainable_vars
         self._inference_method = inference_method
+        self._converged_vars = set()
 
     def _get_obs_counts(self, target):
         obs_blanket = self._datadeps.get_minimal_obs_blanket(target)
-        return [(obs, len(data.loc[data[obs.keys()].isin(obs.values()).all(axis=1), :])) for obs in obs_blanket]
+        return [(obs, sum(reduce( lambda x,y : x&y, [self._data[v] == s for v,s in obs.items()]))) for obs in obs_blanket]
+
+
 
     def _expectation(self, **kwargs):
-        print(self.model.factors)
         self._inf = self._inference_method(self._model, preprocess_flag=False)
         pcounts = self._get_pseudocounts_dict()
-        for v in self.trainable_vars:
+        for v in set(self.trainable_vars).difference(self._converged_vars):
+
 
             for obs, c in self._get_obs_counts(v):
                 relevant = [v] + self._prior_model.get_parents(v)
@@ -63,10 +69,9 @@ class ExpectationMaximization(AbastractExpectationMaximization):
 
     def _maximization(self, pcounts, **kwargs):
         new_probs = dict()
-        for v in self.trainable_vars:
+        for v in set(self.trainable_vars).difference(self._converged_vars):
             joint_counts = pcounts[v]
             new_probs[v] = joint_counts / (joint_counts.marginalize(v))
-
         return new_probs
 
     def _process_data(self, data: pd.DataFrame):
@@ -79,15 +84,22 @@ class ExpectationMaximization(AbastractExpectationMaximization):
 
         self._datadeps = DataDepAnalysis(self.model.graph, data)
         self._variables = list(data.columns)
+        self._data = data
 
     def _stop_learning(self) -> bool:
-        # todo: add stopping criteria
-        return False
+        from scipy.special import rel_entr
+
+        for v in self._trainable_vars:
+            if v not in self._converged_vars:
+                P = self.model_evolution[-2].factors[v]
+                Q = self.model_evolution[-1].factors[v]
+                kl_div = sum(rel_entr(P.values, Q.values))
+                if kl_div == 0:
+                    self._converged_vars = self._converged_vars | {v}
+        return set(self._trainable_vars) == self._converged_vars
 
 
 if __name__ == "__main__":
-    import logging, sys
-
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 
     # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
@@ -120,7 +132,7 @@ if __name__ == "__main__":
 
     print(m)
     em = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False))
-    em.run(data, max_iter=4)
+    em.run(data, max_iter=10)
 
     print(em.prior_model)
 
