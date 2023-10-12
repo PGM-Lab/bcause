@@ -10,10 +10,8 @@ With RAFA: (it about effectivity - if some approach is usual, let's use it for t
 4) which metrics to use for a comparision with EM
 5) how to present the results (visuals)
 
-TODO2:
-- what can be accessed from outside (e.g. tol) should be in the constructor
-- to test that gradient likelihood is correct, check the likelihood of the optimal model with 
-  the likelihood of the true model
+TESTS DONE:
+I tested 12.10.23 the likehood values obtained by fitPMF and they were very close to model.max_log_likelihood(data, variables=...)
 """
 
 from collections import defaultdict
@@ -50,20 +48,24 @@ class GradientLikelihood(IterativeParameterLearning):
         pass
 
     def _calculate_updated_factors(self, **kwargs) -> dict[MultinomialFactor]:
-        return {U:self._updated_factor(U) for U in self.trainable_vars}
+        #kwargs = {'tol': 1e-3}
+        return {U:self._updated_factor(U, **kwargs) for U in self.trainable_vars}
 
 
-    def _updated_factor(self, U) -> MultinomialFactor:
-        # Inputs:
-        # U - string name of an exogenous variable
-        # Output:
-        # MultinomialFactor(U, values), where values (thetas) describe the estimated distribution of U (P(u_i) = \theta_i)
+    def _updated_factor(self, U, **kwargs) -> MultinomialFactor:
+        # Updates the PMF of variable U given data and an SCM        
+        #
+        # Parameters:
+        #   U (string): Thenname of an exogenous variable.
+        # Returns:
+        #   MultinomialFactor(U, values): Talues (thetas) describe the estimated distribution of U (P(u_i) = \theta_i)
 
         # one gradient descent (MLE) process
         #if U != 'U':
         #    return random_multinomial({U:self._model.domains[U]}) # DEBUG: skip this trivial case for now
         m = self._prior_model
-        initial_params = m.factors[U].values
+        data = self._data
+        initial_params = m.factors[U].values # we start the optimization from the current PMF of U
             
         ### get the quantities named as in our paper ###
         # endogenous children
@@ -72,10 +74,6 @@ class GradientLikelihood(IterativeParameterLearning):
         bmY = list(itertools.chain(*[m.get_edogenous_parents(V) for V in bmV]))
         # remove the variables in V
         bmY = [V for V in bmY if V not in bmV]
-        # get the joint domains of Y union V
-        dom_bmYbmV = m.get_domains(bmY+bmV)
-
-        data = self._data
 
         ### compute N[\bmv,\bmy] and \prod_{V \in \bmV} P(v | pa_V) from the paper
         N_bmVbmY = defaultdict(lambda : {}) # data counts N[\bmv,\bmy]
@@ -113,7 +111,7 @@ class GradientLikelihood(IterativeParameterLearning):
                             break # once we got 0, the product must be zero, so we finish immediately
                     P_bmVbmYu[id_v][id_y][u] = prod_P_v_pav
 
-        results = self.maximum_likelihood_estimation(initial_params, N_bmVbmY, P_bmVbmYu) # TODO: rename to avoid MLE in the name
+        results = self.fitPMF(initial_params, N_bmVbmY, P_bmVbmYu, **kwargs) 
         updated_factor = MultinomialFactor(m.get_domains(U), values=results['params'])
         updated_factor.trajectory = results['trajectory'] # the trajectory of the iterations in the optimization process
         return updated_factor
@@ -160,13 +158,16 @@ class GradientLikelihood(IterativeParameterLearning):
         return np.sum(theta) - 1  # The probabilities should sum up to 1
 
 
-    def maximum_likelihood_estimation(self, initial_params, N_bmVbmY, P_bmVbmYu):
+    def fitPMF(self, initial_params, N_bmVbmY, P_bmVbmYu, **kwargs):
         """
-        TODO: DO NOT NAME IT "maximum likelihood estimation (MLE)"
-        Perform maximum likelihood estimation (MLE) for a given model and data starting at initial_params.
+        Fits the PMF of an exogenous variable MultinomialFactor(U, values), where 
+        values (thetas) describe the estimated distribution of U (P(u_i) = \theta_i)
+        given data distribution in N_bmVbmY and SE in P_bmVbmYu
 
         Parameters:
-            initial_params (array-like): The initial parameter values for the optimization algorithm.
+            initial_params (array-like): The initial parameter values of thetas for the optimization algorithm.
+            N_bmVbmY: The data distribution.
+            P_bmVbmYu: The SE.
 
         Returns:
             dict: A dictionary containing the estimated parameters and additional information from the optimization algorithm.
@@ -179,11 +180,14 @@ class GradientLikelihood(IterativeParameterLearning):
         # Constraint dictionary
         con = {'type': 'eq', 'fun': self.constraint}
 
-        # Perform optimization using scipy's minimize function
+        # adjust default parameters of the optimization if required
+        tol = kwargs['tol'] if 'tol' in kwargs else 1e-3
+
+        # Perform the optimization using scipy's minimize function
         result = minimize(self.negative_log_likelihood, initial_params, 
                           args = (N_bmVbmY, P_bmVbmYu), constraints=con, 
                           bounds=[(0, 1)]*len(initial_params),
-                          tol = 1e-3, callback = callback) # default: method='SLSQP'
+                          tol = tol, callback = callback) # default: method='SLSQP'
 
         # Transform the estimated raw parameters to the constrained parameters
         estimated_params = result.x
@@ -203,17 +207,9 @@ class GradientLikelihood(IterativeParameterLearning):
         return estimation_results
 
 
-    #def multi_mle(py_x, fy, num_runs):
-    #    solutions = []
-    #    trajectories = []
-    #    dirich_distr = [1.0] * len(domains['U'])
-    #    for _ in range(num_runs):
-    #        initial_params = np.random.dirichlet(dirich_distr, 1) # 1 (vector) sample u_0 such that u_0i > 0 and sum(u_0i) = 1
-    #        result = maximum_likelihood_estimation(initial_params, py_x, fy)
-    #        solutions.append(result['params'])
-    #        trajectories.append(result['trajectory'])
-    #    return solutions, trajectories
-
+###################################
+### further auxiliary functions ###
+###################################
 
 def tick(n, var_label = None):
     use_var_label = True # switch to False to avoid using var_label
