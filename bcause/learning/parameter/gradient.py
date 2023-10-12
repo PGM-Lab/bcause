@@ -19,14 +19,16 @@ import pandas as pd
 import numpy as np
 from scipy.optimize import minimize
 import itertools
-import random 
+import random
+from typing import Dict, List, Tuple, Any
+
 
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor
 from bcause.factors.mulitnomial import random_multinomial   # TODO: mulitnomial -> multinomial
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
-from bcause.util.domainutils import assingment_space, state_space
+from bcause.util.domainutils import assingment_space, state_space # TODO: assingment_space -> assignment_space
 
 
 class GradientLikelihood(IterativeParameterLearning):
@@ -51,71 +53,84 @@ class GradientLikelihood(IterativeParameterLearning):
         #kwargs = {'tol': 1e-3}
         return {U:self._updated_factor(U, **kwargs) for U in self.trainable_vars}
 
-
-    def _updated_factor(self, U, **kwargs) -> MultinomialFactor:
+    def _updated_factor(self, U: str, **kwargs) -> MultinomialFactor:
         # Updates the PMF of variable U given data and an SCM        
         #
         # Parameters:
         #   U (string): Thenname of an exogenous variable.
         # Returns:
         #   MultinomialFactor(U, values): Talues (thetas) describe the estimated distribution of U (P(u_i) = \theta_i)
-
-        # one gradient descent (MLE) process
-        #if U != 'U':
-        #    return random_multinomial({U:self._model.domains[U]}) # DEBUG: skip this trivial case for now
         m = self._prior_model
         data = self._data
         initial_params = m.factors[U].values # we start the optimization from the current PMF of U
-            
-        ### get the quantities named as in our paper ###
-        # endogenous children
-        bmV = m.get_edogenous_children(U) 
-        # get the endogenous parents
-        bmY = list(itertools.chain(*[m.get_edogenous_parents(V) for V in bmV]))
-        # remove the variables in V
-        bmY = [V for V in bmY if V not in bmV]
 
-        ### compute N[\bmv,\bmy] and \prod_{V \in \bmV} P(v | pa_V) from the paper
-        N_bmVbmY = defaultdict(lambda : {}) # data counts N[\bmv,\bmy]
-        P_bmVbmYu = defaultdict(lambda : {}) # SEs probabilities \prod_{V \in \bmV} P(v | pa_V)
+        # get the quantities named as in our paper
+        bmV = m.get_edogenous_children(U)
+        bmY = self._get_bmY(bmV, m)
+
+        # compute N[\bmv,\bmy] and \prod_{V \in \bmV} P(v | pa_V) from the paper
+        N_bmVbmY, P_bmVbmYu = self._compute_N_and_P(bmV, bmY, data, m, U)
+
+        results = self.fitPMF(initial_params, N_bmVbmY, P_bmVbmYu, **kwargs)
+        updated_factor = MultinomialFactor(m.get_domains(U), values=results['params'])
+        updated_factor.trajectory = results['trajectory'] # the trajectory of the iterations in the optimization process
+
+        return updated_factor
+
+    def _get_bmY(self, bmV: List[str], m: Any) -> List[str]:
+        bmY = list(itertools.chain(*[m.get_edogenous_parents(V) for V in bmV]))
+        bmY = [V for V in bmY if V not in bmV]
+        return bmY
+
+    def _compute_N_and_P(self, bmV: List[str], bmY: List[str], data: Any, m: Any, U: str) -> Tuple[Dict, Dict]:
+        N_bmVbmY = defaultdict(lambda: {})
+        P_bmVbmYu = defaultdict(lambda: {})
+
         for bmv in assingment_space(m.get_domains(bmV)):
             id_v = tuple(bmv.items())
             for bmy in assingment_space(m.get_domains(bmY)):
                 id_y = tuple(bmy.items())
-                filtered_data = data[
-                    (data[list(bmv.keys())] == list(bmv.values())).all(axis=1) &
-                    (data[list(bmy.keys())] == list(bmy.values())).all(axis=1)
-                ]
+                filtered_data = self._filter_data(data, bmv, bmy)
                 N = len(filtered_data)
                 N_bmVbmY[id_v][id_y] = N
 
-                P_bmVbmYu[id_v][id_y] = {}
-                for u in m.get_domains(U)[U]:
-                    # compute \prod_{V \in \bmV} P(v|Pa(V))
-                    prod_P_v_pav = 1 # As the product of P(v|Pa(V)) \in {0, 1}, so we initiate the value to 1.
-                                     # If we find any P(v|Pa(V)) = 0, we stop the computation as it must be that \prod_{V \in \bmV} P(v|Pa(V)) = 0
-                    for V in bmV:
-                        P_v_pav_key = []
-                        for var in m.factors[V].variables:
-                            if var in m.exogenous:
-                                key = (var, u)
-                            elif var in bmV:
-                                key = (var, bmv[var])
-                            elif var in bmY:
-                                key = (var, bmy[var])
-                            else:
-                                raise Exception(f'Unclassfiable variable! ({var})')
-                            P_v_pav_key.append(key)
-                        if m.factors[V].values_dict[tuple(P_v_pav_key)] == 0: # TODO: Rafa, please initiate values_dict in MultinomialFactor in order to contain Integer (binary) only values!
-                            prod_P_v_pav = 0
-                            break # once we got 0, the product must be zero, so we finish immediately
-                    P_bmVbmYu[id_v][id_y][u] = prod_P_v_pav
+                P_bmVbmYu[id_v][id_y] = self._compute_P(bmv, bmy, m, U, bmV, bmY)
 
-        results = self.fitPMF(initial_params, N_bmVbmY, P_bmVbmYu, **kwargs) 
-        updated_factor = MultinomialFactor(m.get_domains(U), values=results['params'])
-        updated_factor.trajectory = results['trajectory'] # the trajectory of the iterations in the optimization process
-        return updated_factor
+        return N_bmVbmY, P_bmVbmYu
 
+    def _filter_data(self, data: Any, bmv: Dict, bmy: Dict) -> Any:
+        return data[
+            (data[list(bmv.keys())] == list(bmv.values())).all(axis=1) &
+            (data[list(bmy.keys())] == list(bmy.values())).all(axis=1)
+        ]
+
+    def _compute_P(self, bmv: Dict, bmy: Dict, m: Any, U: str, bmV: List[str], bmY: List[str]) -> Dict:
+        # compute \prod_{V \in \bmV} P(v|Pa(V))
+        P = {}
+        for u in m.get_domains(U)[U]:
+            prod_P_v_pav = 1 # As the product of P(v|Pa(V)) \in {0, 1}, so we initiate the value to 1.
+                             # If we find any P(v|Pa(V)) = 0, we stop the computation as it must be that \prod_{V \in \bmV} P(v|Pa(V)) = 0   
+            for V in bmV:
+                P_v_pav_key = self._get_P_v_pav_key(bmv, bmy, m, u, V, bmV, bmY)
+                if m.factors[V].values_dict[tuple(P_v_pav_key)] == 0: # TODO: Rafa, please initiate values_dict in MultinomialFactor in order to contain Integer (binary) only values!
+                    prod_P_v_pav = 0
+                    break # once we got 0, the product must be zero, so we finish immediately
+            P[u] = prod_P_v_pav
+        return P
+
+    def _get_P_v_pav_key(self, bmv: Dict, bmy: Dict, m: Any, u: str, V: str, bmV: List[str], bmY: List[str]) -> List[Tuple[str, Any]]:
+        P_v_pav_key = []
+        for var in m.factors[V].variables:
+            if var in m.exogenous:
+                key = (var, u)
+            elif var in bmV:
+                key = (var, bmv[var])
+            elif var in bmY:
+                key = (var, bmy[var])
+            else:
+                raise Exception(f'Unclassifiable variable! ({var})')
+            P_v_pav_key.append(key)
+        return P_v_pav_key
 
     def _process_data(self, data: pd.DataFrame):
         # add missing variables
@@ -203,7 +218,8 @@ class GradientLikelihood(IterativeParameterLearning):
             'nit': result.nit,
             'trajectory': trajectory,
         }
-        print(f'{result.nit=}') # number of iterations
+        #print(f'{result.nit=}') # number of iterations
+        #print(f'{result.fun=}') # neg-log-likelihood
         return estimation_results
 
 
