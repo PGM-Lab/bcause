@@ -25,7 +25,7 @@ import random
 
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial   # TODO: "mulitnomial"
+from bcause.factors.mulitnomial import random_multinomial   # TODO: mulitnomial -> multinomial
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.domainutils import assingment_space, state_space
@@ -52,11 +52,72 @@ class GradientLikelihood(IterativeParameterLearning):
     def _calculate_updated_factors(self, **kwargs) -> dict[MultinomialFactor]:
         return {U:self._updated_factor(U) for U in self.trainable_vars}
 
-    def _updated_factor(self, U) -> MultinomialFactor:
 
-        # todo: replace this code, now it returns a random distribution while it should return the result of a step in the gradient ascent
-        f = random_multinomial({U:self._model.domains[U]})
-        return f
+    def _updated_factor(self, U) -> MultinomialFactor:
+        # Inputs:
+        # U - string name of an exogenous variable
+        # Output:
+        # MultinomialFactor(U, values), where values (thetas) describe the estimated distribution of U (P(u_i) = \theta_i)
+
+        # one gradient descent (MLE) process
+        #if U != 'U':
+        #    return random_multinomial({U:self._model.domains[U]}) # DEBUG: skip this trivial case for now
+        m = self._prior_model
+        initial_params = m.factors[U].values
+            
+        ### get the quantities named as in our paper ###
+        # endogenous children
+        bmV = m.get_edogenous_children(U) 
+        # get the endogenous parents
+        bmY = list(itertools.chain(*[m.get_edogenous_parents(V) for V in bmV]))
+        # remove the variables in V
+        bmY = [V for V in bmY if V not in bmV]
+        # get the joint domains of Y union V
+        dom_bmYbmV = m.get_domains(bmY+bmV)
+
+        data = self._data
+
+        ### compute N[\bmv,\bmy] and \prod_{V \in \bmV} P(v | pa_V) from the paper
+        N_bmVbmY = defaultdict(lambda : {}) # data counts N[\bmv,\bmy]
+        P_bmVbmYu = defaultdict(lambda : {}) # SEs probabilities \prod_{V \in \bmV} P(v | pa_V)
+        for bmv in assingment_space(m.get_domains(bmV)):
+            id_v = tuple(bmv.items())
+            for bmy in assingment_space(m.get_domains(bmY)):
+                id_y = tuple(bmy.items())
+                filtered_data = data[
+                    (data[list(bmv.keys())] == list(bmv.values())).all(axis=1) &
+                    (data[list(bmy.keys())] == list(bmy.values())).all(axis=1)
+                ]
+                N = len(filtered_data)
+                N_bmVbmY[id_v][id_y] = N
+
+                P_bmVbmYu[id_v][id_y] = {}
+                for u in m.get_domains(U)[U]:
+                    # compute \prod_{V \in \bmV} P(v|Pa(V))
+                    prod_P_v_pav = 1 # As the product of P(v|Pa(V)) \in {0, 1}, so we initiate the value to 1.
+                                     # If we find any P(v|Pa(V)) = 0, we stop the computation as it must be that \prod_{V \in \bmV} P(v|Pa(V)) = 0
+                    for V in bmV:
+                        P_v_pav_key = []
+                        for var in m.factors[V].variables:
+                            if var in m.exogenous:
+                                key = (var, u)
+                            elif var in bmV:
+                                key = (var, bmv[var])
+                            elif var in bmY:
+                                key = (var, bmy[var])
+                            else:
+                                raise Exception(f'Unclassfiable variable! ({var})')
+                            P_v_pav_key.append(key)
+                        if m.factors[V].values_dict[tuple(P_v_pav_key)] == 0: # TODO: Rafa, please initiate values_dict in MultinomialFactor in order to contain Integer (binary) only values!
+                            prod_P_v_pav = 0
+                            break # once we got 0, the product must be zero, so we finish immediately
+                    P_bmVbmYu[id_v][id_y][u] = prod_P_v_pav
+
+        results = self.maximum_likelihood_estimation(initial_params, N_bmVbmY, P_bmVbmYu) # TODO: rename to avoid MLE in the name
+        updated_factor = MultinomialFactor(m.get_domains(U), values=results['params'])
+        updated_factor.trajectory = results['trajectory'] # the trajectory of the iterations in the optimization process
+        return updated_factor
+
 
     def _process_data(self, data: pd.DataFrame):
         # add missing variables
@@ -121,7 +182,7 @@ class GradientLikelihood(IterativeParameterLearning):
         # Perform optimization using scipy's minimize function
         result = minimize(self.negative_log_likelihood, initial_params, 
                           args = (N_bmVbmY, P_bmVbmYu), constraints=con, 
-                          bounds=[(0, 1)]*initial_params.size,
+                          bounds=[(0, 1)]*len(initial_params),
                           tol = 1e-3, callback = callback) # default: method='SLSQP'
 
         # Transform the estimated raw parameters to the constrained parameters
@@ -153,86 +214,6 @@ class GradientLikelihood(IterativeParameterLearning):
     #        trajectories.append(result['trajectory'])
     #    return solutions, trajectories
 
-    def prepare_MLE(self):
-        # compute counts and pa_probs
-        pass
-
-# TODO: do not overwrite method step
-# rather, move this to self._updated_factor()
-    def step(self):
-        # one gradient descent (MLE) process
-        m = self._prior_model
-        domains = m.get_domains(self.trainable_vars)
-        for U in m.exo_ccomponents: # we do MLE separately for each c-component 
-            assert len(U) == 1, f'Quasi-Markovianity violated! ({len(U)=})' # remove this, we assume the model is correct
-            U = U.pop() # get this only element of U
-            if U != 'U':
-                continue # DEBUG: skip this trivial case for now
-            #dirich_distr = [1.0] * len(m.domains[U])
-            #initial_params = np.random.dirichlet(dirich_distr, 1) # 1 (vector) sample u_0 such that u_0i > 0 and sum(u_0i) = 1
-            initial_params = m.factors[U].values
-            
-            ### get the quantities named as in our paper ###
-            # endogenous children
-            bmV = m.get_edogenous_children(U) 
-
-            # get the endogenous parents
-            bmY = list(itertools.chain(*[m.get_edogenous_parents(V) for V in bmV]))
-
-            # remove the variables in V
-            bmY = [V for V in bmY if V not in bmV]
-
-            # get the joint domains of Y union V
-            dom_bmYbmV = m.get_domains(bmY+bmV)
-
-            # get all possible assignments in a domain
-            #assingment_space(dom_bmYbmV)
-
-            # get all possible states in a domain
-            #state_space(dom_bmYbmV)
-            
-            data = self._data
-
-            N_bmVbmY = defaultdict(lambda : {}) # data counts
-            P_bmVbmYu = defaultdict(lambda : {}) # SEs probabilities
-            for bmv in assingment_space(m.get_domains(bmV)):
-                id_v = tuple(bmv.items())
-                for bmy in assingment_space(m.get_domains(bmY)):
-                    id_y = tuple(bmy.items())
-                    filtered_data = data[
-                        (data[list(bmv.keys())] == list(bmv.values())).all(axis=1) &
-                        (data[list(bmy.keys())] == list(bmy.values())).all(axis=1)
-                    ]
-                    N = len(filtered_data)
-                    N_bmVbmY[id_v][id_y] = N
-
-                    P_bmVbmYu[id_v][id_y] = {}
-                    for u in m.get_domains(U)[U]:
-                        # compute \prod_{V \in \bmV} P(v|Pa(V))
-                        P_v_pav = 1
-                        for V in bmV:
-                            P_v_pav_key = []
-                            for var in m.factors[V].variables:
-                                if var in m.exogenous:
-                                    key = (var, u)
-                                elif var in bmV:
-                                    key = (var, bmv[var])
-                                elif var in bmY:
-                                    key = (var, bmy[var])
-                                else:
-                                    raise Exception(f'Unclassfiable variable! ({var})')
-                                P_v_pav_key.append(key)
-                            if m.factors[V].values_dict[tuple(P_v_pav_key)] == 0: # TODO: assure that values_dict contain Integer values!
-                                P_v_pav = 0
-                                break # once we got 0, the product must be zero, so we finish immediately
-                        P_bmVbmYu[id_v][id_y][u] = P_v_pav
-
-            self.prepare_MLE() # TODO: strcit to vyse sem
-            results = self.maximum_likelihood_estimation(initial_params, N_bmVbmY, P_bmVbmYu) # TODO: rename to avoid MLE in the name
-            new_probs = {U : MultinomialFactor(m.get_domains(U), values=results['params'])}
-            self._update_model(new_probs) 
-            #trajectories.append(result['trajectory']) # TODO: store also the trajectory
-
 
 def tick(n, var_label = None):
     use_var_label = True # switch to False to avoid using var_label
@@ -257,7 +238,7 @@ def define_model0():
     dag = nx.DiGraph([("X", "Y"), ("U", "Y"), ("V", "X")])
     if 0:
         show_dag(DAG)
-    domains = dict(X=["x1", "x2"], Y=["y1","y2"], U=[0, 1, 2, 3], V=["v1", "v2"])
+    domains = dict(X=["x1", "x2"], Y=["y1","y2"], U=[0, 1, 2, 3], V=[0, 1])
     domx = dutils.var_parents_domain(domains,dag,"X")
     fx = DeterministicFactor(domx, right_vars=["V"], values=["x1", "x2"]).to_multinomial()
     domy = dutils.var_parents_domain(domains,dag,"Y")
