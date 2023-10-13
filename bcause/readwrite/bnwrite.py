@@ -28,12 +28,16 @@ def to_bif(model:'BayesianNetwork', filepath):
 def to_xmlbif(model:'BayesianNetwork', filepath):
     __write(XMLBIFWriter, model, filepath)
 
-def to_uai(model:'BayesianNetwork', filepath, reverse_values=False, label="BAYES", integer_varlist = None):
+def to_uai(model:'BayesianNetwork', filepath, reverse_values=False, label="BAYES", integer_varlist = None, var_order=None):
 
     integer_varlist = integer_varlist or []
 
-    variables = model.endogenous + model.exogenous if label == "CAUSAL" else model.variables
 
+    variables = model.endogenous + model.exogenous if label == "CAUSAL" else model.variables
+    var_order = var_order or variables
+    if set(variables) != set(var_order):
+        raise ValueError("Wrong variable order")
+    variables = var_order
 
     out = f"{label}\n"
     out += f"{len(variables)}\n"
