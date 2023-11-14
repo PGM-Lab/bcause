@@ -223,6 +223,11 @@ class GradientLikelihood(IterativeParameterLearning):
         return estimation_results
 
 
+    def run(self, data: pd.DataFrame):
+        return super().run(data, max_iter=1)
+
+
+
 ###################################
 ### further auxiliary functions ###
 ###################################
@@ -314,15 +319,11 @@ if __name__ == "__main__":
     data = m.sample(1000, as_pandas=True)[m.endogenous] # \mathcal{D}
     #data = data.append(dict(Y=0, X="x1", U="u1"), ignore_index=True)
 
-    gl = GradientLikelihood(m)
-    gl.run(data,max_iter=1)
+    for i in range(0,2):
+        gl = GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False))
+        gl.run(data)
 
-    # # print the model evolution
-    # for model_i in gl.model_evolution:
-    #     print(model_i.get_factors(*model_i.exogenous))
-    #
-
-    #print the resulting model
-    print(gl.model)
+        #print the resulting model
+        print(gl.model.factors["U"])
 
 

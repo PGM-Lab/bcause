@@ -5,6 +5,7 @@ from multiprocessing import Process
 from bcause.factors import DeterministicFactor, MultinomialFactor
 from bcause.learning.parameter import ParameterLearning
 from bcause.learning.parameter.expectation_maximization import ExpectationMaximization
+from bcause.learning.parameter.gradient import GradientLikelihood
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.models.pgmodel import PGModel
 from bcause.util.watch import Watch
@@ -90,21 +91,19 @@ class SimpleModelAggregatorEM(SimpleModelAggregator, ModelAggregatorEM):
 
 class ModelAggregatorGD(ModelAggregator):
     def _single_generate(self, i):
-        # TODO: replace this 2 first lines with the optimization using
-        optimizer = ExpectationMaximization(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars)
-        optimizer.run(self._data, max_iter=self._max_iter)
+        optimizer = GradientLikelihood(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars)
+        optimizer.run(self._data)
         self._learn_objects.append(optimizer)
         return optimizer.model
 
 
 class SimpleModelAggregatorGD(SimpleModelAggregator, ModelAggregatorGD):
 
-    def __init__(self, model, data, trainable_vars=None, max_iter=200, parallel=False):
+    def __init__(self, model, data, trainable_vars=None, parallel=False):
         # TODO: set here the specific arguments for Gradient descent
         self._model = model
         self._data = data
         self._trainlable_vars = trainable_vars or model.exogenous
-        self._max_iter = max_iter
         super().__init__(parallel=parallel)
 
 

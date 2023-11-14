@@ -7,7 +7,7 @@ from bcause.factors import DeterministicFactor, MultinomialFactor
 from bcause.factors.imprecise import IntervalProbFactor
 from bcause.inference.causal.causal import CausalInference
 from bcause.inference.inference import Inference
-from bcause.learning.aggregator.aggregator import SimpleModelAggregatorEM
+from bcause.learning.aggregator.aggregator import SimpleModelAggregatorEM, SimpleModelAggregatorGD
 from bcause.learning.parameter.expectation_maximization import ExpectationMaximization
 from bcause.models.cmodel import StructuralCausalModel
 
@@ -88,6 +88,22 @@ class EMCC(CausalMultiInference, CausalObservationalInference):
         self.set_models(self._agg.models)
         return super().compile()
 
+class GDCC(CausalMultiInference, CausalObservationalInference):
+    def __init__(self, model: StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True,
+                 num_runs=10, parallel=False):
+        self._data = data
+        self._prior_model = model
+        self._num_runs = num_runs
+        self._agg = None
+        self._parallel = parallel
+        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result)
+
+    def compile(self, *args, **kwargs) -> Inference:
+        self._agg = SimpleModelAggregatorGD(self._prior_model, self._data, parallel=self._parallel)
+        self._agg.run(num_models=self._num_runs)
+        self.set_models(self._agg.models)
+        return super().compile()
+
     def get_model_evolution(self, index):
         if self._agg is not None:
             return self._agg.learn_objects[index].model_evolution
@@ -123,8 +139,16 @@ if __name__=="__main__":
 
     data = m.sample(10000, as_pandas=True)[m.endogenous]
 
-    inf = EMCC(m, data, num_runs=10, max_iter=3)
+    # inf = EMCC(m, data, num_runs=10, max_iter=3)
+    # print(inf.causal_query("X", do=dict(Y=0)))
+    # print(inf.counterfactual_query("X", do=dict(Y=0)))
+    # print(inf.prob_necessity("Y","X"))
 
+
+
+    inf = GDCC(m, data, num_runs=10)
     print(inf.causal_query("X", do=dict(Y=0)))
     print(inf.counterfactual_query("X", do=dict(Y=0)))
     print(inf.prob_necessity("Y","X"))
+
+
