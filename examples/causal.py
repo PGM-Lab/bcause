@@ -44,3 +44,5 @@ p = inf.causal_query("X", do=dict(Y=1))
 
 
 
+MultinomialFactor(dutils.subdomain(domains, "X"), values= [120, 80])
+

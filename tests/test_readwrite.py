@@ -24,7 +24,7 @@ data = model.sample(1000, as_pandas=True)
 def test_read_write_scm(ftype):
 
     with tempfile.TemporaryDirectory() as tmpdirname:
-        model2 = StructuralCausalModel.read(model.save(Path(tmpdirname, f"model{ftype}"), reverse_values=True))
+        model2 = StructuralCausalModel.read(model.save(Path(tmpdirname, f"model{ftype}")))
 
 
     if ftype == ".uai":
@@ -41,4 +41,11 @@ def test_read_write_scm(ftype):
 
     for v in model.endogenous:
         print(v)
-        assert_array_almost_equal(model.factors[v].values, model2.factors[v].values)
+        f1 = model.factors[v]
+        f2 = model2.factors[v]
+        var_order = f1.variables
+        var_order.sort()
+
+        v1 = f1.values_array(var_order).flatten()
+        v2 = f2.values_array(var_order).flatten()
+        assert_array_almost_equal(v1,v2)
