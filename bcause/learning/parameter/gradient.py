@@ -36,9 +36,10 @@ class GradientLikelihood(IterativeParameterLearning):
     This class implements a method for running a single optimization of the exogenous variables in an SCM.
     '''
 
-    def __init__(self, prior_model: StructuralCausalModel, trainable_vars: list = None):
+    def __init__(self, prior_model: StructuralCausalModel, trainable_vars: list = None, tol : float = 1e-3):
         self._prior_model = prior_model
         self._trainable_vars = trainable_vars
+        self._tol = tol
 
 
     def initialize(self, data: pd.DataFrame, **kwargs):
@@ -195,14 +196,11 @@ class GradientLikelihood(IterativeParameterLearning):
         # Constraint dictionary
         con = {'type': 'eq', 'fun': self.constraint}
 
-        # adjust default parameters of the optimization if required
-        tol = kwargs['tol'] if 'tol' in kwargs else 1e-3
-
         # Perform the optimization using scipy's minimize function
         result = minimize(self.negative_log_likelihood, initial_params, 
                           args = (N_bmVbmY, P_bmVbmYu), constraints=con, 
                           bounds=[(0, 1)]*len(initial_params),
-                          tol = tol, callback = callback) # default: method='SLSQP'
+                          tol = self._tol, callback = callback) # default: method='SLSQP'
 
         # Transform the estimated raw parameters to the constrained parameters
         estimated_params = result.x
@@ -320,7 +318,7 @@ if __name__ == "__main__":
     #data = data.append(dict(Y=0, X="x1", U="u1"), ignore_index=True)
 
     for i in range(0,2):
-        gl = GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False))
+        gl = GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False), tol=0.000001)
         gl.run(data)
 
         #print the resulting model
