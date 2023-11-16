@@ -153,8 +153,6 @@ class GradientLikelihood(IterativeParameterLearning):
         self._trainable_vars = self.trainable_vars or list(data.columns[data.isna().any()]) 
                                                                                             
 
-        print(f"trainable: {self.trainable_vars}")
-
         for v in self._trainable_vars:
             # check exogenous and completely missing
             if not self.prior_model.is_exogenous(v):

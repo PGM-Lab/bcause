@@ -90,16 +90,17 @@ class EMCC(CausalMultiInference, CausalObservationalInference):
 
 class GDCC(CausalMultiInference, CausalObservationalInference):
     def __init__(self, model: StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True,
-                 num_runs=10, parallel=False):
+                 num_runs=10, tol=1e-3, parallel=False):
         self._data = data
         self._prior_model = model
         self._num_runs = num_runs
         self._agg = None
         self._parallel = parallel
+        self._tol = tol
         super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result)
 
     def compile(self, *args, **kwargs) -> Inference:
-        self._agg = SimpleModelAggregatorGD(self._prior_model, self._data, parallel=self._parallel)
+        self._agg = SimpleModelAggregatorGD(self._prior_model, self._data, tol=self._tol, parallel=self._parallel)
         self._agg.run(num_models=self._num_runs)
         self.set_models(self._agg.models)
         return super().compile()
