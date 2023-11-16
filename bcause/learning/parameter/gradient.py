@@ -3,8 +3,8 @@ Compute the PMF of exogenous variables given data for endogenous variable using
 gradient descent method for negative likelihood objective function
 
 TODO:
-1) to check corectness, implement Theorem 1 from Causal EM paper
-2) render canonical SEs (according to Rafa's mail from 3.10)
+1) to check correctness, implement Theorem 1 from Causal EM paper
+2) render canonical SEs - Rafa will do it
 With RAFA: (it about effectivity - if some approach is usual, let's use it for the following)
 3) which example models to use
 4) which metrics to use for a comparision with EM
@@ -100,10 +100,21 @@ class GradientLikelihood(IterativeParameterLearning):
         return N_bmVbmY, P_bmVbmYu
 
     def _filter_data(self, data: Any, bmv: Dict, bmy: Dict) -> Any:
+        # Perform the comparison operations
+        filter_bmv = (data[list(bmv.keys())] == list(bmv.values()))
+        filter_bmy = (data[list(bmy.keys())] == list(bmy.values()))
+
+        # Check if the results are empty
+        if filter_bmv.empty or filter_bmy.empty:
+            # Handle the empty case (e.g., return an empty DataFrame)
+            return pd.DataFrame()
+
+        # Apply the 'all' operation and filter the data
         return data[
-            (data[list(bmv.keys())] == list(bmv.values())).all(axis=1) &
-            (data[list(bmy.keys())] == list(bmy.values())).all(axis=1)
+            filter_bmv.all(axis=1) &
+            filter_bmy.all(axis=1)
         ]
+
 
     def _compute_P(self, bmv: Dict, bmy: Dict, m: Any, U: str, bmV: List[str], bmY: List[str]) -> Dict:
         # compute \prod_{V \in \bmV} P(v|Pa(V))
@@ -161,10 +172,15 @@ class GradientLikelihood(IterativeParameterLearning):
         m = self._prior_model
         for id_v in P_bmVbmYu:
             for id_y in P_bmVbmYu[id_v]:
-                sum_lkh_bmvbmy = .0
-                for u in P_bmVbmYu[id_v][id_y]:
-                    sum_lkh_bmvbmy += P_bmVbmYu[id_v][id_y][u] * theta[u]
-                log_likelihood += N_bmVbmY[id_v][id_y] * np.log(sum_lkh_bmvbmy)
+                if N_bmVbmY[id_v][id_y]:
+                    sum_lkh_bmvbmy = .0
+                    for u in P_bmVbmYu[id_v][id_y]:
+                        sum_lkh_bmvbmy += P_bmVbmYu[id_v][id_y][u] * theta[u] # TODO: this "for" is just a scalar dot product - thus could be made faster
+                    if sum_lkh_bmvbmy:
+                        log_likelihood += N_bmVbmY[id_v][id_y] * np.log(sum_lkh_bmvbmy)
+                    else:
+                        return np.inf # sum_lkh_bmvbmy == 0 implies that the parameters induce the worst possible likelihood for the given data
+                                      # so, we can immediately end with the worth possible value
 
         #log_likelihood = np.sum(counts * np.log(np.sum(theta * pa_probs, axis=1)))
         return -log_likelihood  # We negate the value to convert maximization to minimization
@@ -317,7 +333,7 @@ if __name__ == "__main__":
     data = m.sample(1000, as_pandas=True)[m.endogenous] # \mathcal{D}
     #data = data.append(dict(Y=0, X="x1", U="u1"), ignore_index=True)
 
-    for i in range(0,2):
+    for i in range(5):
         gl = GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False), tol=0.000001)
         gl.run(data)
 
