@@ -174,8 +174,8 @@ class GradientLikelihood(IterativeParameterLearning):
             for id_y in P_bmVbmYu[id_v]:
                 if N_bmVbmY[id_v][id_y]:
                     sum_lkh_bmvbmy = .0
-                    for u in P_bmVbmYu[id_v][id_y]:
-                        sum_lkh_bmvbmy += P_bmVbmYu[id_v][id_y][u] * theta[u] # TODO: this "for" is just a scalar dot product - thus could be made faster
+                    for i_u, u in enumerate(P_bmVbmYu[id_v][id_y]):
+                        sum_lkh_bmvbmy += P_bmVbmYu[id_v][id_y][u] * theta[i_u] # TODO: this "for" is just a scalar dot product - thus could be made faster
                     if sum_lkh_bmvbmy:
                         log_likelihood += N_bmVbmY[id_v][id_y] * np.log(sum_lkh_bmvbmy)
                     else:
