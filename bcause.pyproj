@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>2db57eef-80ff-4ea6-bbc5-71a78e3bd9a2</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>dev\gdcc_problem.py</StartupFile>
+    <StartupFile>tests\test_emcc.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -91,6 +91,7 @@
     <Compile Include="tests\test_cmodel.py" />
     <Compile Include="tests\test_counterfactual.py" />
     <Compile Include="tests\test_emcc.py" />
+    <Compile Include="tests\test_gdcc.py" />
     <Compile Include="tests\test_multinomial.py" />
     <Compile Include="tests\test_prob_inference.py" />
     <Compile Include="tests\test_readwrite.py" />
