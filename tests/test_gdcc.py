@@ -1,7 +1,13 @@
 '''
 Tests for the gradient descent optimizer
 
-TODO: add the values for the commented parts
+TODO: 
+1) add the values for the commented parts (that's trivial)
+2) we need to make us sure that the estimated distribution of given
+by our optimizers (EMCC, GDCC) *CONVERGE* to to the true distribution with increasing sample size
+(we should desing several identifiable models and test it)
+3) the expected values in the tests below should be compared to some "true" values
+  
 '''
 
 import networkx as nx
