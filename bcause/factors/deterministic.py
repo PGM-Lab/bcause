@@ -125,3 +125,32 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return f"<{self.__class__.__name__} {self.name}, cardinality = ({card_str}), " \
                f"values=[{self.store.values_str()}]>"
 
+
+
+
+def cannonical_deterministic(domain:Dict, exo_var:Hashable, right_endo_vars:list=None, vtype=None) -> MultinomialFactor:
+    pass
+
+from itertools import product 
+def canonical_specification(V_domain, Y_domains):
+    """
+    Implements the canonical specification algorithm for a Markovian model.
+
+    Parameters:
+    V_domain (list): The domain of the endogenous variable V.
+    Y_domains (list of lists): A list containing the domains of the endogenous parents of V.
+
+    Returns:
+    transposed (list of lists): The canonical values 
+    """
+
+    # Calculate the size of the domain of U
+    m = 1
+    for Y_domain in Y_domains:
+        m *= len(Y_domain)
+    #U_domain_size = len(V_domain)**m
+
+    values_matrix = product(*[V_domain for _ in range(m)])
+    transposed = list(zip(*values_matrix))
+    #flattened = [item for row in transposed for item in row]
+    return transposed

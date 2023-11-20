@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>2db57eef-80ff-4ea6-bbc5-71a78e3bd9a2</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>tests\test_emcc.py</StartupFile>
+    <StartupFile>dev\gdcc_problem.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

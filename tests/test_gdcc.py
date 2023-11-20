@@ -5,7 +5,9 @@ TODO:
 1) add the values for the commented parts (that's trivial)
 2) we need to make us sure that the estimated distribution of given
 by our optimizers (EMCC, GDCC) *CONVERGE* to to the true distribution with increasing sample size
-(we should desing several identifiable models and test it)
+We will do it by:
+    a) computing the likelihood of the sample from a model and comparing it to the maximum likelihood of the model
+    b) do causal inference of type P(x2|do(x1)) for a Markovian model and compare this with the inference from the learned models
 3) the expected values in the tests below should be compared to some "true" values
   
 '''

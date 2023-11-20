@@ -1,6 +1,6 @@
 import networkx as nx
 
-from bcause.factors import MultinomialFactor, DeterministicFactor
+from bcause.factors import MultinomialFactor, DeterministicFactor 
 from bcause.learning.parameter.gradient import GradientLikelihood
 from bcause.models.cmodel import StructuralCausalModel
 
@@ -14,7 +14,13 @@ domy = dutils.subdomain(domains, *gutils.relevat_vars(dag, "Y"))
 fy = DeterministicFactor(domy, right_vars=["V"], values=[1, 0])
 domx = dutils.subdomain(domains, *gutils.relevat_vars(dag, "X"))
 values = ["x1", "x1", "x2", "x1", "x1", "x1", "x2", "x1"]
-fx = DeterministicFactor(domx, left_vars=["X"], values=values)
+
+from bcause.factors.deterministic import canonical_specification
+can_values = canonical_specification(V_domain = domx['X'], Y_domains = [domy['Y']]) # TODO: finalize this
+#can_values = canonical_specification(V_domain = ('v1', 'v2', 'v3'), Y_domains = [('y1', 'y2', 'y3'), ('z1', 'z2', 'z3', 'z4')]) 
+#can_values = canonical_specification(V_domain = ('v1', 'v2'), Y_domains = [('y1', 'y2', 'y3')]) 
+
+fx = DeterministicFactor(domx, left_vars=["X"], values=can_values)
 domv = dutils.subdomain(domains, "V")
 pv = MultinomialFactor(domv, values=[.1, .9])
 domu = dutils.subdomain(domains, "U")
