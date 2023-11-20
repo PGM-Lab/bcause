@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>2db57eef-80ff-4ea6-bbc5-71a78e3bd9a2</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>dev\gdcc_problem.py</StartupFile>
+    <StartupFile>dev\exp_likelihood.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -79,6 +79,7 @@
     <Compile Include="bcause\util\treesutil.py" />
     <Compile Include="bcause\util\__init__.py" />
     <Compile Include="bcause\__init__.py" />
+    <Compile Include="dev\exp_likelihood.py" />
     <Compile Include="dev\gdcc_problem.py" />
     <Compile Include="dev\mle.py" />
     <Compile Include="dev\mle_aux.py" />

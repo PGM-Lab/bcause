@@ -152,5 +152,5 @@ def canonical_specification(V_domain, Y_domains):
 
     values_matrix = product(*[V_domain for _ in range(m)])
     transposed = list(zip(*values_matrix))
-    #flattened = [item for row in transposed for item in row]
-    return transposed
+    flattened = [item for row in transposed for item in row]
+    return flattened
