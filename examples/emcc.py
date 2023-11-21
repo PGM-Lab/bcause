@@ -17,3 +17,10 @@ inf = EMCC(model, data, max_iter=100, num_runs=20)
 p = inf.causal_query("Y", do=dict(X=0))
 print(p)
 
+
+lmax = model.max_log_likelihood(data)
+
+for m in inf.models:
+    ll = m.log_likelihood(data)
+    print(ll)
+
