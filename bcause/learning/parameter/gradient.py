@@ -216,11 +216,16 @@ class GradientLikelihood(IterativeParameterLearning):
         # Constraint dictionary
         con = {'type': 'eq', 'fun': self.constraint}
 
+        options = dict()
+        if self._max_iter < float("inf"):
+            options["maxiter"] = self._max_iter
+
         # Perform the optimization using scipy's minimize function
         result = minimize(self.negative_log_likelihood, initial_params, 
                           args = (N_bmVbmY, P_bmVbmYu), constraints=con, 
                           bounds=[(0, 1)]*len(initial_params),
-                          tol = self._tol, callback = callback) # default: method='SLSQP'
+                          tol = self._tol, callback = callback,
+                          options=options) # default: method='SLSQP'
 
         # Transform the estimated raw parameters to the constrained parameters
         estimated_params = result.x
@@ -241,8 +246,19 @@ class GradientLikelihood(IterativeParameterLearning):
         return estimation_results
 
 
-    def run(self, data: pd.DataFrame):
-        return super().run(data, max_iter=1)
+    def run(self, data: pd.DataFrame, max_iter: int = float("inf")):
+        """
+        This method performs a given number of optimization steps.
+        Args:
+            data: training data.
+            max_iter: number of iterations. Default is None and runs util converge.
+
+        Returns:
+
+        """
+        self._max_iter = max_iter
+        self.initialize(data)
+        self.step()
 
 
 
