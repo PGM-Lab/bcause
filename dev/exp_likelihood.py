@@ -10,8 +10,10 @@ import networkx as nx
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
+import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor 
 from bcause.learning.parameter.gradient import GradientLikelihood
+from bcause.learning.parameter.expectation_maximization import ExpectationMaximization
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.factors.deterministic import canonical_specification
 import bcause.util.domainutils as dutils
@@ -93,9 +95,10 @@ class Expertiment:
             llkh[sample_size] = defaultdict(lambda : {})
             data = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
             for i_rep in range(self.n_replications):
-                for estimator in self.estimators:
-                    estimator.run(data)
-                    llkh[sample_size][i_rep][estimator.name] = estimator.model.log_likelihood(data)
+                for name, estimator in self.estimators.items():
+                    estimator.run(data) # estimate from the same data multiple times with different initial point
+                    llkh[sample_size][i_rep][name] = estimator.model.log_likelihood(data)
+                    print(f'{name=}: {estimator.model.log_likelihood(data)}')
         return llkh 
 
 
@@ -121,17 +124,13 @@ class Expertiment:
 
 
 if __name__ == "__main__":
+    bc.randomUtil.seed(1)
     mscm = MarkovianSCM(n_levels = 3)
     m = mscm.create()
-
-    data _
-
-
-    estimator_gl = GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False)) 
-    #estimator_gl.name = 'GL'
-    #estimators = [estimator_gl]
-    #exp = Expertiment(m, estimators, [10, 50, 100], 10)
-    #llkh = exp.launch()
-    #print(llkh)
-    #exp.visualize(llkh)
+    estimators = {'EM': ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False)), 
+                  'GL': GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False))}
+    exp = Expertiment(m, estimators, [100], 5)
+    llkh = exp.launch()
+    print(llkh)
+    exp.visualize(llkh)
 

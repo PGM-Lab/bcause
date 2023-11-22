@@ -64,6 +64,7 @@ class GradientLikelihood(IterativeParameterLearning):
         m = self._prior_model
         data = self._data
         initial_params = m.factors[U].values # we start the optimization from the current PMF of U
+        print(initial_params)
 
         # get the quantities named as in our paper
         bmV = m.get_edogenous_children(U)
@@ -104,8 +105,8 @@ class GradientLikelihood(IterativeParameterLearning):
         filter_bmv = (data[list(bmv.keys())] == list(bmv.values()))
         filter_bmy = (data[list(bmy.keys())] == list(bmy.values()))
 
-        # Check if the results are empty
-        if filter_bmv.empty or filter_bmy.empty:
+        # Check if the results are empty. For the latter, this check is only for the case when bmy is non-empty (i.e., V has some endogenous parent)
+        if filter_bmv.empty or (bmy and filter_bmy.empty):
             # Handle the empty case (e.g., return an empty DataFrame)
             return pd.DataFrame()
 
