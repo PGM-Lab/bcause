@@ -58,13 +58,18 @@ class GradientLikelihood(IterativeParameterLearning):
         # Updates the PMF of variable U given data and an SCM        
         #
         # Parameters:
-        #   U (string): Thenname of an exogenous variable.
+        #   U (string): The name of an exogenous variable.
         # Returns:
         #   MultinomialFactor(U, values): Talues (thetas) describe the estimated distribution of U (P(u_i) = \theta_i)
         m = self._prior_model
         data = self._data
-        initial_params = m.factors[U].values # we start the optimization from the current PMF of U
-        print(initial_params)
+
+        if 0:
+            initial_params = m.factors[U].values # we start the optimization from the current PMF of U
+            # TODO: Rafa, do the params randomly initiated
+        else:
+            dirich_distr = [1.0] * len(m.factors[U].values)
+            initial_params = np.random.dirichlet(dirich_distr, 1)
 
         # get the quantities named as in our paper
         bmV = m.get_edogenous_children(U)

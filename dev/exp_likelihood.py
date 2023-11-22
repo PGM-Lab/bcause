@@ -9,6 +9,7 @@ TODO:
 import networkx as nx
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import numpy as np
 
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor 
@@ -90,47 +91,62 @@ class Expertiment:
 
     def launch(self):
         llkh = defaultdict(lambda : {})
+        self.data =  {}
         for sample_size in self.sample_sizes:
             print(f'{sample_size=}')
             llkh[sample_size] = defaultdict(lambda : {})
-            data = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
+            self.data[sample_size] = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
             for i_rep in range(self.n_replications):
+                #self.data[sample_size] = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
                 for name, estimator in self.estimators.items():
-                    estimator.run(data) # estimate from the same data multiple times with different initial point
-                    llkh[sample_size][i_rep][name] = estimator.model.log_likelihood(data)
-                    print(f'{name=}: {estimator.model.log_likelihood(data)}')
+                    estimator.run(self.data[sample_size]) # estimate from the same data multiple times with different initial point
+                    llkh[sample_size][i_rep][name] = estimator.model.log_likelihood(self.data[sample_size])
+                    #print(f'{name=}: {estimator.model.log_likelihood(self.data[sample_size])}')
         return llkh 
 
 
-    def visualize(self, llkh):
+    def visualize(self, llkh, save = None):
         """
         Visualize the average log-likelihood values per sample using scatter plot.
         """
         plt.figure(figsize=(10, 6))
 
+        label_max = 'max'
+        plt.plot([sample_size for sample_size in llkh], 
+                 [self.model.max_log_likelihood(self.data[sample_size]) / sample_size for sample_size in llkh],
+                 label = label_max, color = 'k')
+
         for sample_size in llkh:
             x = [sample_size] * self.n_replications
-            y = [llkh[sample_size][i_rep][self.estimators[0].name] / sample_size for i_rep in range(self.n_replications)]
-            plt.scatter(x, y, label=f'Sample Size {sample_size}')
+            for name, estimator in self.estimators.items():
+                y = [llkh[sample_size][i_rep][name] / sample_size for i_rep in range(self.n_replications)]
+                plt.scatter(x, y, label=f'{name}', color = 'r' if name == 'EM' else 'b')
 
-        #plt.plot([sample_size for sample_size in llkh], self.model.log_likelihood())
-
-        plt.title('Average Log-Likelihood per Sample by Sample Size and Replication for Estimator GL')
+        plt.title(f'Average Log-Likelihood per Sample by Sample Size and {self.n_replications} Replications')
         plt.xlabel('Sample Size')
         plt.ylabel('Average Log-Likelihood per Sample')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
+        plt.legend([label_max] + list(self.estimators.keys()))
+        #plt.grid(True)
+        if save:
+            save_dir = 'results'
+            fig_path = f'{save_dir}//{save}'
+            plt.savefig(fig_path, dpi = 400)
+            print(f'{fig_path} saved.')
+            plt.close()
+        else:
+            plt.show()
 
 
 if __name__ == "__main__":
-    bc.randomUtil.seed(1)
-    mscm = MarkovianSCM(n_levels = 3)
-    m = mscm.create()
-    estimators = {'EM': ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False)), 
-                  'GL': GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False))}
-    exp = Expertiment(m, estimators, [100], 5)
-    llkh = exp.launch()
-    print(llkh)
-    exp.visualize(llkh)
+    bc.randomUtil.seed(100)
+    for n_levels in [1, 2, 3]:
+        print(f'{n_levels=}')
+        mscm = MarkovianSCM(n_levels = n_levels)
+        m = mscm.create()
+        estimators = {'EM': ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False)), 
+                      'GL': GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False))}
+        exp = Expertiment(m, estimators, np.array([10, 20, 50, 100]) * 10, 5)
+        llkh = exp.launch()
+        print(llkh)
+        exp.visualize(llkh, save = f'exp_{n_levels}')
 
