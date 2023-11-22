@@ -42,12 +42,13 @@ model = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 data = model.sampleEndogenous(1000)
 
 inf = GDCC(model, data, num_runs=50, tol=0.00000001)
-inf = EMCC(model, data, max_iter=100, num_runs=20)
+#inf = EMCC(model, data, max_iter=100, num_runs=20)
 
 lmax = model.max_log_likelihood(data)
+inf.compile()
 
-p = inf.causal_query("Y", do=dict(X="x1"))
-print(p)
+#p = inf.causal_query("Y", do=dict(X="x1"))
+#print(p)
 
 
 for m in inf.models:

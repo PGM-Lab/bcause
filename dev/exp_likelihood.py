@@ -100,7 +100,11 @@ class Expertiment:
                 #self.data[sample_size] = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
                 for name, estimator in self.estimators.items():
                     estimator.run(self.data[sample_size]) # estimate from the same data multiple times with different initial point
+
                     llkh[sample_size][i_rep][name] = estimator.model.log_likelihood(self.data[sample_size])
+                    #ratio_llk = estimator.model.max_log_likelihood(self.data[sample_size])/llkh[sample_size][i_rep][name]
+                    #print(f"{sample_size},{i_rep},{name}: {ratio_llk}")
+
                     #print(f'{name=}: {estimator.model.log_likelihood(self.data[sample_size])}')
         return llkh 
 
