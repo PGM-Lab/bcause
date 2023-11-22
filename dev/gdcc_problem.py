@@ -30,6 +30,6 @@ m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 
 data = m.sample(10000, as_pandas=True)[m.endogenous]
 
-
 gl = GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False))
 gl.run(data)
+
