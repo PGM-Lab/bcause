@@ -90,46 +90,36 @@ class Expertiment:
         self.estimators = estimators
 
     def launch(self):
-        llkh = defaultdict(lambda : {})
+        rllkh = defaultdict(lambda : {})
         self.data =  {}
         for sample_size in self.sample_sizes:
             print(f'{sample_size=}')
-            llkh[sample_size] = defaultdict(lambda : {})
+            rllkh[sample_size] = defaultdict(lambda : {})
             self.data[sample_size] = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
             for i_rep in range(self.n_replications):
                 #self.data[sample_size] = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
                 for name, estimator in self.estimators.items():
                     estimator.run(self.data[sample_size]) # estimate from the same data multiple times with different initial point
-
-                    llkh[sample_size][i_rep][name] = estimator.model.log_likelihood(self.data[sample_size])
-                    #ratio_llk = estimator.model.max_log_likelihood(self.data[sample_size])/llkh[sample_size][i_rep][name]
-                    #print(f"{sample_size},{i_rep},{name}: {ratio_llk}")
-
-                    #print(f'{name=}: {estimator.model.log_likelihood(self.data[sample_size])}')
-        return llkh 
+                    rllkh[sample_size][i_rep][name] = estimator.model.max_log_likelihood(self.data[sample_size])/estimator.model.log_likelihood(self.data[sample_size])
+        return rllkh 
 
 
-    def visualize(self, llkh, save = None):
+    def visualize(self, rllkh, save = None):
         """
-        Visualize the average log-likelihood values per sample using scatter plot.
+        Visualize the log-likelihood ratio using scatter plot.
         """
         plt.figure(figsize=(10, 6))
 
-        label_max = 'max'
-        plt.plot([sample_size for sample_size in llkh], 
-                 [self.model.max_log_likelihood(self.data[sample_size]) / sample_size for sample_size in llkh],
-                 label = label_max, color = 'k')
-
-        for sample_size in llkh:
+        for sample_size in rllkh:
             x = [sample_size] * self.n_replications
             for name, estimator in self.estimators.items():
-                y = [llkh[sample_size][i_rep][name] / sample_size for i_rep in range(self.n_replications)]
+                y = [rllkh[sample_size][i_rep][name] for i_rep in range(self.n_replications)]
                 plt.scatter(x, y, label=f'{name}', color = 'r' if name == 'EM' else 'b')
 
-        plt.title(f'Average Log-Likelihood per Sample by Sample Size and {self.n_replications} Replications')
+        plt.title(f'Log-Likelihood Ratio by Sample Size and {self.n_replications} Replications')
         plt.xlabel('Sample Size')
-        plt.ylabel('Average Log-Likelihood per Sample')
-        plt.legend([label_max] + list(self.estimators.keys()))
+        plt.ylabel('Log-Likelihood Ratio')
+        plt.legend(list(self.estimators.keys()))
         #plt.grid(True)
         if save:
             save_dir = 'results'
@@ -138,19 +128,19 @@ class Expertiment:
             print(f'{fig_path} saved.')
             plt.close()
         else:
-            plt.show()
+            plt.show(block = True)
 
 
 if __name__ == "__main__":
     bc.randomUtil.seed(100)
-    for n_levels in [1, 2, 3]:
+    for n_levels in [2, 3]:
         print(f'{n_levels=}')
         mscm = MarkovianSCM(n_levels = n_levels)
         m = mscm.create()
         estimators = {'EM': ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False)), 
                       'GL': GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False))}
         exp = Expertiment(m, estimators, np.array([10, 20, 50, 100]) * 10, 5)
-        llkh = exp.launch()
-        print(llkh)
-        exp.visualize(llkh, save = f'exp_{n_levels}')
+        rllkh = exp.launch()
+        print(rllkh)
+        exp.visualize(rllkh) # save = f'exp_{n_levels}')
 
