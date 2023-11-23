@@ -92,18 +92,19 @@ class SimpleModelAggregatorEM(SimpleModelAggregator, ModelAggregatorEM):
 class ModelAggregatorGD(ModelAggregator):
     def _single_generate(self, i):
         optimizer = GradientLikelihood(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars, tol=self._tol)
-        optimizer.run(self._data)
+        optimizer.run(self._data, max_iter=self._max_iter)
         self._learn_objects.append(optimizer)
         return optimizer.model
 
 
 class SimpleModelAggregatorGD(SimpleModelAggregator, ModelAggregatorGD):
 
-    def __init__(self, model, data, tol, trainable_vars=None, parallel=False):
+    def __init__(self, model, data, tol, max_iter, trainable_vars=None, parallel=False):
         # TODO: set here the specific arguments for Gradient descent
         self._model = model
         self._data = data
         self._tol = tol
+        self._max_iter = max_iter
         self._trainlable_vars = trainable_vars or model.exogenous
         super().__init__(parallel=parallel)
 
