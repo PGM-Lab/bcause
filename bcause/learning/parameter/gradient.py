@@ -253,8 +253,7 @@ class GradientLikelihood(IterativeParameterLearning):
             data: training data.
             max_iter: number of iterations. Default is None and runs util converge.
 
-        Returns:
-
+        Self is updated with the optimized parameters.
         """
         self._max_iter = max_iter
         self.initialize(data)

@@ -1,9 +1,9 @@
 """
-Creates an adjustable Markovian model (n_levels), sample from it, and estimate 
-its parameters
+Creates an adjustable Markovian model (n_levels), sample from it,  estimate 
+its parameters, and plot some visualizations
 
 TODO:
-- change n_levels
+- Generalize canonical factors for markovian to quasi-markovian
 """
 
 import networkx as nx
@@ -80,7 +80,7 @@ class MarkovianSCM:
 class Expertiment:
     """
     Iterates over estimators, sample_sizes and n_replications
-    and computes the log-likelihood of the estimated model for
+    and computes the log-likelihood ratio of the estimated model for
     data sampled from (true) model
     """
     def __init__(self, model, estimators, sample_sizes, n_replications) -> None:
@@ -120,7 +120,6 @@ class Expertiment:
         plt.xlabel('Sample Size')
         plt.ylabel('Log-Likelihood Ratio')
         plt.legend(list(self.estimators.keys()))
-        #plt.grid(True)
         if save:
             save_dir = 'results'
             fig_path = f'{save_dir}//{save}'
