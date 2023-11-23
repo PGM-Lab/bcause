@@ -13,8 +13,7 @@ import numpy as np
 
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor 
-from bcause.learning.parameter.gradient import GradientLikelihood
-from bcause.learning.parameter.expectation_maximization import ExpectationMaximization
+from bcause.inference.causal.multi import GDCC, EMCC
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.factors.deterministic import canonical_specification
 import bcause.util.domainutils as dutils
@@ -79,28 +78,30 @@ class MarkovianSCM:
 
 class Expertiment:
     """
-    Iterates over estimators, sample_sizes and n_replications
+    Iterates over estimators, sample_sizes and num_runs
     and computes the log-likelihood ratio of the estimated model for
     data sampled from (true) model
     """
-    def __init__(self, model, estimators, sample_sizes, n_replications) -> None:
+    def __init__(self, model, estimators, sample_sizes, num_runs, max_iter):
         self.model = model
         self.sample_sizes = sample_sizes
-        self.n_replications = n_replications
+        self.num_runs = num_runs
         self.estimators = estimators
+        self.max_iter = max_iter
 
     def launch(self):
         rllkh = defaultdict(lambda : {})
-        self.data =  {}
         for sample_size in self.sample_sizes:
             print(f'{sample_size=}')
             rllkh[sample_size] = defaultdict(lambda : {})
-            self.data[sample_size] = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
-            for i_rep in range(self.n_replications):
-                #self.data[sample_size] = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
-                for name, estimator in self.estimators.items():
-                    estimator.run(self.data[sample_size]) # estimate from the same data multiple times with different initial point
-                    rllkh[sample_size][i_rep][name] = estimator.model.max_log_likelihood(self.data[sample_size])/estimator.model.log_likelihood(self.data[sample_size])
+            data = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
+            lmax = self.model.max_log_likelihood(data)
+            for name, estimator in self.estimators.items():
+                infer = estimator(self.model, data, num_runs = self.num_runs, max_iter = self.max_iter) # estimate from the same data multiple times with different initial point
+                infer.compile()
+                for i_run, m in enumerate(infer.models):
+                    #rllkh[sample_size][i_run][name] = m.max_log_likelihood(data)/m.log_likelihood(data)
+                    rllkh[sample_size][i_run][name] = lmax/m.log_likelihood(data) # TODO: this or the one above?
         return rllkh 
 
 
@@ -111,15 +112,19 @@ class Expertiment:
         plt.figure(figsize=(10, 6))
 
         for sample_size in rllkh:
-            x = [sample_size] * self.n_replications
+            x = [sample_size] * self.num_runs
             for name, estimator in self.estimators.items():
-                y = [rllkh[sample_size][i_rep][name] for i_rep in range(self.n_replications)]
+                y = [rllkh[sample_size][i_run][name] for i_run in range(self.num_runs)]
                 plt.scatter(x, y, label=f'{name}', color = 'r' if name == 'EM' else 'b')
 
-        plt.title(f'Log-Likelihood Ratio by Sample Size and {self.n_replications} Replications')
+        plt.title(f'Log-Likelihood Ratio by Sample Size and {self.num_runs} Replications')
         plt.xlabel('Sample Size')
         plt.ylabel('Log-Likelihood Ratio')
         plt.legend(list(self.estimators.keys()))
+        self.show_or_save(save)
+
+
+    def show_or_save(self, save):
         if save:
             save_dir = 'results'
             fig_path = f'{save_dir}//{save}'
@@ -130,16 +135,85 @@ class Expertiment:
             plt.show(block = True)
 
 
-if __name__ == "__main__":
-    bc.randomUtil.seed(100)
+    def visualize_max_iter(self, rllkh, save=None):
+        """
+        Visualize the log-likelihood ratio for each estimator as a function of max_iter.
+        Only one sample size is considered in the experiments.
+        """
+        plt.figure(figsize=(10, 6))
+
+        # iterate over each max_iter value and corresponding results
+        for max_iter, iter_data in rllkh.items():
+            for name, estimator in self.estimators.items():
+                y = [iter_data[self.sample_sizes[0]][i_run][name] for i_run in range(self.num_runs)]
+                plt.scatter([max_iter] * self.num_runs, y,  label=f'{name}', color = 'r' if name == 'EM' else 'b', alpha=0.7)
+
+        plt.title('Log-Likelihood Ratio by Max Iteration and Estimator')
+        plt.xlabel('Max Iteration')
+        plt.ylabel('Log-Likelihood Ratio')
+        plt.legend(list(self.estimators.keys()))
+        self.show_or_save(save)
+
+
+    def visualize_max_iter_boxplot(self, rllkh, save=None):
+        """
+        Visualize the log-likelihood ratio for each estimator as a function of max_iter using boxplots.
+        Only one sample size is considered in the experiments. Estimators are distinguished by color.
+        """
+        plt.figure(figsize=(10, 6))
+
+        # Prepare data structure for boxplot
+        data_to_plot = {estimator: [] for estimator in self.estimators}
+        max_iters = sorted(rllkh.keys())
+        colors = ['red', 'blue']  # colors for different estimators
+
+        for max_iter in max_iters:
+            iter_data = rllkh[max_iter]
+            for name in self.estimators:
+                y = [iter_data[self.sample_sizes[0]][i_run][name] for i_run in range(self.num_runs)]
+                data_to_plot[name].append(y)
+
+        # Plot boxplots for each estimator
+        for idx, (estimator, data) in enumerate(data_to_plot.items()):
+            positions = np.arange(len(max_iters)) * len(self.estimators) + idx
+            plt.boxplot(data, positions=positions, widths=0.6, patch_artist=True, boxprops=dict(facecolor=colors[idx]))
+
+        # Add legend and labels
+        plt.legend(data_to_plot.keys())
+        plt.xticks(np.arange(len(max_iters)) * len(self.estimators) + 0.5, max_iters)
+        plt.title('Log-Likelihood Ratio by Max Iteration and Estimator')
+        plt.xlabel('Max Iteration')
+        plt.ylabel('Log-Likelihood Ratio')
+        self.show_or_save(save)
+
+
+def run_exp_rllkh():
     for n_levels in [2, 3]:
         print(f'{n_levels=}')
         mscm = MarkovianSCM(n_levels = n_levels)
         m = mscm.create()
-        estimators = {'EM': ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False)), 
-                      'GL': GradientLikelihood(m.randomize_factors(m.exogenous, allow_zero=False))}
-        exp = Expertiment(m, estimators, np.array([10, 20, 50, 100]) * 10, 5)
+        estimators = {'EM': EMCC, 'GL': GDCC}
+        exp = Expertiment(m, estimators, np.array([10, 20, 50, 100]) * 10, 5, 20)
         rllkh = exp.launch()
         print(rllkh)
-        exp.visualize(rllkh) # save = f'exp_{n_levels}')
+        exp.visualize(rllkh, save = f'exp_{n_levels}')
 
+def run_exp_max_iter():
+    n_levels = 2
+    mscm = MarkovianSCM(n_levels = n_levels)
+    m = mscm.create()
+    estimators = {'EM': EMCC, 'GL': GDCC}
+    rllkh = {}
+    for max_iter in range(2, 8, 1):
+        print(f'{max_iter=}')
+        exp = Expertiment(m, estimators, [500], 20, max_iter)
+        rllkh[max_iter] = exp.launch()
+        print(rllkh[max_iter])
+    #exp.visualize_max_iter(rllkh) # save = f'exp_{n_levels}')
+    exp.visualize_max_iter_boxplot(rllkh, save = f'exp_max_iter_{n_levels}')
+
+
+if __name__ == "__main__":
+    bc.randomUtil.seed(100)
+    run_exp_rllkh()
+    run_exp_max_iter()

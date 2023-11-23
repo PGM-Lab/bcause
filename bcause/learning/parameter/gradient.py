@@ -36,7 +36,7 @@ class GradientLikelihood(IterativeParameterLearning):
     This class implements a method for running a single optimization of the exogenous variables in an SCM.
     '''
 
-    def __init__(self, prior_model: StructuralCausalModel, trainable_vars: list = None, tol : float = 1e-3):
+    def __init__(self, prior_model: StructuralCausalModel, trainable_vars: list = None, tol : float = 1e-8):
         self._prior_model = prior_model
         self._trainable_vars = trainable_vars
         self._tol = tol
@@ -51,7 +51,6 @@ class GradientLikelihood(IterativeParameterLearning):
         pass
 
     def _calculate_updated_factors(self, **kwargs) -> dict[MultinomialFactor]:
-        #kwargs = {'tol': 1e-3}
         return {U:self._updated_factor(U, **kwargs) for U in self.trainable_vars}
 
     def _updated_factor(self, U: str, **kwargs) -> MultinomialFactor:
@@ -64,10 +63,9 @@ class GradientLikelihood(IterativeParameterLearning):
         m = self._prior_model
         data = self._data
 
-        if 0:
+        if 1:
             initial_params = m.factors[U].values # we start the optimization from the current PMF of U
-            # TODO: Rafa, do the params randomly initiated
-        else:
+        else: # use this case only when m.factors[U].values are not generated randomly but you what it
             dirich_distr = [1.0] * len(m.factors[U].values)
             initial_params = np.random.dirichlet(dirich_distr, 1)
 
