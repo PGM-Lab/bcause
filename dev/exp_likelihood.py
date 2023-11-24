@@ -10,6 +10,7 @@ import networkx as nx
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
+from time import time
 
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor 
@@ -98,7 +99,9 @@ class Expertiment:
             lmax = self.model.max_log_likelihood(data)
             for name, estimator in self.estimators.items():
                 infer = estimator(self.model, data, num_runs = self.num_runs, max_iter = self.max_iter) # estimate from the same data multiple times with different initial point
+                start_time = time()
                 infer.compile()
+                run_time = time() - start_time
                 for i_run, m in enumerate(infer.models):
                     #rllkh[sample_size][i_run][name] = m.max_log_likelihood(data)/m.log_likelihood(data)
                     rllkh[sample_size][i_run][name] = lmax/m.log_likelihood(data) # TODO: this or the one above?
@@ -188,7 +191,7 @@ class Expertiment:
 
 
 def run_exp_rllkh():
-    for n_levels in [2, 3]:
+    for n_levels in [1, 2, 3]:
         print(f'{n_levels=}')
         mscm = MarkovianSCM(n_levels = n_levels)
         m = mscm.create()
@@ -199,7 +202,7 @@ def run_exp_rllkh():
         exp.visualize(rllkh, save = f'exp_{n_levels}')
 
 def run_exp_max_iter():
-    n_levels = 2
+    n_levels = 3
     mscm = MarkovianSCM(n_levels = n_levels)
     m = mscm.create()
     estimators = {'EM': EMCC, 'GL': GDCC}
@@ -215,5 +218,5 @@ def run_exp_max_iter():
 
 if __name__ == "__main__":
     bc.randomUtil.seed(100)
-    run_exp_rllkh()
+    #run_exp_rllkh()
     run_exp_max_iter()
