@@ -240,6 +240,9 @@ def random_deterministic(dom:Dict, right_vars:list=None, vtype=None):
         set_value(1., data, idx)
     return MultinomialFactor(domain=dom, right_vars=right_vars, values=data, vtype=vtype)
 
+def canonical_multinomial(domain:Dict, exo_var:Hashable, right_endo_vars:list=None, vtype=None) -> MultinomialFactor:
+    from bcause.factors.deterministic import canonical_deterministic
+    return canonical_deterministic(domain, exo_var, right_endo_vars, vtype).to_multinomial()
 
 if __name__ == "__main__":
 

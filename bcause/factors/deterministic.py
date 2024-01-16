@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import OrderedDict
-from typing import Dict, List
+from itertools import product
+from typing import Dict, List, Hashable
 
 import numpy as np
 import pandas as pd
@@ -128,29 +129,20 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
 
 
-def cannonical_deterministic(domain:Dict, exo_var:Hashable, right_endo_vars:list=None, vtype=None) -> MultinomialFactor:
-    pass
+def canonical_deterministic(domain:Dict, exo_var:Hashable, right_endo_vars:list=None, vtype=None) -> MultinomialFactor:
+    vtype = vtype or DataStore.DEFAULT_STORE
 
-from itertools import product 
-def canonical_specification(V_domain, Y_domains):
-    """
-    Implements the canonical specification algorithm for a Markovian model.
+    left_var = [x for x in domain.keys() if x not in right_endo_vars and x != exo_var]
+    if len(left_var) != 1:
+        raise ValueError("Canonical for non-markovian")
 
-    Parameters:
-    V_domain (list): The domain of the endogenous variable V.
-    Y_domains (list of lists): A list containing the domains of the endogenous parents of V.
+    left_var = left_var[0]
 
-    Returns:
-    transposed (list of lists): The canonical values 
-    """
+    domEndoPa = dutils.assingment_space(dutils.subdomain(domain, *right_endo_vars))
+    m = len(domEndoPa)
 
-    # Calculate the size of the domain of U
-    m = 1
-    for Y_domain in Y_domains:
-        m *= len(Y_domain)
-    #U_domain_size = len(V_domain)**m
+    new_values = list(product(*[domain[left_var]] * m))
+    new_dom = {**dutils.subdomain(domain, left_var), **dutils.subdomain(domain, exo_var), **dutils.subdomain(domain, *right_endo_vars)}
 
-    values_matrix = product(*[V_domain for _ in range(m)])
-    transposed = list(zip(*values_matrix))
-    flattened = [item for row in transposed for item in row]
-    return flattened
+    return DeterministicFactor(domain=new_dom, values=new_values, left_vars=[left_var], vtype=vtype)
+
