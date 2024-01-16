@@ -50,15 +50,23 @@ def to_uai(model:'BayesianNetwork', filepath, reverse_values=False, label="BAYES
     var_order = dict()
 
     for v in variables:
-        var_order[v] = [x for x in model.get_parents(v)][::-1] + [v]
+        var_order[v] = [x for x in model.get_parents(v)][::-1]
         idx = [var_idx[x] for x in var_order[v]]
+
+        tuples = list(zip(var_order[v],idx))
+        tuples.sort(key=lambda a: a[1], reverse=True)
+
+        var_order[v] = [t[0] for t in tuples] + [v]
+        idx = [var_idx[x] for x in var_order[v]]
+
+
         out += f"{len(idx)}\t" + " ".join([str(p) for p in idx]) + "\n"
 
     out += "\n"
 
     for v in variables:
         f = model.factors[v]
-        vorder = var_order[v]
+        vorder = var_order[v][::-1]
 
         if label=="CAUSAL" and v in model.endogenous:
             if not isinstance(f, DeterministicFactor):
