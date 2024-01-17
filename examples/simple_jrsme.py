@@ -23,10 +23,16 @@ fx = DeterministicFactor(domx, right_vars=["V"], values=["x1", "x2"])
 
 domy = dutils.var_parents_domain(domains,dag,"Y")
 
-values = [["y1", "y1"], ["y2", "y1"], ["y1", "y1"], ["y2", "y1"]]
-
+# iterates first on the rightmost variable (following the variable in the domain dict)
 values = ["y1", "y1", "y2", "y1", "y2", "y2", "y1", "y1"]
 fy = DeterministicFactor(domy, left_vars=["Y"], values=values)
+
+# the inner dimension is the rightmost variable
+values = [['y1', 'y1', 'y2', 'y1'],['y2', 'y2', 'y1', 'y1']]
+fy = DeterministicFactor(domy, left_vars=["Y"], values=values)
+
+
+
 fy.store.data
 
 fy.to_multinomial().restrict(X="x2", Y="y1")

@@ -48,6 +48,7 @@ class VariableElimination(ProbabilisticInference):
         factors = list(self._inference_model.factors.values())
         vars_in_factors = list(reduce(lambda d1,d2 : d1 | d2, [f.domain.keys() for f in factors]))
         to_remove = [v for v in vars_in_factors if v not in self._target and v not in self._evidence.keys()]
+        #to_remove = [v for v in to_remove if v in self._inference_model.graph.nodes]
         ordering = self._heuristic(self._inference_model.graph, to_remove=to_remove,
                                    varsizes=self._inference_model.varsizes)
 

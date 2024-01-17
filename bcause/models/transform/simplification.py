@@ -14,12 +14,11 @@ def minimalize(model:DiscreteDAGModel, target:Hashable, evidence:dict = None, re
     evidence = evidence or dict()
     target = {target} if type(target) not in [list, set] else set(target)
 
-    query_vars = set(evidence.keys()) | target
 
     # Determine irrelevant nodes for the query
     barren = barren_nodes(model.graph, sum(as_lists(target, evidence.keys()),[]))
     disconnected = disconnected_nodes(remove_nodes(model.graph, barren), target)
-    irrelevant =  (barren | disconnected) - query_vars
+    irrelevant =  (barren | disconnected) - target
 
     # Remove irrelevant nodes from DAG
     new_dag = remove_nodes(model.graph, irrelevant)

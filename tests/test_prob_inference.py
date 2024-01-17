@@ -57,11 +57,11 @@ def test_laplace_inference():
                           ('smoke', {'dysp': 'yes'}, {'xray'}),
                           ('either', None, {'bronc', 'dysp', 'xray'}),
                           ('xray', {'tub': 'yes'}, {'bronc', 'dysp'}),
-                          ('lung', {'asia': 'yes'}, {'bronc', 'dysp', 'either', 'tub', 'xray'}),
+                          ('lung', {'asia': 'yes'}, {'bronc', 'dysp', 'either', 'tub', 'xray', 'asia'}),
                           ('lung', {'asia': 'yes', 'either': 'yes'}, {'bronc', 'dysp', 'xray'}),
                           ('smoke',
                            {'asia': 'yes'},
-                           {'bronc', 'dysp', 'either', 'lung', 'tub', 'xray'})]
+                           {'bronc', 'dysp', 'either', 'lung', 'tub', 'xray', 'asia'})]
                          )
 def test_minimalize(target, evidence, expected):
 
