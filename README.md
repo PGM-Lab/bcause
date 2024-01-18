@@ -1,6 +1,12 @@
 # BCAUSE
 
-_BCAUSE_ is a python package for causal and counterfactual reasoning using _probabilistic graphical models_, in particular discrete Bayesian networks (BNs) and structural causal models (SCMs).
+_BCAUSE_ is a python package for causal and counterfactual reasoning using _probabilistic graphical models_, in particular discrete Bayesian networks (BNs) and structural causal models (SCMs). It available at PyPI:
+
+```bash
+pip install bcause
+```
+
+
 
 ## Basic example of use
 
