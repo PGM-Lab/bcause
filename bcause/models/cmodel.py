@@ -268,10 +268,26 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         return f"<StructuralCausalModel ({str_card_endo}|{str_card_exo}), dag={gutils.dag2str(self.graph)}>"
 
 
-    def draw(self):
-        nx.draw_shell(self.graph, arrows=True, with_labels=True)
-        plt.show()
+    def draw(self, pos=None):
 
+        G = self.graph
+        pos = pos or nx.spring_layout(G)
+
+        nx.draw_networkx_nodes(G, pos=pos, nodelist=self.endogenous, node_color="black", node_size=500)
+        nx.draw_networkx_nodes(G, pos=pos, nodelist=self.exogenous, node_color="lightgray", node_size=500)
+
+        endo_labels = {v: v if self.is_endogenous(v) else "" for v in G.nodes}
+        nx.draw_networkx_labels(G, pos=pos, labels=endo_labels, font_color="white")
+
+        exo_labels = {v: v if self.is_exogenous(v) else "" for v in G.nodes}
+        nx.draw_networkx_labels(G, pos=pos, labels=exo_labels, font_color="black")
+
+        exo_edges = [(x, y) for x, y in G.edges if self.is_exogenous(x)]
+        endo_edges = [(x, y) for x, y in G.edges if self.is_endogenous(x)]
+
+        nx.draw_networkx_edges(G, pos=pos, edgelist=exo_edges, edge_color="gray", style="dashed", arrowsize=15)
+        nx.draw_networkx_edges(G, pos=pos, edgelist=endo_edges, edge_color="black", style="solid", arrowsize=15)
+        plt.box(False)
 
 if __name__ == "__main__":
 

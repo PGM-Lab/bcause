@@ -100,7 +100,6 @@ def identify_true_false(varname, dom):
     if len(set(dtypes))>1: raise ValueError("Cannot identify true/false states: different data types")
 
     tf = []
-    print(dtypes[0] == str)
     if dtypes[0] in [int, float]:
         tf = [d for d in dom if d==True] + [d for d in dom if d==False]
     elif dtypes[0] == str:
