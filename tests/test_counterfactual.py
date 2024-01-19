@@ -7,11 +7,12 @@ from bcause.models.cmodel import StructuralCausalModel
 
 from numpy.testing import assert_array_almost_equal
 
+from bcause.util import randomUtil
 
 dag = nx.DiGraph([("V0", "V1"), ("V1", "V2"),("V2", "V3"),("U0", "V0"),("U1", "V1"),("U1", "V3"),("U2", "V2")])
 model = StructuralCausalModel(dag)
 domains = dict(V0=[0,1],V1=[0,1],V2=[0,1],V3=[0,1], U0=[0,1],U1=[0,1,2,3,4,5,6,7,8,9,10,11],U2=[0,1,2,3,4,5,6,7])
-bc.randomUtil.seed(1)
+randomUtil.seed(1)
 model.fill_random_factors(domains)
 
 
