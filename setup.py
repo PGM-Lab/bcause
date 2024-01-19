@@ -25,9 +25,8 @@ try:
 except IndexError:
     raise RuntimeError('Unable to determine version.')
 
-# get long description from file in docs folder
-#with open(os.path.join(here, 'docs/project_description.md')) as f:
-#    long_description = f.read()
+
+REQUIREMENTS = [i.strip() for i in open("requirements/install.txt").readlines()]
 
 
 setuptools.setup(
@@ -35,8 +34,8 @@ setuptools.setup(
     version=version,
     author="Rafael Cabañas",
     author_email="rcabanas@ual.es",
-    description="Bayesian causal models",
-#    long_description=long_description,
+    description="Causal reasoning with PGMs",
+    long_description="BCAUSE is a package for doing causal and counterfactual resoning with PGMs.",
     long_description_content_type="text/markdown",
     url="https://github.com/PGM-Lab/bcause",
 
@@ -53,7 +52,5 @@ setuptools.setup(
                  'Operating System :: Microsoft :: Windows',
                  'Programming Language :: Python :: 3.6'],
     python_requires='>=3.6',
-
-    #extras_require=dict(tests=['pytest'])
-
+    install_requires=REQUIREMENTS,
 )
