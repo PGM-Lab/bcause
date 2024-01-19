@@ -1,7 +1,7 @@
 __version__ = '0.0.1'
 
 #from . import conversion
-#from . import factors
+from . import factors
 #from . import inference
 #from . import learning
 #from . import models
