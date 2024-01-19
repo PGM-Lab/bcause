@@ -1,6 +1,6 @@
 __version__ = '0.0.1'
 
-from .conversion import *
+from bcause.conversion import *
 from .factors import *
 from .inference import *
 from .learning import *
