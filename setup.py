@@ -30,7 +30,7 @@ REQUIREMENTS = [i.strip() for i in open("requirements/install.txt").readlines()]
 
 
 setuptools.setup(
-    name="bcause", # Replace with your own username
+    name="bcause",
     version=version,
     author="Rafael Cabañas",
     author_email="rcabanas@ual.es",
@@ -38,9 +38,7 @@ setuptools.setup(
     long_description="BCAUSE is a package for doing causal and counterfactual resoning with PGMs.",
     long_description_content_type="text/markdown",
     url="https://github.com/PGM-Lab/bcause",
-
     packages=["bcause"],
-    #package_dir={'': 'bcause'},
     include_package_data=True,
     license='Apache License 2.0',
     classifiers=['Intended Audience :: Developers',
