@@ -39,7 +39,6 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/PGM-Lab/bcause",
     packages=["bcause"],
-    package_dir={'': '.'},
     include_package_data=True,
     license='Apache License 2.0',
     classifiers=['Intended Audience :: Developers',
