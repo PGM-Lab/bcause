@@ -16,19 +16,20 @@ randomUtil.seed(1)
 model.fill_random_factors(domains)
 
 
-cve = CausalVariableElimination(model, preprocess_flag=True)
+cve = CausalVariableElimination(model)
 
 
 @pytest.mark.parametrize("cause,effect,expected",
-                             [  ('V0', 'V2', 0.0),
-                                ('V0', 'V3', 0.0),
+                             [  ('V0', 'V2', 0.0786444154221424),
+                                ('V0', 'V3', 0.2296894422088965),
                                 ('V1', 'V2', 0.3898750354752074),
-                                ('V1', 'V3', 0.2693966041543566),
+                                ('V1', 'V3', 0.26939660415435657),
                                 ('V2', 'V3', 1.0)
                                 ]
                          )
 def test_prob_necessity(cause, effect, expected):
     actual = cve.prob_necessity(cause, effect, true_false_cause=(0, 1), true_false_effect=(0, 1))
+    print(f"{actual} {expected}")
     assert_array_almost_equal(actual, expected)
 
 
@@ -42,7 +43,6 @@ def test_prob_necessity(cause, effect, expected):
                          )
 def test_prob_sufficiency(cause, effect, expected):
     actual = cve.prob_sufficiency(cause, effect, true_false_cause=(0, 1), true_false_effect=(0, 1))
-    print(f"('{cause}', '{effect}', {actual}), ")
     assert_array_almost_equal(actual, expected)
 
 

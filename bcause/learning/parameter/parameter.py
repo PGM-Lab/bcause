@@ -61,7 +61,7 @@ class IterativeParameterLearning(ParameterLearning):
     def _update_model(self, new_probs):
         for v in self._model.variables:
             if v not in new_probs: new_probs[v] = self._model.factors[v]
-        self._model = self._model.builder(dag=self._model.graph, factors=new_probs)
+        self._model = self._model.builder(dag=self._model.graph, factors=new_probs, check_factors=False)
         self._record_model(self.model)
 
     def run(self, data: pd.DataFrame, max_iter: int = float("inf")):

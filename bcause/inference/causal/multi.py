@@ -31,6 +31,10 @@ class CausalMultiInference(CausalInference):
         self._models = models or []
         self._compiled = False
 
+    def add_models(self, models: list[StructuralCausalModel]):
+        models = models or []
+        self._models += models
+        self._compiled = False
 
     def compile(self, *args, **kwargs) -> Inference:
         if len(self._models)<1: raise ValueError("Required at least 1 precise model")
@@ -87,6 +91,15 @@ class EMCC(CausalMultiInference, CausalObservationalInference):
         self._agg.run(num_models=self._num_runs)
         self.set_models(self._agg.models)
         return super().compile()
+
+
+    def compile_incremental(self, step_runs=1, *args, **kwargs) -> Inference:
+        #for i in range(self._num_runs):
+        while len(self.models)<self._num_runs:
+            self._agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter, parallel=self._parallel)
+            self._agg.run(num_models=step_runs)
+            self.add_models(self._agg.models)
+            yield super().compile()
 
 class GDCC(CausalMultiInference, CausalObservationalInference):
     def __init__(self, model: StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True,

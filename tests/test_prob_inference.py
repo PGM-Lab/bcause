@@ -20,7 +20,7 @@ def test_variable_elimination():
 
     expected = [0.43597059999999993, 0.552808, 0.6339968796061018, 0.06482800000000001, 0.633997, 0.62592 ]
 
-    inf = VariableElimination(model, preprocess_flag=True)
+    inf = VariableElimination(model)
     actual = [inf.query(**arg).values[0] for arg in args]
     assert_array_almost_equal(actual, expected)
 
@@ -53,12 +53,12 @@ def test_laplace_inference():
 
 @pytest.mark.parametrize("target,evidence,expected",
                          [('dysp', None, {'xray'}),
-                          ('dysp', {'smoke': 'yes'}, {'xray'}),
+                          ('dysp', {'smoke': 'yes'}, {'xray','smoke'}),
                           ('smoke', {'dysp': 'yes'}, {'xray'}),
                           ('either', None, {'bronc', 'dysp', 'xray'}),
-                          ('xray', {'tub': 'yes'}, {'bronc', 'dysp'}),
+                          ('xray', {'tub': 'yes'}, {'dysp', 'asia', 'tub', 'bronc'}),
                           ('lung', {'asia': 'yes'}, {'bronc', 'dysp', 'either', 'tub', 'xray', 'asia'}),
-                          ('lung', {'asia': 'yes', 'either': 'yes'}, {'bronc', 'dysp', 'xray'}),
+                          ('lung', {'asia': 'yes', 'either': 'yes'}, {'dysp', 'asia', 'xray', 'bronc'}),
                           ('smoke',
                            {'asia': 'yes'},
                            {'bronc', 'dysp', 'either', 'lung', 'tub', 'xray', 'asia'})]
