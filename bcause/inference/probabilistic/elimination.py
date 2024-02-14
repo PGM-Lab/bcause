@@ -15,7 +15,7 @@ from bcause.models.transform.simplification import minimalize
 
 
 class VariableElimination(ProbabilisticInference):
-    def __init__(self, model: DiscreteDAGModel, heuristic: Union[Callable, Heuristic] = None,  preprocess_flag:bool = True):
+    def __init__(self, model: DiscreteDAGModel, heuristic: Union[Callable, Heuristic] = None):
 
         # Default value for heuristic
         heuristic = heuristic or min_weight_heuristic
@@ -29,13 +29,10 @@ class VariableElimination(ProbabilisticInference):
             raise ValueError("Input heuristic function must have arguments called 'dag' and 'to_remove'")
 
         self._heuristic = heuristic
-        self._preprocess_flag = preprocess_flag
 
         super(self.__class__, self).__init__(model)
 
     def _preprocess(self) -> DiscreteDAGModel:
-        if not self._preprocess_flag:
-            return self._model
         return minimalize(self.model, self._target, self._evidence)
 
     def run(self) -> MultinomialFactor:
@@ -45,9 +42,14 @@ class VariableElimination(ProbabilisticInference):
         if not self._compiled:
             raise ValueError("Model not compiled")
 
-        factors = list(self._inference_model.factors.values())
+        factors = self._inference_model.factors.values()
+
+
         vars_in_factors = list(reduce(lambda d1,d2 : d1 | d2, [f.domain.keys() for f in factors]))
         to_remove = [v for v in vars_in_factors if v not in self._target and v not in self._evidence.keys()]
+        #to_remove = [v for v in vars_in_factors if v not in self._target]
+
+        #to_remove = [v for v in self.inference_model.variables if v not in self._target and v not in self._evidence.keys()]
         #to_remove = [v for v in to_remove if v in self._inference_model.graph.nodes]
         ordering = self._heuristic(self._inference_model.graph, to_remove=to_remove,
                                    varsizes=self._inference_model.varsizes)
@@ -61,7 +63,6 @@ class VariableElimination(ProbabilisticInference):
             logging.debug(f"Removing variable {select_var}. Relevant factors: {[f.name for f in relevant]}")
 
             # combine them all
-            # relevant_restr = [f.R(**self._evidence) for f in relevant]
             join = reduce((lambda f1, f2: f1 * f2), relevant)
             # marginalize variable
             fnew = join ** select_var
@@ -75,13 +76,12 @@ class VariableElimination(ProbabilisticInference):
             logging.debug(f"Updated factor list: {[f.name for f in factors]}")
 
 
+
         p = reduce((lambda f1, f2: f1 * f2), factors)
         # combine resulting factors and set evidence
         joint = reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
         result = joint / (joint ** self._target)
-        #result = result.R(**self._evidence)
         self.time = (time.time()-tstart)*1000
         logging.info(f"Finished variable elimination in {self.time} ms.")
         return result
-
 

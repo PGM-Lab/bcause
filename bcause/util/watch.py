@@ -11,7 +11,7 @@ class Watch(ABC):
 
     @classmethod
     def stop(cls):
-        tstop = (time.time() - cls.tstart)*1000
+        tstop = cls.get_time()
         cls.tstart = None
         return tstop
 
@@ -20,5 +20,8 @@ class Watch(ABC):
     def stop_print(cls):
         print(f"Ellapsed time {cls.stop()} ms.")
 
+    @classmethod
+    def get_time(cls):
+        return (time.time() - cls.tstart)*1000
 
 

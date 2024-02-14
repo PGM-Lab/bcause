@@ -54,14 +54,16 @@ class ExpectationMaximization(AbastractExpectationMaximization):
 
 
     def _expectation(self, **kwargs):
-        self._inf = self._inference_method(self._model, preprocess_flag=False)
+        #print("===")
+        self._inf = self._inference_method(self._model)
         pcounts = self._get_pseudocounts_dict()
         for v in set(self.trainable_vars).difference(self._converged_vars):
-
 
             for obs, c in self._get_obs_counts(v):
                 relevant = [v] + self._prior_model.get_parents(v)
                 hidden = [x for x in relevant if x not in obs]
+
+                #print(f"{hidden} | {obs}")
                 exp_counts = self._inf.query(target=hidden, evidence=obs) * c
                 pcounts[v] = pcounts[v] + exp_counts
 
