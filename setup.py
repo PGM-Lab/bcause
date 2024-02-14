@@ -3,6 +3,7 @@ import sys
 
 import setuptools
 import os
+from setuptools import find_packages
 
 
 if sys.version_info < (3, 6):
@@ -38,9 +39,10 @@ setuptools.setup(
     long_description="BCAUSE is a package for doing causal and counterfactual resoning with PGMs.",
     long_description_content_type="text/markdown",
     url="https://github.com/PGM-Lab/bcause",
-    packages=["bcause"],
+    #packages=["bcause"],
     #package_dir={'bcause': './bcause'},
-    include_package_data=True,
+    packages = find_packages('.'),
+    include_package_data=False,
     license='Apache License 2.0',
     classifiers=['Intended Audience :: Developers',
                  'Intended Audience :: Education',
