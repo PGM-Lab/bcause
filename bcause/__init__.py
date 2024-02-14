@@ -1,6 +1,6 @@
 __version__ = '0.0.1'
 
-# from . import conversion
+from .conversion import *
 # from .factors import *
 # from .inference import *
 # from .learning import *
