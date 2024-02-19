@@ -25,7 +25,7 @@ class LaplaceInference(ProbabilisticInference):
 
         self._target = target
         self._evidence = evidence or dict()
-        logging.info(f"Starting inference: target={str(target)} evidence={str(evidence)}")
+        logging.getLogger( __name__ ).info(f"Starting inference: target={str(target)} evidence={str(evidence)}")
 
         self._inference_model = self._preprocess()
         self._compiled = True;
@@ -52,7 +52,7 @@ class LaplaceInference(ProbabilisticInference):
         result = to_counts(dom, data, normalize=True)
 
         self.time = (time.time()-tstart)*1000
-        logging.info(f"Finished Laplace Inference in {self.time} ms.")
+        logging.getLogger( __name__ ).info(f"Finished Laplace Inference in {self.time} ms.")
         return result
 
 

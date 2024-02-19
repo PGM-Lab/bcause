@@ -10,12 +10,16 @@ from bcause.inference.inference import Inference
 from bcause.learning.aggregator.aggregator import SimpleModelAggregatorEM, SimpleModelAggregatorGD
 from bcause.learning.parameter.expectation_maximization import ExpectationMaximization
 from bcause.models.cmodel import StructuralCausalModel
+from bcause.util.arrayutils import min_max_iqr
 
 
 class CausalMultiInference(CausalInference):
-    def __init__(self, models: list[StructuralCausalModel] = None, causal_inf_fn: Callable = None, interval_result=True):
+    def __init__(self, models: list[StructuralCausalModel] = None, causal_inf_fn: Callable = None, interval_result=True,
+                 min_rating=0.0, outliers_removal = True):
         self.set_models(models or [])
         self._interval_result = interval_result
+        self._min_rating = min_rating
+        self._outliers_removal = outliers_removal
 
         if causal_inf_fn is None:
             from bcause.inference.causal.elimination import CausalVariableElimination
@@ -39,15 +43,22 @@ class CausalMultiInference(CausalInference):
     def compile(self, *args, **kwargs) -> Inference:
         if len(self._models)<1: raise ValueError("Required at least 1 precise model")
         self._model = self._models[0]
-        self._causal_inf = [self._causal_inf_fn(m) for m in self._models]
+        self._causal_inf = [self._causal_inf_fn(m) for m in self._models if m.rating > self._min_rating]
         self._compiled = True
         return self
 
     def query(self, target, do, evidence=None, counterfactual=False, targets_subgraphs = None):
         if not self._compiled: self.compile()
-        return self._process_output([inf.query(target,do,evidence,counterfactual,targets_subgraphs) for inf in self._causal_inf])
+
+        results = [inf.query(target, do, evidence, counterfactual, targets_subgraphs)  for inf in self._causal_inf]
+        if len(results)==0:
+            return None
+        return self._process_output(results)
 
     def _process_output(self, result, obs=None):
+
+        if result is None:
+            return None
 
         if obs is not None:
             if isinstance(result, list):
@@ -59,9 +70,12 @@ class CausalMultiInference(CausalInference):
 
         if self._interval_result:
             if all(np.isscalar(r) for r in result):
-                result = [min(result), max(result)]
+                if not self._outliers_removal:
+                    result = [min(result), max(result)]
+                else:
+                    result = list(min_max_iqr(result))
             else:
-                result = IntervalProbFactor.from_precise(result)
+                result = IntervalProbFactor.from_precise(result, self._outliers_removal)
 
         return result
 
@@ -77,14 +91,14 @@ class CausalObservationalInference(ABC):
         return self._data
 
 class EMCC(CausalMultiInference, CausalObservationalInference):
-    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True, max_iter=100, num_runs=10, parallel = False):
+    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True, max_iter=100, num_runs=10, parallel = False, min_rating=0.9, outliers_removal=True):
         self._data = data
         self._prior_model = model
         self._num_runs = num_runs
         self._max_iter = max_iter
         self._agg = None
         self._parallel = parallel
-        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result)
+        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result, min_rating=min_rating, outliers_removal=outliers_removal)
 
     def compile(self, *args, **kwargs) -> Inference:
         self._agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter, parallel=self._parallel)
@@ -103,7 +117,7 @@ class EMCC(CausalMultiInference, CausalObservationalInference):
 
 class GDCC(CausalMultiInference, CausalObservationalInference):
     def __init__(self, model: StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True,
-                 num_runs=10, tol=1e-3, max_iter = float("inf"), parallel=False):
+                 num_runs=10, tol=1e-7, max_iter = float("inf"), parallel=False, min_rating=0.9, outliers_removal=True):
         self._data = data
         self._prior_model = model
         self._num_runs = num_runs
@@ -111,13 +125,21 @@ class GDCC(CausalMultiInference, CausalObservationalInference):
         self._parallel = parallel
         self._tol = tol
         self._max_iter = max_iter
-        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result)
+        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result, min_rating=min_rating, outliers_removal=outliers_removal)
 
     def compile(self, *args, **kwargs) -> Inference:
         self._agg = SimpleModelAggregatorGD(self._prior_model, self._data, tol=self._tol, max_iter=self._max_iter, parallel=self._parallel)
         self._agg.run(num_models=self._num_runs)
         self.set_models(self._agg.models)
         return super().compile()
+    def compile_incremental(self, step_runs=1, *args, **kwargs) -> Inference:
+        #for i in range(self._num_runs):
+        while len(self.models)<self._num_runs:
+            self._agg = SimpleModelAggregatorGD(self._prior_model, self._data, tol=self._tol, max_iter=self._max_iter,
+                                                parallel=self._parallel)
+            self._agg.run(num_models=step_runs)
+            self.add_models(self._agg.models)
+            yield super().compile()
 
     def get_model_evolution(self, index):
         if self._agg is not None:
@@ -126,7 +148,7 @@ class GDCC(CausalMultiInference, CausalObservationalInference):
 if __name__=="__main__":
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 
-    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
+    # logging.getLogger( __name__ ).basicConfig(level=logging.getLogger( __name__ ).DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
     import networkx as nx
 

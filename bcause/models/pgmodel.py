@@ -183,14 +183,14 @@ class DiscreteDAGModel(PGModel):
         return self.builder(new_dag, new_factors)
 
     def rename_vars(self, names_mapping: dict) -> DiscreteDAGModel:
-        logging.debug(f"Renaming variables as {names_mapping}")
+        logging.getLogger( __name__ ).debug(f"Renaming variables as {names_mapping}")
         new_dag = relabel_nodes(self.graph, names_mapping)
         new_factors = [f.rename_vars(names_mapping) for f in self.factors.values()]
         return self.builder(dag=new_dag, factors=new_factors)
 
 
     def sample(self, n_samples: int, as_pandas = True) -> Union[list[Dict], pd.DataFrame]:
-        logging.info(f"Sampling {n_samples} instances from model")
+        logging.getLogger( __name__ ).info(f"Sampling {n_samples} instances from model")
         data = forward_sampling(self, n_samples=n_samples)
         if not as_pandas:
             data = data.to_dict("records")

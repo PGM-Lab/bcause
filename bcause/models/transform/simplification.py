@@ -34,6 +34,6 @@ def minimalize(model:DiscreteDAGModel, target:Hashable, evidence:dict = None, re
         obs_pa = {v:evidence[v] for v in set(f.right_vars).intersection(evidence.keys())}
         new_factors[v] = f.R(**obs_pa)
 
-    logging.debug(f"Minimalized DAG: {new_dag.edges}")
+    logging.getLogger( __name__ ).debug(f"Minimalized DAG: {new_dag.edges}")
     return model.builder(dag=new_dag, factors=new_factors, check_factors=False)
 

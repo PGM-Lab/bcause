@@ -42,7 +42,7 @@ def _barren_info(dag: nx.DiGraph, S=None):
         else:
             break
 
-    logging.debug(f"Barren nodes wrt {S} are: {barren}")
+    logging.getLogger( __name__ ).debug(f"Barren nodes wrt {S} are: {barren}")
     return dag, barren
 
 
@@ -60,7 +60,7 @@ def dsep_nodes(dag: nx.DiGraph, target, evidence_nodes):
     dsep = set(
         [v for v in dag.nodes if
          nx.d_separated(dag, x=set(target), y={v}, z=set(evidence_nodes)-{v})])
-    logging.debug(f"D-separated nodes wrt {target} given {evidence_nodes} are: {dsep}")
+    logging.getLogger( __name__ ).debug(f"D-separated nodes wrt {target} given {evidence_nodes} are: {dsep}")
     return dsep
 
 def dcon_nodes(dag: nx.DiGraph, target, evidence_nodes):

@@ -18,9 +18,9 @@ from bcause.util import domainutils as dutils
 
 def __read(reader, filepath, vtype):
     assert_file_exists(filepath)
-    logging.info(f"Reading model in {reader.__name__.replace('Reader', '')} format from {os.path.abspath(filepath)}")
+    logging.getLogger( __name__ ).info(f"Reading model in {reader.__name__.replace('Reader', '')} format from {os.path.abspath(filepath)}")
     model =  toBCauseBNet(reader(filepath).get_model(), vtype)
-    logging.debug(f"Loaded {model}")
+    logging.getLogger( __name__ ).debug(f"Loaded {model}")
     return model
 
 def from_bif(filepath, vtype=None):

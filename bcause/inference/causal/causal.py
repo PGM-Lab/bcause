@@ -25,7 +25,7 @@ class CausalInference(Inference):
         self._do = do
         self._counterfactual = counterfactual
 
-        logging.info(f"Starting causal inference: target={str(target)}  intervention={str(do)} evidence={str(evidence)}")
+        logging.getLogger( __name__ ).info(f"Starting causal inference: target={str(target)}  intervention={str(do)} evidence={str(evidence)}")
 
 
         do_vars = list(do.keys()) if isinstance(do, dict) else sum([list(d.keys()) for d in do], [])
@@ -53,7 +53,7 @@ class CausalInference(Inference):
 
         if not self._counterfactual:
             new_model = self.model.intervention(**self._do)
-            logging.debug(f"Intervened DAG: {new_model.graph.edges}")
+            logging.getLogger( __name__ ).debug(f"Intervened DAG: {new_model.graph.edges}")
 
         else:
             do = self._do if isinstance(self._do, list) else [self._do]
@@ -64,7 +64,7 @@ class CausalInference(Inference):
 
             new_endogenous = sum([m.endogenous for m in models],[])
             new_model = fusion_roots(models, on=self.model.exogenous, endogenous=new_endogenous)
-            logging.debug(f"Counterfactual DAG: {new_model.graph.edges}")
+            logging.getLogger( __name__ ).debug(f"Counterfactual DAG: {new_model.graph.edges}")
 
         return new_model
 

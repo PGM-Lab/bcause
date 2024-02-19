@@ -63,7 +63,7 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return self.get_value(**righ_obs) == observation[self.left_vars[0]]
 
     def to_multinomial(self, as_int=False):
-        logging.debug(f"Casting deterministic function {self.name} to multinomial")
+        logging.getLogger( __name__ ).debug(f"Casting deterministic function {self.name} to multinomial")
         cast = int if as_int else float
         values = [cast(self.eval(**obs)) for obs in dutils.assingment_space(self.domain)]
         return MultinomialFactor(self.domain, right_vars=self.right_vars, values=values, vtype=self.vtype)

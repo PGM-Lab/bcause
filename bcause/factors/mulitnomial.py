@@ -112,7 +112,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
                               if v in self.right_vars or v in other.variables]
             out = self.builder(domain=new_store.domain, values=new_store.data, right_vars=new_right_vars)
 
-            for w in W: logging.warning(f"{w.message}: {self.name}/{other.name}")
+            for w in W: logging.getLogger( __name__ ).warning(f"{w.message}: {self.name}/{other.name}")
 
         return out
 

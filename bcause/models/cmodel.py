@@ -151,6 +151,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         self._endogenous = endogenous or [x for x in dag if len(list(dag.predecessors(x)))>0]
         self._cast_multinomial = cast_multinomial
         self._check_factors = check_factors
+        self._rating = 1.0;
 
         if factors is not None:
             self._set_factors(factors)
@@ -198,7 +199,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=self.endogenous, cast_multinomial=self._cast_multinomial)
 
     def rename_vars(self, names_mapping: dict) -> DiscreteDAGModel:
-        logging.debug(f"Renaming variables as {names_mapping}")
+        logging.getLogger( __name__ ).debug(f"Renaming variables as {names_mapping}")
         new_dag = relabel_nodes(self.graph, names_mapping)
         new_factors = [f.rename_vars(names_mapping) for f in self.factors.values()]
         new_endogenous = [names_mapping[x] for x in self.endogenous]
@@ -254,11 +255,21 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         obs = data.to_dict("records")
         return np.sum(bn.log_prob(obs, variables))
 
+    def ratio(self, data, variables=None):
+        return self.max_log_likelihood(data,variables) / self.log_likelihood(data,variables)
 
     def max_log_likelihood(self, data, variables=None):
         bn = self.get_qbnet(data)
         obs = data.to_dict("records")
         return np.sum(bn.log_prob(obs,variables))
+
+    @property
+    def rating(self):
+        return self._rating
+
+    @rating.setter
+    def rating(self, rating):
+        self._rating = rating
 
     def __repr__(self):
         str_card_endo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"

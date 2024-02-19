@@ -342,7 +342,7 @@ if __name__ == "__main__":
     import bcause.util.graphutils as gutils
 
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
-    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
+    # logging.getLogger( __name__ ).basicConfig(level=logging.getLogger( __name__ ).DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
     m = define_model0()
     import numpy as np

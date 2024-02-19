@@ -16,7 +16,7 @@ from bcause.factors.values import store_dict
 import bcause.factors.factor as bf
 #from . import DiscreteFactor
 from bcause.util.domainutils import assingment_space, state_space, steps, random_assignment, to_numeric_domains
-from bcause.util.arrayutils import normalize_array, set_value
+from bcause.util.arrayutils import normalize_array, set_value, min_max_iqr
 
 
 class IntervalProbFactor(bf.DiscreteFactor, bf.ConditionalFactor):
@@ -54,14 +54,19 @@ class IntervalProbFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         self.builder = builder
 
     @staticmethod
-    def from_precise(list_factors):
+    def from_precise(list_factors, outliers_removal=False):
         dom = list_factors[0].domain
         left_vars = list_factors[0].left_vars
         if not all(list_factors[0].domain == f.domain for f in list_factors):
             raise ValueError("Domains must be identical for building an IntervalFactor")
 
         values = np.array([[f.get_value(**obs) for f in list_factors] for obs in assingment_space(dom)])
-        return IntervalProbFactor(dom, values.min(axis=1), values.max(axis=1), left_vars=left_vars)
+        if outliers_removal:
+            values_min, values_max = min_max_iqr(values)
+        else:
+            values_min, values_max = values.min(axis=1), values.max(axis=1)
+
+        return IntervalProbFactor(dom, values_min, values_max, left_vars=left_vars)
 
     @property
     def store_low(self):
@@ -119,7 +124,7 @@ class IntervalProbFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         with warnings.catch_warnings(record=True) as W:
             raise NotImplementedError()
 
-            for w in W: logging.warning(f"{w.message}: {self.name}/{other.name}")
+            for w in W: logging.getLogger( __name__ ).warning(f"{w.message}: {self.name}/{other.name}")
 
         return out
 

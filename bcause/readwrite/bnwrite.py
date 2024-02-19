@@ -19,7 +19,7 @@ def __write(writer, model, filepath):
     folder = filepath.parent
     assert_file_exists(folder)
     format = writer.__name__.replace('Writer', '')
-    logging.info(f"Saving model in {format} to {os.path.abspath(filepath)}")
+    logging.getLogger( __name__ ).info(f"Saving model in {format} to {os.path.abspath(filepath)}")
     getattr(writer(toPgmpyBNet(model)), f"write_{format.lower()}")(filepath)
 
 def to_bif(model:'BayesianNetwork', filepath):

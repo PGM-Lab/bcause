@@ -24,7 +24,7 @@ class ProbabilisticInference(Inference):
 
         self._target = target
         self._evidence = evidence or dict()
-        logging.info(f"Starting inference: target={str(target)} evidence={str(evidence)}")
+        logging.getLogger( __name__ ).info(f"Starting inference: target={str(target)} evidence={str(evidence)}")
         assert_dag_with_nodes(self.model.graph, self._target | self._evidence.keys())
 
         self._inference_model = self._preprocess()
@@ -47,8 +47,8 @@ class ProbabilisticInference(Inference):
         if not set(target).isdisjoint(conditioning):
             raise ValueError(f"Target {target} and conditioning {conditioning} are not disjoint ")
 
-        logging.info("Preparing conditional query")
+        logging.getLogger( __name__ ).info("Preparing conditional query")
         p = self.compile(set(target).union(set(conditioning)), evidence).run()
 
-        logging.info("Normalising conditional query")
+        logging.getLogger( __name__ ).info("Normalising conditional query")
         return p.divide(p.marginalize(*target))
