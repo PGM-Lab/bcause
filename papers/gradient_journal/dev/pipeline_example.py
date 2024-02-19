@@ -19,8 +19,8 @@ resfolder = "./papers/gradient_journal/results/synthetic/s123/"
 seed = 1
 num_runs = 50
 
-#method = "EMCC"
-method = "GDCC"
+method = "EMCC"
+#method = "GDCC"
 
 max_iter=100
 tol = 1e-7
@@ -38,6 +38,9 @@ randomUtil.seed(seed)
 
 # Load the model
 model = StructuralCausalModel.read(modelpath)
+
+
+model.factors["V5"].values
 
 # Load data
 data = pd.read_csv(modelpath.replace(".uai",".csv"), index_col=0)
