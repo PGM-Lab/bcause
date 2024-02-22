@@ -13,6 +13,8 @@ from bcause.util.watch import Watch
 import math
 
 
+# TODO: JAN
+
 ## Parameters
 
 modelpath = "./papers/gradient_journal/models/synthetic/s123/random_mc2_n5_mid3_d1000_05_mr098_r10_8.uai"
