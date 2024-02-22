@@ -78,25 +78,25 @@ if __name__ == "__main__":
 
     dag.add_edge("H","U")
 
-
-    data = data.append(dict(U=3), ignore_index=True)
-    data = data.append(dict(U=2, H="h1"), ignore_index=True)
-    data = data.append(dict(U=np.nan, H="h2"), ignore_index=True)
-
-
-    print(data)
-
-
+    #
+    # data = data.append(dict(U=3), ignore_index=True)
+    # data = data.append(dict(U=2, H="h1"), ignore_index=True)
+    # data = data.append(dict(U=np.nan, H="h2"), ignore_index=True)
+    #
+    #
+    # print(data)
+    #
+    #
     deps = DataDepAnalysis(dag, data)
-
+    #
     print(deps.get_minimal_obs_blanket("U"))
     print(deps.get_minimal_obs_blanket("U"))
-
+    #
     target = "U"
-
+    #
     obs_blanket = deps.get_minimal_obs_blanket(target)
     [(obs, len(data.loc[data[obs.keys()].isin(obs.values()).all(axis=1), :])) for obs in obs_blanket]
-
-
-
-    len(data)
+    #
+    #
+    #
+    # len(data)

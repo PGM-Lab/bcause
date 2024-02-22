@@ -20,6 +20,7 @@ import bcause.util.domainutils as dutils
 import bcause.util.graphutils as gutils
 
 import bcause.factors.factor as bf
+from bcause.models.transform.combination import counterfactual_model
 
 
 class DiscreteCausalDAGModel(DiscreteDAGModel):
@@ -250,6 +251,11 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
     def sampleEndogenous(self, n_samples: int, as_pandas = True) -> Union[list[Dict], pd.DataFrame]:
         return self.sample(n_samples, as_pandas)[self.endogenous]
 
+    def exogeneity(self, cause:Hashable, effect:Hashable) -> bool:
+        m = counterfactual_model(self, do=[{cause: 0}, {cause: 1}])
+        x = [f"{effect}_{i}" for i in (1, 2)]
+        return m.d_separated(x, cause)
+
     def log_likelihood(self, data, variables=None):
         bn = self.get_qbnet()
         obs = data.to_dict("records")
@@ -262,6 +268,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         bn = self.get_qbnet(data)
         obs = data.to_dict("records")
         return np.sum(bn.log_prob(obs,variables))
+
 
     @property
     def rating(self):
@@ -277,6 +284,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         str_card_exo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"
                                   for v, d in self._domains.items() if self.is_exogenous(v)])
         return f"<StructuralCausalModel ({str_card_endo}|{str_card_exo}), dag={gutils.dag2str(self.graph)}>"
+
 
 
     def draw(self, pos=None):

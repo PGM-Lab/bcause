@@ -34,6 +34,9 @@ def as_lists(*args):
         return [as_list(elem) for elem in args]
     return as_list(args[0])
 
+def as_sets(*args):
+    return [set(l) for l in as_lists(*args)]
+
 def change_shape_order(values:list, original_shape:tuple):
     return np.array(values).reshape(original_shape,order="F").ravel()
 

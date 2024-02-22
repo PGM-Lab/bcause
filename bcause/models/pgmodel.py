@@ -15,6 +15,8 @@ import bcause.factors.factor as bf
 import bcause.util.graphutils as gutils
 
 from bcause.models.sampling import forward_sampling
+from bcause.util.arrayutils import as_sets
+
 
 class PGModel(ABC):
 
@@ -165,6 +167,9 @@ class DiscreteDAGModel(PGModel):
 
         # return the union
         return list(ch | pa | pa_ch)
+
+    def d_separated(self,x,y,z=None):
+        return nx.d_separated(self.graph, *as_sets(x,y, z or []))
 
     def get_dag_str(self):
         str_dag = ""

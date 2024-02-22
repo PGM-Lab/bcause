@@ -34,10 +34,6 @@ class BayesianNetwork(DiscreteDAGModel):
             self.set_factor(v, random_multinomial(dom, right_vars=parents))
 
 
-
-
-
-
 if __name__ == "__main__":
 
     dag = nx.DiGraph([("A","B"), ("C","B"), ("C","D")])

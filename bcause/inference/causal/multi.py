@@ -5,7 +5,7 @@ import numpy as np
 
 from bcause.factors import DeterministicFactor, MultinomialFactor
 from bcause.factors.imprecise import IntervalProbFactor
-from bcause.inference.causal.causal import CausalInference
+from bcause.inference.causal.causal import CausalInference, CausalObservationalInference
 from bcause.inference.inference import Inference
 from bcause.learning.aggregator.aggregator import SimpleModelAggregatorEM, SimpleModelAggregatorGD
 from bcause.learning.parameter.expectation_maximization import ExpectationMaximization
@@ -85,10 +85,7 @@ class CausalMultiInference(CausalInference):
 
 
 
-class CausalObservationalInference(ABC):
-    @property
-    def data(self):
-        return self._data
+
 
 class EMCC(CausalMultiInference, CausalObservationalInference):
     def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True, max_iter=100, num_runs=10, parallel = False, min_rating=0.9, outliers_removal=True):
