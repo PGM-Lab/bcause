@@ -65,7 +65,7 @@ def process_parameters(params):
     log.info(f"PNS exact: {pns_exact}")
 
     # Set the results
-    resfilepath = Path(resfolder, f"{modelname}_uai_{method}_x{num_runs}_iter{max_iter}_tol{tol}_s{seed}.csv")
+    resfilepath = Path(resfolder, f"{modelname}_uai_{method}_x{num_runs}_iter{max_iter}_tol{tol}_ro{remove_outliers}_s{seed}.csv")
     results = pd.DataFrame()
 
     # Determine the method
@@ -101,7 +101,7 @@ def process_parameters(params):
 
         # Save the results
         r = pd.DataFrame(dict(modelname=modelname, method=method, cause=cause, effect=effect, tol=tol,
-                        num_runs_param=num_runs, max_iter_param=max_iter, seed=seed, tlearn=tlearn, tinfer=tinfer,
+                        num_runs_param=num_runs, max_iter_param=max_iter, seed=seed, tlearn=tlearn, tinfer=tinfer, remove_outliers=remove_outliers,
                         datasize=len(data),
                         pns_low_exact =pns_exact[0], pns_upp_exact = pns_exact[1],
                         pns_low = p[0], pns_upp = p[1], rrmse = err, rmse = err2, nruns=nruns
