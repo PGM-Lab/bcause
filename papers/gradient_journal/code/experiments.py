@@ -137,7 +137,7 @@ if __name__ == "__main__":
         quit()
     # Parallel approach
     with Pool() as pool:
-        pool.map(process_parameters, )
+        pool.map(process_parameters, parameter_combinations)
 
 
 
