@@ -1,9 +1,6 @@
-import logging
-import sys
 from pathlib import Path
 import itertools
 from multiprocessing import Pool, cpu_count
-import io
 
 import pandas as pd
 
@@ -13,7 +10,6 @@ from bcause.util import randomUtil
 from bcause.util.mathutils import rrmse, rmse
 from bcause.util.runningutils import get_logger
 from bcause.util.watch import Watch
-import math
 
 
 ### Set parameters ###
@@ -25,7 +21,7 @@ resfolder = "./papers/gradient_journal/results/synthetic/s123/"
 run_step = 5
 
 # Multi parameters
-USE_FULL_PARAMETERS = False
+USE_FULL_PARAMETERS = True
 if USE_FULL_PARAMETERS:
     seed_values = [1,2,3,4]
     remove_outliers_values = [True, False]
@@ -39,7 +35,7 @@ else: # subset of full parameters used for debugg
     max_iter_values_emcc = [25]  # Relevant for EMCC
     tol_values_gdcc = [1e-3, 1e-5, 1e-7, 1e-9]     # Relevant for GDCC
 
-### End Set parameters ###
+### Set parameters End ###
 
 def process_parameters(params):
     num_runs, modelpath, resfolder, run_step, seed, remove_outliers, method, max_iter, tol = params
@@ -47,11 +43,7 @@ def process_parameters(params):
     print(f"Processing: {seed=}, {remove_outliers=}, {method=}, {max_iter=}, {tol=}") # Single parameters are omitted here
     # Define the logger
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
-    if 0: # log as normal
-        log = get_logger(__name__, fmt=log_format)
-    else: # suppressing the logs
-        null_stream = io.StringIO()
-        log = get_logger(__name__) 
+    log = get_logger(__name__, fmt=log_format)
 
     # Set the random seed
     randomUtil.seed(seed)
@@ -70,13 +62,11 @@ def process_parameters(params):
     cause, effect = [f"V{i}" for i in list(info_query[["cause","effect"]].values.flatten())]
     modelname = modelpath.removesuffix(".uai").split("/")[-1]
 
-
     log.info(f"PNS exact: {pns_exact}")
 
     # Set the results
     resfilepath = Path(resfolder, f"{modelname}_uai_{method}_x{num_runs}_iter{max_iter}_tol{tol}_s{seed}.csv")
     results = pd.DataFrame()
-
 
     # Determine the method
     if method == "GDCC":
@@ -123,26 +113,31 @@ def process_parameters(params):
         t0 = Watch.get_time()
 
 
-# Generate combinations for each method and process them
-parameter_combinations = []
-for seed, remove_outliers in itertools.product(seed_values, remove_outliers_values):
-    for method in method_values:
-        if method == "EMCC":
-            for max_iter in max_iter_values_emcc:
-                parameter_combinations.append((num_runs, modelpath, resfolder, run_step, seed, remove_outliers, method, max_iter, None))
-        elif method == "GDCC":
-            for tol in tol_values_gdcc:
-                parameter_combinations.append((num_runs, modelpath, resfolder, run_step, seed, remove_outliers, method, None, tol))
+def generate_parameter_combinations():
+    # Generate combinations for each method 
+    parameter_combinations = []
+    for seed, remove_outliers in itertools.product(seed_values, remove_outliers_values):
+        for method in method_values:
+            if method == "EMCC":
+                for max_iter in max_iter_values_emcc:
+                    parameter_combinations.append((num_runs, modelpath, resfolder, run_step, seed, remove_outliers, method, max_iter, None))
+            elif method == "GDCC":
+                for tol in tol_values_gdcc:
+                    parameter_combinations.append((num_runs, modelpath, resfolder, run_step, seed, remove_outliers, method, None, tol))
+    return parameter_combinations
 
-# Parallel processing
+
 if __name__ == "__main__":
     # Display the number of available worker processes
     available_workers = cpu_count()
     print(f"Number of available workers: {available_workers}")
-    #process_parameters(parameter_combinations[0])  # to test in non-parallel setting
+    parameter_combinations = generate_parameter_combinations()
+    if False: # set to True to test in non-parallel setting
+        process_parameters(parameter_combinations[0])  
+        quit()
     # Parallel approach
     with Pool() as pool:
-        pool.map(process_parameters, parameter_combinations)
+        pool.map(process_parameters, )
 
 
 
