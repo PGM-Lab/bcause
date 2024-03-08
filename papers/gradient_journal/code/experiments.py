@@ -89,8 +89,11 @@ def process_parameters(params):
         p = inf.prob_necessity_sufficiency(cause,effect, true_false_cause=(0,1), true_false_effect=(0,1))
         t2 = Watch.get_time()
 
-        tlearn = tlearn + t1-t0 # JAN2RAFA: it is unclear to me why tlearn is cummulative but tinfer is measured each loop just for one iteration?
+        tlearn = tlearn + t1-t0 
         tinfer = t2-t1
+        # NOTE: When `compile_incremental()` is called, learning occurs only for the new iterations. 
+        #       However, when `inf.prob_necessity_sufficiency` is called, inference is indeed performed again with all the learned models.
+
         err = rrmse(pns_exact[0], p[0], pns_exact[1], p[1])
         err2 = rmse(pns_exact[0], p[0], pns_exact[1], p[1])
 
