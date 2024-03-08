@@ -108,6 +108,9 @@ def process_parameters(params):
                         ), index=[0])
 
         results = pd.concat([results, r], ignore_index=True)
+        # Check if the directory for the file at resfilepath exists, and create it if it does not
+        if not resfilepath.parent.exists():
+            resfilepath.parent.mkdir(parents=True, exist_ok=True)    
         results.to_csv(resfilepath)
 
         t0 = Watch.get_time()
