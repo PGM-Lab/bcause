@@ -2,8 +2,9 @@ from typing import Union, Iterable
 
 import networkx as nx
 
-from bcause.factors.mulitnomial import random_multinomial
+from bcause.factors.mulitnomial import random_multinomial, uniform_multinomial
 from bcause.models.pgmodel import DiscreteDAGModel
+from bcause.util.domainutils import subdomain
 from bcause.util.graphutils import dag2str
 
 
@@ -33,7 +34,23 @@ class BayesianNetwork(DiscreteDAGModel):
             dom = {x: d for x, d in domains.items() if x == v or x in parents}
             self.set_factor(v, random_multinomial(dom, right_vars=parents))
 
+    @staticmethod
+    def __buid(dag, domains, factor_builder):
+        bn = BayesianNetwork(dag)
+        v = "x"
 
+        bn.get_parents(v)
+        for v in bn.variables:
+            dom_v = subdomain(domains, v, *bn.get_parents(v))
+            fv = factor_builder(dom_v, bn.get_parents(v))
+            bn.set_factor(v, fv)
+
+        return bn
+    @staticmethod
+    def buid_uniform(dag, domains):
+        return BayesianNetwork.__buid(dag, domains, uniform_multinomial)
+    def buid_random(dag, domains):
+        return BayesianNetwork.__buid(dag, domains, random_multinomial)
 
 
 
