@@ -2,6 +2,9 @@ import networkx as nx
 
 from bcause import BayesianNetwork, MultinomialFactor
 from bcause.factors.mulitnomial import uniform_multinomial
+from bcause.inference.probabilistic.datainference import LaplaceInference
+from bcause.inference.probabilistic.elimination import VariableElimination
+from bcause.learning.parameter import MaximumLikelihoodEstimation
 from bcause.models.classification.classifier import  BNetClassifier
 from bcause.util.domainutils import subdomain
 
@@ -17,13 +20,19 @@ class NaiveBayes(BNetClassifier):
         return BayesianNetwork.buid_uniform(dag, self._domains)
 
 
-import pandas as pd
+if __name__== "main":
+    import pandas as pd
+    data = pd.read_csv("./data/igd_test.csv", index_col=0)
+    classVar = "y"
+    domains = {c:list(data[c].unique()) for c in data.columns}
 
-data = pd.read_csv("./data/igd_test.csv", index_col=0)
 
-classVar = "y"
-domains = {c:list(data[c].unique()) for c in data.columns}
+    clf = NaiveBayes(domains, classVar)
+    clf.fit(data)
 
+    y_pred = clf.predict(data)
 
-clf = NaiveBayes(domains, classVar)
+    y = list(data["y"])
+
+    print(sum(y == y_pred))
 
