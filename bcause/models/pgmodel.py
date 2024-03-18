@@ -76,10 +76,12 @@ class PGModel(ABC):
         filepath = Path(filepath)
         if str(filepath).endswith(".uai"):
             self._writer.to_uai(model=self, filepath=filepath, **kwargs)
-        elif str(filepath).endswith(".xmlbif"):
+        elif str(filepath).endswith(".xmlbif") or str(filepath).endswith(".bifxml"):
             self._writer.to_xmlbif(model=self, filepath=filepath)
         elif str(filepath).endswith(".bif"):
             self._writer.to_bif(model=self, filepath=filepath)
+        elif str(filepath).endswith(".net"):
+            self._writer.to_hugin(model=self, filepath=filepath)
         else:
             raise ValueError(f"Unknown format for {filepath}")
 
@@ -180,7 +182,7 @@ class DiscreteDAGModel(PGModel):
     def submodel(self, nodes:list) -> DiscreteDAGModel:
         new_dag = self.graph.subgraph(nodes)
         new_factors = {x: f for x, f in self.factors.items() if x in nodes}
-        return self.builder(new_dag, new_factors)
+        return self.builder(dag=new_dag, factors=new_factors)
 
     def rename_vars(self, names_mapping: dict) -> DiscreteDAGModel:
         logging.getLogger( __name__ ).debug(f"Renaming variables as {names_mapping}")
@@ -188,6 +190,9 @@ class DiscreteDAGModel(PGModel):
         new_factors = [f.rename_vars(names_mapping) for f in self.factors.values()]
         return self.builder(dag=new_dag, factors=new_factors)
 
+    def domain_to_str(self):
+        new_factors = {v: f.domain_to_str() for v, f in self.factors.items()}
+        return self.builder(dag=self.graph, factors=new_factors)
 
     def sample(self, n_samples: int, as_pandas = True) -> Union[list[Dict], pd.DataFrame]:
         logging.getLogger( __name__ ).info(f"Sampling {n_samples} instances from model")

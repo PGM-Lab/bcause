@@ -1,0 +1,30 @@
+network unknown {
+}
+variable s {
+    type discrete [ 2 ] { 1, 0 };
+    property weight = None ;
+}
+variable x {
+    type discrete [ 3 ] { 1, 2, 0 };
+    property weight = None ;
+}
+variable y {
+    type discrete [ 2 ] { 0, 1 };
+    property weight = None ;
+}
+variable z {
+    type discrete [ 3 ] { 0, 2, 1 };
+    property weight = None ;
+}
+probability ( s | y ) {
+    table 0.5027203482045702, 0.49768732654949127, 0.4972796517954298, 0.5023126734505089 ;
+}
+probability ( x | y ) {
+    table 0.4809575625680087, 0.4255319148936171, 0.060935799782372145, 0.1091581868640148, 0.4581066376496191, 0.4653098982423682 ;
+}
+probability ( y ) {
+    table 0.4595, 0.5405 ;
+}
+probability ( z | y ) {
+    table 0.18933623503808486, 0.3108233117483812, 0.45919477693144717, 0.39037927844588344, 0.3514689880304679, 0.29879740980573544 ;
+}

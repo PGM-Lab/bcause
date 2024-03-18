@@ -65,6 +65,15 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
         return self.builder(domain=new_dom, values=new_data)
 
+    def domain_change(self, new_dom):
+        return self.builder(domain=new_dom, values=self.values)
+
+    def domain_to_str(self):
+        new_dom = dict()
+        for v, d in self.domain.items():
+            new_dom[v] = [str(s) for s in d]
+        return self.domain_change(new_dom)
+
 
     # Factor operations
     def restrict(self, **observation) -> MultinomialFactor:

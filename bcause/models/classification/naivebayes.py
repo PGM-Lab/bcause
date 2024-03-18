@@ -20,7 +20,7 @@ class NaiveBayes(BNetClassifier):
         return BayesianNetwork.buid_uniform(dag, self._domains)
 
 
-if __name__== "main":
+if __name__ == "__main__":
     import pandas as pd
     data = pd.read_csv("./data/igd_test.csv", index_col=0)
     classVar = "y"
@@ -32,7 +32,19 @@ if __name__== "main":
 
     y_pred = clf.predict(data)
 
+    clf.model.factors
+
+    clf.predict(data.loc[0:10])
+    clf.predict_proba(data.loc[0:10])
+
+    i = 1
+    for i in range(0,10):
+        print(f"{data.loc[[i]]} {clf.predict_proba(data.loc[[i]])}")
+
     y = list(data["y"])
 
+    clf.model.domains
+
     print(sum(y == y_pred))
+
 
