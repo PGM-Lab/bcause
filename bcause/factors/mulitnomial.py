@@ -146,10 +146,15 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
     def log_prob(self, observations:List[Dict]) -> List:
         return [math.log(self.get_value(**x)) for x in observations]
 
-    def sample(self, size:int = 1, varnames:bool=True) -> List:
+    def log(self) -> MultinomialFactor:
+        return self.builder(domain=self.domain, values=self.store.log().data)
+
+
+    def sample(self, size: int = 1, varnames: bool = True, as_pandas=False) -> List:
         if size < 1:
             raise ValueError("sample size cannot be lower than 1.")
-        return [self._sample(varnames=varnames) for _ in range(0,size)]
+        data =  [self._sample(varnames=varnames) for _ in range(0,size)]
+        return pd.DataFrame(data) if as_pandas else data
 
     def sample_conditional(self, observations : list[Dict], varnames:bool=True) -> List:
         if len(observations) < 1:
@@ -172,6 +177,8 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         else:
             raise NotImplementedError("Sampling not available for conditional distributions")
             #todo: return [self.restrict(**obs).sample() for obs in assingment_space(self.right_domain)]
+
+
 
 
     def __mul__(self, other):

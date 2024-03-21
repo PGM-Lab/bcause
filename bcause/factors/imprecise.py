@@ -142,7 +142,10 @@ class IntervalProbFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
         #return [math.log(self.get_value(**x)) for x in observations]
 
-    def sample(self, size:int = 1, varnames:bool=True) -> List:
+    def log(self) -> IntervalProbFactor:
+        raise NotImplementedError()
+
+    def sample(self, size: int = 1, varnames: bool = True, as_pandas=False) -> List:
         if size < 1:
             raise ValueError("sample size cannot be lower than 1.")
         return [self._sample(varnames=varnames) for _ in range(0,size)]

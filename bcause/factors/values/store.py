@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from typing import Dict, Iterable, Union
 
+import numpy as np
 
 import bcause.util.domainutils as dutil
 from bcause.factors.values.operations import OperationSet
@@ -86,7 +87,7 @@ class DiscreteStore(DataStore):
 
     def set_operationSet(self, ops:OperationSet):
         for f in [self.set_marginalize, self.set_maxmarginalize, self.set_multiply,
-                  self.set_addition, self.set_subtract, self.set_divide, self.set_restrict]:
+                  self.set_addition, self.set_subtract, self.set_divide, self.set_restrict, self.set_log]:
             f(ops)
 
     def set_restrict(self, ops:OperationSet):
@@ -110,6 +111,9 @@ class DiscreteStore(DataStore):
     def set_divide(self, ops:OperationSet):
         self._divide = ops.divide
 
+    def set_log(self, ops:OperationSet):
+        self._log = ops.log
+
     def marginalize(self, *vars_remove) -> DiscreteStore:
         return self._marginalize(self, vars_remove)
 
@@ -130,6 +134,9 @@ class DiscreteStore(DataStore):
 
     def restrict(self, **observation) -> DiscreteStore:
         return self._restrict(self, observation)
+
+    def log(self) -> DiscreteStore:
+        return self._log(self)
 
     @abstractmethod
     def sum_all(self):
@@ -163,8 +170,11 @@ class DiscreteStore(DataStore):
         return output
 
 
-    def sum_all(self) -> float:
-        return sum(self.values_list)
+    def sum_all(self, masked_invalid=False) -> float:
+        l = self.values_list
+        if masked_invalid:
+            return np.ma.masked_invalid(l).sum()
+        return sum(l)
 
 
     def get_var_index(self, v):

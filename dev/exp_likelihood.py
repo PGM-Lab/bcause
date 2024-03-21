@@ -95,7 +95,7 @@ class Expertiment:
         for sample_size in self.sample_sizes:
             print(f'{sample_size=}')
             rllkh[sample_size] = defaultdict(lambda : {})
-            data = self.model.sample(sample_size, as_pandas=True)[self.model.endogenous]
+            data = self.model.sample(sample_size)[self.model.endogenous]
             lmax = self.model.max_log_likelihood(data)
             for name, estimator in self.estimators.items():
                 infer = estimator(self.model, data, num_runs = self.num_runs, max_iter = self.max_iter) # estimate from the same data multiple times with different initial point

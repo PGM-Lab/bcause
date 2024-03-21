@@ -79,7 +79,7 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             raise ValueError("Value not in domain")
         return self.builder(domain=new_dom, values=[left_value])
 
-    def sample(self, size:int, varnames:bool) -> float:
+    def sample(self, size: int = 1, varnames: bool = True, as_pandas=False) -> float:
         raise NotImplementedError("Method not available")
 
     def sample_conditional(self, observations:list[Dict], varnames:bool) -> float:
@@ -112,6 +112,9 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
     def maxmarginalize(self, *vars_remove) -> DeterministicFactor:
         raise NotImplementedError("Method not available")
+
+    def log(self) -> DeterministicFactor:
+        raise NotImplementedError()
 
     @property
     def name(self):

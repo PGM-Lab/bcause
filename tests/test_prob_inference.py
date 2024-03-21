@@ -36,7 +36,7 @@ def test_laplace_inference():
 
     from bcause import randomUtil
     randomUtil.seed(1)
-    data = model.sample(5000, as_pandas=True)
+    data = model.sample(5000)
 
     inf = LaplaceInference(data, model.domains)
     actual = [inf.query(**arg).values[0] for arg in args]

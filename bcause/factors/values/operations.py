@@ -49,6 +49,10 @@ class OperationSet(ABC):
     def restrict(store : 'DataStore', observation:dict) -> 'DataStore':
         pass
 
+    @staticmethod
+    @abstractmethod
+    def log(store : 'DataStore') -> 'DataStore':
+        pass
 
 class GenericOperations(OperationSet):
     @staticmethod
@@ -99,4 +103,7 @@ class GenericOperations(OperationSet):
     def restrict(store : 'DataStore', observarion:dict) -> 'DataStore':
         raise NotImplementedError("Not implemented")
 
+    @staticmethod
+    def log(store : 'DataStore') -> 'DataStore':
+        raise NotImplementedError("Not implemented")
 

@@ -26,7 +26,7 @@ class Factor(ABC):
         pass
 
     @abstractmethod
-    def sample(self, size:int, varnames:bool) -> float:
+    def sample(self, size: int = 1, varnames: bool = True, as_pandas=False) -> float:
         pass
 
     @abstractmethod
@@ -68,6 +68,9 @@ class Factor(ABC):
     def combine_all(*factors) -> Factor:
         return reduce((lambda f1, f2: f1 * f2), factors)
 
+    @abstractmethod
+    def log(self) -> Factor:
+        pass
 
 class DiscreteFactor(Factor):
     def _check_domain(self, domain):
@@ -123,6 +126,9 @@ class DiscreteFactor(Factor):
 
         return self.builder(**kwargs)
 
+
+    def sum_all(self, masked_invalid = False):
+        return self.store.sum_all(masked_invalid)
 
 
 class ConditionalFactor(Factor):

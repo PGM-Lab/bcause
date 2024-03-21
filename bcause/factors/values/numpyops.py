@@ -121,3 +121,7 @@ class NumpyStoreOperations(OperationSet):
         new_data = store._data[tuple(items)].copy()
         return store.builder(domain=new_dom, data=new_data)
 
+    @staticmethod
+    def log(store: 'NumpyStore') -> 'NumpyStore':
+        with np.errstate(divide='ignore'):
+            return store.builder(domain=store.domain, data = np.log(store._data))

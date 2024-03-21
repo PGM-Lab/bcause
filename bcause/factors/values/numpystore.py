@@ -49,6 +49,9 @@ class NumpyStore(DiscreteStore):
         return np.atleast_1d(self.restrict(**observation).data)[0]
 
 
+
+
+
 class Numpy1DStore(DiscreteStore):
 
     def __init__(self, domain: Dict, data: Union[Iterable, int, float]=None):

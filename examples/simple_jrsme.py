@@ -42,6 +42,8 @@ domv = dutils.subdomain(domains, "V")
 pv = MultinomialFactor(domv, values=[.5, .5])
 
 
+pv.log()
+
 domu = dutils.subdomain(domains, "U")
 pu = MultinomialFactor(domu, values=[.2, .2, .6, .0])
 
