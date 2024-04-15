@@ -73,7 +73,9 @@ if __name__ == "__main__":
 
     inf = LaplaceInference(data, domains)
 
-    p = inf.query(["V1"], conditioning="V2", evidence=dict(V3=1))
+    p = inf.query(["V1"], conditioning="V2", evidence=dict(V3=1)) # P(V1|V2,V3=1)
+    p.values_dict
+
     D = data.loc[data.V3==1]
 
     assert p.R(V1=1, V2=0) == len(D.loc[(D.V1==1) & (D.V2==0)])/len(D.loc[(D.V2==0)])
