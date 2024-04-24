@@ -1,3 +1,5 @@
+import numpy as np
+
 from bcause.factors import MultinomialFactor
 import bcause.util.domainutils as dutils
 
@@ -27,3 +29,18 @@ def filter_data(data, obs):
     for k,v in obs.items():
         data = data.loc[data[k]==v]
     return data
+
+
+def filter_and(data, **filt_dict):
+    mask = np.logical_and.reduce([data[k] == v for k,v in filt_dict.items()])
+    return data[mask]
+
+def filter_or(data, **filt_dict):
+    mask = np.logical_or.reduce([data[k] == v for k,v in filt_dict.items()])
+    return data[mask]
+
+def filter_not(data, **filt_dict):
+    mask = np.logical_and.reduce([data[k] != v for k,v in filt_dict.items()])
+    return data[mask]
+
+
