@@ -10,6 +10,8 @@ from matplotlib import pyplot as plt
 from networkx import relabel_nodes, DiGraph, topological_sort
 
 import networkx as nx
+from pandas.core.computation.ops import isnumeric
+
 import bcause.models.info as info
 
 from bcause.factors import DeterministicFactor
@@ -134,9 +136,23 @@ class DiscreteCausalDAGModel(DiscreteDAGModel):
         '''
         return info.get_qgraph(self)
 
+    def fix_numeric_domains(self):
+        def convert_value(k):
+            if isinstance(k, str):
+                if k.lower() == 'true':
+                    return True
+                elif k.lower() == 'false':
+                    return False
+                if str(k).replace(".","").isdigit():
+                    return int(float(k))
+                return k
+            return int(k)
 
-
-
+        new_domains = {
+            v: [convert_value(k) for k in d] for v, d in self.domains.items()
+        }
+        #self.builder(dag = self.graph, factors = factors)
+        return self.update_domains(domains=new_domains)
 
 class StructuralCausalModel(DiscreteCausalDAGModel):
     ''' Class defining an Structural Causal Model (SCM) over a set of discrete variables.'''
@@ -269,7 +285,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         obs = data.to_dict("records")
         return np.sum(bn.log_prob(obs,variables))
 
-    def update_domains(self, **domains):
+    def update_domains(self, domains):
         new_factors = self.factors
         for v, d in domains.items():
             for k in new_factors.keys():
@@ -332,7 +348,7 @@ if __name__ == "__main__":
     import bcause.factors.factor as bf
 
     domy = dutils.subdomain(domains, *gutils.relevat_vars(dag, "Y"))
-    fy = DeterministicFactor(domy, right_vars = ["V"], values=[1, 0])
+    fy = DeterministicFactor(domy,left_vars=["Y"] , values=[1, 0])
 
     domx = dutils.subdomain(domains, *gutils.relevat_vars(dag, "X"))
 
@@ -351,6 +367,8 @@ if __name__ == "__main__":
     print(m.endo_ccomponents)
     print(m.exo_ccomponents)
 
+    x = m.fix_numeric_domains()
+    print(x.domains)
 
 #
 
