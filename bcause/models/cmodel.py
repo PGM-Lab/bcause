@@ -136,7 +136,7 @@ class DiscreteCausalDAGModel(DiscreteDAGModel):
         '''
         return info.get_qgraph(self)
 
-    def fix_numeric_domains(self):
+    def fix_numeric_domains(self) -> StructuralCausalModel:
         def convert_value(k):
             if isinstance(k, str):
                 if k.lower() == 'true':
@@ -148,11 +148,13 @@ class DiscreteCausalDAGModel(DiscreteDAGModel):
                 return k
             return int(k)
 
+        m = self.copy()
+
         new_domains = {
             v: [convert_value(k) for k in d] for v, d in self.domains.items()
         }
         #self.builder(dag = self.graph, factors = factors)
-        return self.update_domains(domains=new_domains)
+        return m.update_domains(domains=new_domains)
 
 class StructuralCausalModel(DiscreteCausalDAGModel):
     ''' Class defining an Structural Causal Model (SCM) over a set of discrete variables.'''
@@ -333,6 +335,17 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         nx.draw_networkx_edges(G, pos=pos, edgelist=exo_edges, edge_color="gray", style="dashed", arrowsize=15)
         nx.draw_networkx_edges(G, pos=pos, edgelist=endo_edges, edge_color="black", style="solid", arrowsize=15)
         plt.box(False)
+
+    def merge_exogenous(self, V, U) -> StructuralCausalModel:
+        # no modificar self
+
+        # nombre y num estados nueva variable
+
+        # definir el nuevo dag
+
+        # definir SE afectadas
+
+        return None
 
 if __name__ == "__main__":
 
