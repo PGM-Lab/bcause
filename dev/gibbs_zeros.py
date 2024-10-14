@@ -1,5 +1,3 @@
-import random
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -82,7 +80,7 @@ alpha = np.ones(cardU)
 theta = dirichlet.rvs(alpha)[0]
 pu = MultinomialFactor(domU, theta)
 model.set_factor("U", pu)
-#max_iter = 5
+
 for i in range(max_iter):
     # sample U
     ve = VariableElimination(model)
@@ -90,9 +88,7 @@ for i in range(max_iter):
     samples_u = [pu_ts.R(**obs).sample(1,"U")[0]["U"] for obs in data.to_dict(orient="records")]
 
     # get the counts of U and update the parameters of the U
-
-    w =random.uniform(0, 100)
-    counts_u = [samples_u.count(u)*1 for u in model.domains["U"]]
+    counts_u = [samples_u.count(u) for u in model.domains["U"]]
     total_counts_u += [counts_u]
     beta = [int(a + c) for a, c in zip(alpha, counts_u)]
     #alpha = beta
@@ -114,7 +110,3 @@ for i in range(max_iter):
         plt.xlim(0, 1)
         plt.show()
 
-
-
-
-dirichlet.rvs([1,1,0.1])[0]

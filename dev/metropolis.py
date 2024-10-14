@@ -1,5 +1,3 @@
-import random
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -55,6 +53,29 @@ for x in m.endogenous:
     print(datainf.query(x, conditioning=m.get_edogenous_parents(x)).values_dict)
 
 
+
+
+def decimal_to_binary(n, nbits):
+    binary_digits = []
+    while len(binary_digits) < nbits:
+        remainder = n % 2
+        binary_digits.append(str(remainder))
+        n = n // 2
+
+    # Reverse the list to get the correct binary representation
+    binary_digits.reverse()
+
+    return ''.join(binary_digits)
+
+
+def f(u,t):
+    return int(decimal_to_binary(u,2)[t])
+def is_compatible(u,t,s):
+    return f(u,t) == s
+
+
+
+
 qtrue = [0.3,1.0]
 
 pv = MultinomialFactor(dict(V=m.domains["V"]), datainf.query("T").values)
@@ -82,17 +103,22 @@ alpha = np.ones(cardU)
 theta = dirichlet.rvs(alpha)[0]
 pu = MultinomialFactor(domU, theta)
 model.set_factor("U", pu)
-#max_iter = 5
+
 for i in range(max_iter):
     # sample U
+
+    for j in range(len(data)):
+
+
+
+
+
     ve = VariableElimination(model)
     pu_ts = ve.query("U", conditioning= model.endogenous)
     samples_u = [pu_ts.R(**obs).sample(1,"U")[0]["U"] for obs in data.to_dict(orient="records")]
 
     # get the counts of U and update the parameters of the U
-
-    w =random.uniform(0, 100)
-    counts_u = [samples_u.count(u)*1 for u in model.domains["U"]]
+    counts_u = [samples_u.count(u) for u in model.domains["U"]]
     total_counts_u += [counts_u]
     beta = [int(a + c) for a, c in zip(alpha, counts_u)]
     #alpha = beta
@@ -116,5 +142,3 @@ for i in range(max_iter):
 
 
 
-
-dirichlet.rvs([1,1,0.1])[0]
