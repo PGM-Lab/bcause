@@ -149,7 +149,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
     def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict,list] = None, endogenous:Iterable = None,
                  cast_multinomial:bool = True, check_factors:bool = True):
         self._initialize(dag)
-        self._endogenous = endogenous or [x for x in dag if len(list(dag.predecessors(x)))>0]
+        self._endogenous = endogenous or [x for x in self.graph if len(list(self.graph.predecessors(x)))>0]
         self._cast_multinomial = cast_multinomial
         self._check_factors = check_factors
         self._rating = 1.0;
