@@ -51,23 +51,33 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return DeterministicFactor(self.domain, left_vars=[v], values=values)
 
     def constant(self, left_value):
-
         new_dom = self.left_domain
-        states = new_dom[self.left_vars[0]]
 
         if len(new_dom) != 1:
             raise ValueError("Only one variable on the left is allowed")
 
-        if left_value not in states:
-            raise ValueError("Value not in domain")
-
+        states = new_dom[self.left_vars[0]]
         new_data = [0.0] * len(states)
-        new_data[states.index(left_value)] = 1.0
+
+        if not type(left_value) in [tuple, list]:
+
+            if left_value not in states:
+                raise ValueError("Value not in domain")
+
+            new_data[states.index(left_value)] = 1.0
+
+        else:
+            left_values = list(self.left_domain.values())[0]
+            if not set(left_value).issubset(set(left_values)):
+                raise ValueError("Values are not contained")
+            k = 1 / len(left_value)
+            for v in left_value:
+                new_data[states.index(v)] = k
 
         return self.builder(domain=new_dom, values=new_data)
 
 
-    # Factor operations
+        # Factor operations
     def restrict(self, **observation) -> MultinomialFactor:
         if len(set(observation.keys()).intersection(self._variables))==0: return self
         new_store = self.store.restrict(**observation)
