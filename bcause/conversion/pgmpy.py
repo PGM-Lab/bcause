@@ -66,9 +66,6 @@ def toPgmpyBNet(orig : 'bm.BayesianNetwork') -> pm.BayesianNetwork:
     dest.add_cpds(*[toTabularCPT(f) for f in orig.factors.values()])
 
     for f in orig.factors.values():
-        print(f)
         toTabularCPT(f)
-
-
 
     return dest
