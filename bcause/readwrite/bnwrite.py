@@ -77,7 +77,6 @@ def to_uai(model:'BayesianNetwork', filepath, reverse_values=False, label="BAYES
     folder = filepath.parent
     assert_file_exists(folder)
 
-    print(out)
     with open(filepath, "w+") as file:
         # Writing data to a file
         file.write(out)
