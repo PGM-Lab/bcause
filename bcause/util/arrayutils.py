@@ -27,6 +27,7 @@ def set_value(value, data, idx):
 
 def as_lists(*args):
     def as_list(elem):
+        if elem is None: return None
         if isinstance(elem, str): return [elem]
         return list(elem)
 

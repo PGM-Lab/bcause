@@ -86,7 +86,7 @@ class CausalInference(Inference):
 
     def prob_necessity_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
 
-        if not self._compiled: self.compile()
+        #if not self._compiled: self.compile()
 
         # Determine the true and false states
         Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
@@ -105,7 +105,7 @@ class CausalInference(Inference):
     def prob_necessity(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         # PN: P(X_{Y=f} = f |X=t, Y=t)   Y->X
 
-        if not self._compiled: self.compile()
+        #if not self._compiled: self.compile()
         # Determine the true and false states
         Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
         Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
@@ -120,7 +120,7 @@ class CausalInference(Inference):
     def prob_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         # PS: P(X_{Y=t} = t |X=f, Y=f)   Y->X
 
-        if not self._compiled: self.compile()
+        #if not self._compiled: self.compile()
         # Determine the true and false states
         Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
         Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
