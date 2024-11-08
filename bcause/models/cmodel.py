@@ -193,6 +193,10 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
 
 
     def intervention(self, **obs):
+
+        if any([type(v) in [list, tuple] and len(v) > 1 for v in obs.values()]):
+            raise ValueError("Intervention on multiple values are not allowed")
+
         new_dag = gutils.remove_ingoing_edges(self.graph, obs.keys())
         new_factors = dict()
         for v, f in self.factors.items():

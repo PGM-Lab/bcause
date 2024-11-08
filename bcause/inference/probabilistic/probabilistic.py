@@ -38,12 +38,7 @@ class ProbabilisticInference(Inference):
     def query(self, target, conditioning=None, evidence=None):
 
         evidence = evidence or dict()
-
-
         multi_evidence = {k:evidence[k] for k,v in evidence.items() if type(v) in [list, tuple] and len(v)>1}
-
-
-
 
         if conditioning is None and len(multi_evidence)==0:
             return self.compile(target, evidence).run()

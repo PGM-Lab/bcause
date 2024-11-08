@@ -46,7 +46,8 @@ class CausalInference(Inference):
 
         self._inference_model = self._preprocess()
         self._inf = self._prob_inf_fn(self._inference_model)
-        self._inf.compile(target, evidence)
+        #self._inf.compile(target, evidence)
+        self._query_args = dict(target=target, evidence=evidence)
         self._compiled = True
 
         return self
@@ -68,7 +69,8 @@ class CausalInference(Inference):
         return self._counterfactual
 
     def run(self) -> Factor:
-        return self._inf.run()
+        #return self._inf.run()
+        return self._inf.query(**self._query_args)
 
     def query(self, target, do, evidence=None, counterfactual=False, targets_subgraphs = None):
         if counterfactual:
@@ -100,7 +102,7 @@ class CausalInference(Inference):
         ), {effect + "_1": Feffect, effect + "_2": Teffect})
 
     def _process_output(self, result, obs):
-        return result.get_value(**obs)
+        return result.R(**obs).marginalize(*list(obs.keys())).values[0]
 
     def prob_necessity(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         # PN: P(X_{Y=f} = f |X=t, Y=t)   Y->X
