@@ -161,10 +161,10 @@ class DiscreteDAGModel(PGModel):
         return list(dict.fromkeys(sum([list(self.graph.predecessors(v)) for v in variables], [])))
 
     def is_leaf(self, v):
-        self.graph.out_degree(v) == 0
+        return self.graph.out_degree(v) == 0
 
     def is_root(self, v):
-        self.graph.in_degree(v) == 0
+        return self.graph.in_degree(v) == 0
 
     @property
     def leaf_nodes(self):
