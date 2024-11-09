@@ -65,3 +65,14 @@ def min_max_iqr(data):
     if np.ndim(data)>1:
         return [np.min(v) for v in non_outliers], [np.max(v) for v in non_outliers]
     return np.min(non_outliers),np.max(non_outliers)
+
+
+def concatenate_with(arr, fill_value, axis=0):
+    # Create a new array filled with the fill_value, matching the shape of arr along other axes
+    fill_shape = [s for s in arr.shape]
+    fill_shape[axis] = 1
+
+    fill_array = np.full(fill_shape, fill_value)
+
+    # Concatenate along the specified axis
+    return np.concatenate((arr, fill_array), axis=axis)

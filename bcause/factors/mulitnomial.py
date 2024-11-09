@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 import math
 from collections import OrderedDict
@@ -16,7 +17,7 @@ from bcause.factors.values import store_dict
 import bcause.factors.factor as bf
 #from . import DiscreteFactor
 from bcause.util.domainutils import assingment_space, state_space, steps, random_assignment, to_numeric_domains
-from bcause.util.arrayutils import normalize_array, set_value
+from bcause.util.arrayutils import normalize_array, set_value, concatenate_with
 
 
 class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
@@ -175,6 +176,12 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             raise NotImplementedError("Sampling not available for conditional distributions")
             #todo: return [self.restrict(**obs).sample() for obs in assingment_space(self.right_domain)]
 
+    def  copy_with_dummy_state(self, target_var, state_name):
+        axis = self.variables.index(target_var)
+        new_values = concatenate_with(self.values_array(self.variables).copy(), 0.0, axis)
+        new_domain = copy.deepcopy(self.domain)
+        new_domain[target_var] += [state_name]
+        return self.builder(domain=new_domain, values=new_values, left_vars=self.left_vars)
 
     def __mul__(self, other):
         return self.multiply(other)
