@@ -75,7 +75,7 @@ m.set_factor("V",pv)
 
 ############### Sampling algorithm ##############
 
-max_iter = 50000
+max_iter = 1000
 
 model = m.copy()
 cardU = len(model.domains["U"])

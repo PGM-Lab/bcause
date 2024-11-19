@@ -135,6 +135,7 @@ noise_scale = 0.15 # Only applies to perturbation w/ noise
 
 ps = model.get_factors("S")[0]
 
+# Sampling function to always get compatible u
 def sample_valid_u(data):
     samples_u = []
     for i in range(len(data)):
@@ -144,43 +145,58 @@ def sample_valid_u(data):
         samples_u.append(u)
     return samples_u
 
-samples_u = np.array(sample_valid_u(data))
+# Wrapper function to vectorize ps and pu get value
+def get_value_vectorized(S, T, U):
+    return ps.get_value(S=S, T=T, U=U)
 
-# Trata los valores individualmente
+def get_value_u_vectorized(U):
+    return pu.get_value(U = U)
+
+# Vectorize the function
+ps_get_value_vec = np.vectorize(get_value_vectorized)
+pu_get_value_vec = np.vectorize(get_value_u_vectorized)
+
+# Generate the initial sampling for U
+samples_u = np.array(sample_valid_u(data))
 for i in range(max_iter):
     n_accept = 0
-    # Uniform Proposal option
-    #ConditionalMatrix = uniform_proposal(len(domU["U"]))
-
-    # Add gaussian noise option
-    #ConditionalMatrix = add_noise_to_Q(ConditionalMatrix, noise_scale=noise_scale) \
-    #    if i != 0 else uniform_proposal(len(domU["U"]))
-
-    # Random proposal
-    ConditionalMatrix = generate_random_proposal([0.1,0.1,0.1,0.1])
-
     pu = model.factors["U"]
+    ConditionalMatrix = uniform_proposal(len(domU["U"])) # Uniform Proposal option
+    #ConditionalMatrix = add_noise_to_Q(ConditionalMatrix, noise_scale=noise_scale) \
+    #    if i != 0 else uniform_proposal(len(domU["U"])) # Add gaussian noise option
+    #ConditionalMatrix = generate_random_proposal(alpha) # Random proposal
 
-    for j in range(len(data)):
+    # Generas las u de golpe
+    u_new_all = np.array([perturbation_proposal(u, ConditionalMatrix) for u in samples_u])
 
-        u_old = samples_u[j]
-        u_new = perturbation_proposal(u_old, ConditionalMatrix)
-        # while ps.get_value(S = data.loc[j,"S"], T = data.loc[j,"T"], U = u_new) == 0:
-        #     u_new = perturbation_proposal(u_old, ConditionalMatrix)
-        prob_new = (ps.get_value(S = data.loc[j,"S"], T = data.loc[j,"T"], U = u_new) *
-                    pu.get_value(U = u_new) * ConditionalMatrix[u_old,u_new])
+    # Fetch S and T values
+    S_values = data["S"].to_numpy()
+    T_values = data["T"].to_numpy()
 
-        prob_old = (ps.get_value(S = data.loc[j,"S"], T = data.loc[j,"T"], U = u_old)
-                    * pu.get_value(U = u_old) * ConditionalMatrix[u_new,u_old])
+    prob_new = (
+            ps_get_value_vec(S=S_values, T=T_values, U=u_new_all)  # Vectorized function
+            * pu_get_value_vec(U=u_new_all)  # Vectorized function
+            * ConditionalMatrix[samples_u, u_new_all]
+    )
 
-        ratio = min(1, prob_new/prob_old )
-        accept = np.random.uniform(0,1)
-        if accept < ratio:
-            n_accept += 1
-            samples_u[j] = u_new
+    prob_old = (
+            ps_get_value_vec(S=S_values, T=T_values, U=samples_u)
+            * pu_get_value_vec(U=samples_u)
+            * np.maximum(ConditionalMatrix[u_new_all, samples_u], 1e-3)
+    )
+
+
+    # Compute acceptance ratios
+    ratios = np.minimum(1, prob_new / prob_old)
+
+     # Generate acceptance decisions
+    acceptances = np.random.uniform(0, 1, size=len(ratios)) < ratios
+
+     # Update accepted samples
+    samples_u[acceptances] = u_new_all[acceptances]
+    n_accept += np.sum(acceptances)
 
     # get the counts of U and update the parameters of the U
-    #counts_u = [samples_u.count(u) for u in model.domains["U"]]
     counts_u = [np.count_nonzero(samples_u == u) for u in model.domains["U"]]
 
     total_counts_u += [counts_u]
