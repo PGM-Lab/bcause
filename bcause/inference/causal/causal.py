@@ -113,11 +113,12 @@ class CausalInference(Inference):
         Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
 
         # Run the query
-        return self._process_output(self.counterfactual_query(
+        result = self.counterfactual_query(
             effect,
             do={cause: Fcause},
             evidence={cause: Tcause, effect: Teffect},
-        ), {effect+"_1": Feffect})
+        )
+        return self._process_output(result, {effect+"_1": Feffect})
 
     def prob_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         # PS: P(X_{Y=t} = t |X=f, Y=f)   Y->X
