@@ -89,6 +89,15 @@ for i in range(max_iter):
     pu_ts = ve.query("U", conditioning= model.endogenous)
     samples_u = [pu_ts.R(**obs).sample(1,"U")[0]["U"] for obs in data.to_dict(orient="records")]
 
+    pu.get_value(U=0)
+    fs = model.factors["S"]
+
+    t = data.loc[0,"T"]
+    s = data.loc[0, "S"]
+
+    fs.get_value(U=0, T=t, S=s)
+
+
     # get the counts of U and update the parameters of the U
 
     w =random.uniform(0, 100)
