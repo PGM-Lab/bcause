@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 import math
 from collections import OrderedDict
@@ -16,7 +17,7 @@ from bcause.factors.values import store_dict
 import bcause.factors.factor as bf
 #from . import DiscreteFactor
 from bcause.util.domainutils import assingment_space, state_space, steps, random_assignment, to_numeric_domains
-from bcause.util.arrayutils import normalize_array, set_value
+from bcause.util.arrayutils import normalize_array, set_value, concatenate_with
 
 
 class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
@@ -51,23 +52,33 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return DeterministicFactor(self.domain, left_vars=[v], values=values)
 
     def constant(self, left_value):
-
         new_dom = self.left_domain
-        states = new_dom[self.left_vars[0]]
 
         if len(new_dom) != 1:
             raise ValueError("Only one variable on the left is allowed")
 
-        if left_value not in states:
-            raise ValueError("Value not in domain")
-
+        states = new_dom[self.left_vars[0]]
         new_data = [0.0] * len(states)
-        new_data[states.index(left_value)] = 1.0
+
+        if not type(left_value) in [tuple, list]:
+
+            if left_value not in states:
+                raise ValueError("Value not in domain")
+
+            new_data[states.index(left_value)] = 1.0
+
+        else:
+            left_values = list(self.left_domain.values())[0]
+            if not set(left_value).issubset(set(left_values)):
+                raise ValueError("Values are not contained")
+            k = 1 / len(left_value)
+            for v in left_value:
+                new_data[states.index(v)] = k
 
         return self.builder(domain=new_dom, values=new_data)
 
 
-    # Factor operations
+        # Factor operations
     def restrict(self, **observation) -> MultinomialFactor:
         if len(set(observation.keys()).intersection(self._variables))==0: return self
         new_store = self.store.restrict(**observation)
@@ -165,6 +176,12 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             raise NotImplementedError("Sampling not available for conditional distributions")
             #todo: return [self.restrict(**obs).sample() for obs in assingment_space(self.right_domain)]
 
+    def  copy_with_dummy_state(self, target_var, state_name):
+        axis = self.variables.index(target_var)
+        new_values = concatenate_with(self.values_array(self.variables).copy(), 0.0, axis)
+        new_domain = copy.deepcopy(self.domain)
+        new_domain[target_var] += [state_name]
+        return self.builder(domain=new_domain, values=new_values, left_vars=self.left_vars)
 
     def __mul__(self, other):
         return self.multiply(other)

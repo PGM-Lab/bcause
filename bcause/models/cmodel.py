@@ -149,7 +149,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
     def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict,list] = None, endogenous:Iterable = None,
                  cast_multinomial:bool = True, check_factors:bool = True):
         self._initialize(dag)
-        self._endogenous = endogenous or [x for x in dag if len(list(dag.predecessors(x)))>0]
+        self._endogenous = endogenous or [x for x in self.graph if len(list(self.graph.predecessors(x)))>0]
         self._cast_multinomial = cast_multinomial
         self._check_factors = check_factors
         self._rating = 1.0;
@@ -193,11 +193,15 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
 
 
     def intervention(self, **obs):
+
+        if any([type(v) in [list, tuple] and len(v) > 1 for v in obs.values()]):
+            raise ValueError("Intervention on multiple values are not allowed")
+
         new_dag = gutils.remove_ingoing_edges(self.graph, obs.keys())
         new_factors = dict()
         for v, f in self.factors.items():
             new_factors[v] = f if v not in obs else f.constant(obs[v])
-        return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=self.endogenous, cast_multinomial=self._cast_multinomial)
+        return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=self.endogenous, cast_multinomial=self._cast_multinomial, check_factors=False)
 
     def rename_vars(self, names_mapping: dict) -> DiscreteDAGModel:
         logging.getLogger( __name__ ).debug(f"Renaming variables as {names_mapping}")

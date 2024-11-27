@@ -62,11 +62,14 @@ class CausalMultiInference(CausalInference):
 
         if obs is not None:
             if isinstance(result, list):
-                result = [r.get_value(**obs) for r in result]
+                result = [r.restrict(**obs).marginalize(*list(obs.keys())).values[0] for r in result]
             elif isinstance(result, IntervalProbFactor):
-                result = result.restrict(**obs).values
+                result = result.restrict(**obs).marginalize(*list(obs.keys())).values[0]
             else:
-                result = result.get_value(**obs)
+                result = result.restrict(**obs).marginalize(*list(obs.keys())).values[0]
+
+
+
 
         if self._interval_result:
             if all(np.isscalar(r) for r in result):
@@ -82,8 +85,67 @@ class CausalMultiInference(CausalInference):
     def set_interval_result(self, value:bool):
         self._interval_result = value
 
+    def prob_necessity(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
+        # PN: P(X_{Y=f} = f |X=t, Y=t)   Y->X
+
+        #if not self._compiled: self.compile()
+        # Determine the true and false states
+        Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
+        Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
+
+        # Run the query
+        interval_result = self._interval_result
+        self._interval_result = False
+        result = self.counterfactual_query(
+            effect,
+            do={cause: Fcause},
+            evidence={cause: Tcause, effect: Teffect},
+        )
+
+        self._interval_result = interval_result
+
+        return self._process_output(result, {effect+"_1": Feffect})
+
+    def prob_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
+        # PS: P(X_{Y=t} = t |X=f, Y=f)   Y->X
+
+        #if not self._compiled: self.compile()
+        # Determine the true and false states
+        Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
+        Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
+
+        # Run the query
+        interval_result = self._interval_result
+        self._interval_result = False
+        result = self.counterfactual_query(
+            effect,
+            do={cause: Tcause},
+            evidence={cause: Fcause, effect: Feffect}
+        )
+        self._interval_result = interval_result
+
+        return self._process_output(result, {effect+"_1": Teffect})
 
 
+    def prob_necessity_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
+
+        #if not self._compiled: self.compile()
+
+        # Determine the true and false states
+        Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
+        Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
+
+        # Run the query
+        interval_result = self._interval_result
+        self._interval_result = False
+        result = self.counterfactual_query(
+            [effect]*2,
+            do=[{cause: Fcause}, {cause: Tcause}],
+            targets_subgraphs=[1,2]
+        )
+        self._interval_result = interval_result
+
+        return self._process_output(result, {effect + "_1": Feffect, effect + "_2": Teffect})
 
 
 

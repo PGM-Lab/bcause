@@ -1,7 +1,8 @@
 import pytest
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_almost_equal
 
 import bcause.readwrite.bnread as bnread
+from bcause import BayesianNetwork
 from bcause.inference.probabilistic.datainference import LaplaceInference
 from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.models.transform.simplification import minimalize
@@ -70,6 +71,26 @@ def test_minimalize(target, evidence, expected):
 
     assert determine_dropped(target, evidence) == expected
 
+
+def test_multi_evidence():
+
+    new_factors = {v: f.copy_with_dummy_state(v, "?") if model.is_leaf(v) else f for v, f in model.factors.items()}
+    model2 = BayesianNetwork(model.graph, new_factors)
+
+    inf1 = VariableElimination(model)
+    inf2 = VariableElimination(model2)
+
+    for x in set(model.variables).difference(model.leaf_nodes):
+        for y in model.leaf_nodes:
+            p0 = inf1.query(x, evidence={y: "yes"}).values[0]
+            p1 = inf2.query(x, evidence={y: "yes"}).values[0]
+            p2 = inf2.query(x, evidence={y: ["yes", "?"]}).values[0]
+            p3 = inf1.query(x, evidence={y: ["yes", "no"]}).values[0]
+            p4 = inf1.query(x).values[0]
+
+            assert_almost_equal(p0,p1)
+            assert_almost_equal(p1,p2)
+            assert_almost_equal(p3,p4)
 
 
 

@@ -160,6 +160,19 @@ class DiscreteDAGModel(PGModel):
     def get_parents(self, *variables) -> list:
         return list(dict.fromkeys(sum([list(self.graph.predecessors(v)) for v in variables], [])))
 
+    def is_leaf(self, v):
+        return self.graph.out_degree(v) == 0
+
+    def is_root(self, v):
+        return self.graph.in_degree(v) == 0
+
+    @property
+    def leaf_nodes(self):
+        return [v for v in self.variables if self.is_leaf(v)]
+    @property
+    def root_nodes(self):
+        return [v for v in self.variables if self.is_root(v)]
+
     def markov_blanket(self, v)-> list:
         ch = set(self.get_children(v))
         pa = set(self.get_parents(v))
