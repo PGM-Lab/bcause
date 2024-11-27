@@ -138,4 +138,3 @@ for i in range(max_iter):
         plt.hist(Q[100:],density=True)
         plt.xlim(0, 1)
         plt.show()
-[]

@@ -1,6 +1,9 @@
 """
 Compute the PMF of exogenous variables given data for endogenous variable using
 Gibbs sampling
+
+Improvements:
+ - _get_conditional_probability_table stores probabilities an array for each cell of the column 'Probabilities' of the data frame cpt
 """
 
 from collections import defaultdict
@@ -119,25 +122,27 @@ if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
 
-    # Nota: probar también con modelos semi-markovianos
-
-    m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
-
-    f = m.factors["S"]
-    seq_to_pandas(m.factors["S"], exovar="U")
-
-    f.variables
-
-
+    #m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
     #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
     #data = pd.read_csv("./models/literature/pearl_small.csv")
-    data = pd.read_csv("./models/modelTest_SM.csv")
+    #data = pd.read_csv("./models/modelTest_SM.csv")
 
 
 
+    import time
+
+    # Start the timer
+    start_time = time.time()
 
     gs = GibbsSampling(m)
     gs.run(data, max_iter=10000)
+
+    # End the timer
+    end_time = time.time()
+
+    # Calculate elapsed time
+    elapsed_time = end_time - start_time
+    print(f"Elapsed time: {elapsed_time:.4f} seconds")
 
     import matplotlib.pyplot as plt
 
@@ -156,11 +161,6 @@ if __name__ == "__main__":
     plt.hist(Q[10:], density=True)
     plt.xlim(0, 1)
     plt.show()
-
-        #print(q)
-
-
-
 
     #     U_store = np.vstack([U_store,model_i.get_factors(*model_i.exogenous)[0].values])
     #     V_store = np.vstack([V_store,model_i.get_factors(*model_i.exogenous)[1].values])
