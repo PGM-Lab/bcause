@@ -3,7 +3,7 @@ Compute the PMF of exogenous variables given data for endogenous variable using
 Metropolis-Hastings
 
 improvements:
- - Change dictionary approach to indices approach to get values from P(S|T,U)
+ - Change dictionary approach to preloaded tables and SQL joins for conditional probability
  - Sampling only possible values?
  - Accept a perturbation and a transition function as inputs for the method
 """
@@ -48,7 +48,6 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         self._get_involved_factors()
         # Initial sampling of U
         self._initial_sampling = {U: self._get_precise_sampling(U,data) for U in self._trainable_vars}
-        self.data = data
 
     def _stop_learning(self) -> bool:
         pass
@@ -58,7 +57,7 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
 
     def _updated_factor(self, U) -> MultinomialFactor:
         m = self._model
-        data = self.data
+        data = self._data
 
         if self._is_prior == True:
             if self._alpha is None:
@@ -67,36 +66,29 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
             self._is_prior = False
 
         else:
-            def get_conditional_probs(factor):
-                return [factor.get_value(**row) for row in data.to_dict(orient="records")]
-
             def filter_columns(factor, columns):
                 return [col for col in columns if col in factor.variables]
 
             endo_f = self._endo_factors[U]
-            exo_f = self._exo_factors[U]
+            exo_f = self._model.factors[U]
 
             # Probabilities with the previous U
-            data[U] = self._initial_sampling[U]
-
-            prob_u_old = np.array(exo_f.values)[data[U].to_numpy()]
-
-            conditional_probs_old = {v: [f.get_value(**row) for row in data[filter_columns(f,data.columns)].to_dict(orient="records")] for v, f in endo_f.items()}
-
-            data = data.rename(columns = {U:'old'})
+            data['old'] = self._initial_sampling[U]
+            prob_u_old = np.array(exo_f.values)[data['old'].to_numpy()]
+            conditional_probs_old = {v: np.ones(len(data)) for v in endo_f.keys()} # base ("old") U should be always compatible
 
             # Proposal distribution to change u
             transition_matrix = self._transition_function(U)
             # How u changes
-            data[U] = np.array([self._perturbation_function(U,u, transition_matrix) for u in self._initial_sampling[U]])
+            data[U] = np.array([self._perturbation_function(u,U, transition_matrix) for u in self._initial_sampling[U]])
             prob_u_new = np.array(exo_f.values)[data[U].to_numpy()]
 
+            filt_cols = {v: filter_columns(f, data.columns) for v, f in endo_f.items()}
             conditional_probs_new = {
-                v: [f.get_value(**row) for row in data[filter_columns(f, data.columns)].to_dict(orient="records")] for
-                v, f in endo_f.items()}
+                v: [f.get_value(**row) for row in data[filt_cols[v]].to_dict(orient="records")]
+                for v, f in endo_f.items()}
 
             data = data.rename(columns={U: 'new'})
-
 
             # Generate U values
             prob_new = np.prod(np.array(list(conditional_probs_new.values())), axis = 0) * np.array(prob_u_new) * transition_matrix[data['old'].to_numpy(),data['new'].to_numpy()]
@@ -118,17 +110,15 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
             # sample the theta and set it to the model
             theta = dirichlet.rvs(beta)[0]
         f =  MultinomialFactor({U: m.domains[U]}, theta)
-        self._exo_factors[U] = f
         return f
 
     def _process_data(self, data: pd.DataFrame):
         # add missing variables
-        _data = data.copy()
-        missing_vars = [v for v in self.prior_model.variables if v not in _data.columns]
-        for v in missing_vars: _data[v] = float("nan")
+        missing_vars = [v for v in self.prior_model.variables if v not in data.columns]
+        for v in missing_vars: data[v] = float("nan")
 
         # Set as trainable variables those with missing
-        self._trainable_vars = self.trainable_vars or list(_data.columns[_data.isna().any()])
+        self._trainable_vars = self.trainable_vars or list(data.columns[data.isna().any()])
 
         print(f"trainable: {self.trainable_vars}")
 
@@ -137,11 +127,11 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
             if not self.prior_model.is_exogenous(v):
                 raise ValueError(f"Trainable variable {v} is not exogenous")
 
-            if (~_data[v].isna()).any():
+            if (~data[v].isna()).any():
                 raise ValueError(f"Trainable variable {v} is not completely missing")
 
         # save the dataset
-        self._data = _data
+        self._data = data
 
     def _get_involved_factors(self):
         endo_factors = {
@@ -151,27 +141,26 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
             }
             for trainable_var in self._trainable_vars
         }
-
-        exo_factors = {U: self._model.factors[U] for U in self._trainable_vars }
-
-        self._exo_factors = exo_factors
         self._endo_factors = endo_factors
 
     def _get_precise_sampling(self, U,  data: pd.DataFrame):
-        endo_vars = {v: list(filter(lambda item: item != U, self._endo_factors[U][v].variables)) for v in self._endo_factors[U].keys()}
+        exo_f = self._model.factors[U]
+        endo_f = self._endo_factors[U]
+
+        endo_vars = {v: list(filter(lambda item: item != U, f.variables)) for v, f in endo_f.items()}
 
         feasible_values = np.prod(
             np.array([
                 [f.R(**row).values for row in data[endo_vars[v]].to_dict(orient="records")]
-                for v, f in self._endo_factors[U].items()
+                for v, f in endo_f.items()
             ]), axis=0
         )
 
-        prob = np.array(self._exo_factors[U].values) * feasible_values
+        prob = np.array(exo_f.values) * feasible_values
         prob_standard = prob/prob.sum(axis = 1, keepdims=True)
 
         sampled_values = np.array([
-            np.random.choice(self._exo_factors[U].domain[U], p=prob_standard[i])
+            np.random.choice(exo_f.domain[U], p=prob_standard[i])
             for i in range(len(data))
         ])
         return sampled_values
@@ -188,15 +177,16 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
 
     # Methods to make transition or perturbation
     def _uniform_transition(self, U):
-        num_states = len(self._exo_factors[U].domain[U])
+        num_states = len(self._model.factors[U].domain[U])
         return np.full((num_states, num_states), 1 / num_states)
 
     def _random_transition(self, U):
-        num_states = len(self._exo_factors[U].domain[U])
-        return np.array([dirichlet.rvs(np.ones(num_states))[0] for _ in range(num_states)])
+        num_states = len(self._model.factors[U].domain[U])
+        param = np.repeat(0.1,num_states) # parameter of the dirichlet that samples transition matrix
+        return np.array([dirichlet.rvs(param)[0] for _ in range(num_states)])
 
-    def _uniform_perturbation(self, U, u, transition_matrix):
-        return np.random.choice(self._exo_factors[U].domain[U], p = transition_matrix[u])
+    def _uniform_perturbation(self, u, U, transition_matrix):
+        return np.random.choice(self._model.factors[U].domain[U], p = transition_matrix[u])
 
     def _set_non_informative_alpha(self):
         self._alpha = {U: np.ones(len(self._model.domains[U])) for U in self._trainable_vars}
@@ -217,14 +207,13 @@ if __name__ == "__main__":
     #data = pd.read_csv("./models/literature/pearl_small.csv")
     #data = pd.read_csv("./models/modelTest_SM.csv")
 
-
     import time
 
     # Start the timer
     start_time = time.time()
 
-    mhs = MetropolisHastingsSampling(m)
-    mhs.run(data, max_iter=5000)
+    mhs = MetropolisHastingsSampling(m, transition_select = "random")
+    mhs.run(data, max_iter=10000)
 
     # End the timer
     end_time = time.time()
