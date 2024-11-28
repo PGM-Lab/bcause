@@ -116,7 +116,7 @@ class PGModel(ABC):
         if set(new_order) != set(self.variables):
             raise ValueError("Wrong new order")
 
-        self._graph = gutils.reorder_nodes(self.graph)
+        self._graph = gutils.reorder_nodes(self.graph, new_order)
 
 
 
