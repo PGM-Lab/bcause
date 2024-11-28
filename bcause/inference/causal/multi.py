@@ -48,9 +48,10 @@ class CausalMultiInference(CausalInference):
         self._compiled = True
         return self
 
-    def query(self, target, do, evidence=None, counterfactual=False, targets_subgraphs = None):
-        if not self._compiled: self.compile()
+    def query(self, target, do=None, evidence=None, counterfactual=False, targets_subgraphs = None):
+        do = do or dict()
 
+        if not self._compiled: self.compile()
         results = [inf.query(target, do, evidence, counterfactual, targets_subgraphs)  for inf in self._causal_inf]
         if len(results)==0:
             return None

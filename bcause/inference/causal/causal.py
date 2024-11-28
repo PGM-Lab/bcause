@@ -72,7 +72,8 @@ class CausalInference(Inference):
         #return self._inf.run()
         return self._inf.query(**self._query_args)
 
-    def query(self, target, do, evidence=None, counterfactual=False, targets_subgraphs = None):
+    def query(self, target, do=None, evidence=None, counterfactual=False, targets_subgraphs = None):
+        do = do or dict()
         if counterfactual:
             #if not isinstance(do, dict): raise ValueError("Intervention must be specified in a single dictionary")
             target = as_lists(target)
