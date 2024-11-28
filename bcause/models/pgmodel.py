@@ -112,7 +112,11 @@ class PGModel(ABC):
         return np.prod([f.prob(observations) for f in self.factor_list], axis=0)
 
 
+    def reorder_variables(self, new_order):
+        if set(new_order) != set(self.variables):
+            raise ValueError("Wrong new order")
 
+        self._graph = gutils.reorder_nodes(self.graph)
 
 
 
