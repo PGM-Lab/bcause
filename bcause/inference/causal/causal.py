@@ -14,13 +14,37 @@ from bcause.util.assertions import assert_dag_with_nodes
 
 
 class CausalInference(Inference):
+    """
+    Performs causal inference using a structural causal model (SCM) with interventions, counterfactuals,
+    and probability calculations for necessity and sufficiency.
+    """
     def __init__(self, model: StructuralCausalModel, prob_inf_fn: Callable):
+        """
+        Initializes the CausalInference object.
+
+        Args:
+            model (StructuralCausalModel): The structural causal model.
+            prob_inf_fn (Callable): A function to create the probabilistic inference engine.
+        """
         self._model = model
         self._inf = None
         self._prob_inf_fn = prob_inf_fn
         self._compiled = False
 
     def compile(self, target, do, evidence=None, counterfactual=False) -> Inference:
+        """
+        Prepares the causal inference model with the specified target, intervention, and evidence.
+
+        Args:
+            target: The target variables to query.
+            do: The interventions to apply to the model.
+            evidence (dict, optional): Observational evidence for the query.
+            counterfactual (bool, optional): Whether to perform counterfactual inference. Defaults to False.
+
+        Returns:
+            Inference: The compiled inference object.
+        """
+
         target = as_lists(target)
         evidence = evidence or dict()
 
@@ -53,7 +77,12 @@ class CausalInference(Inference):
         return self
 
     def _preprocess(self, *args, **kwargs) -> PGModel:
+        """
+        Preprocess the model by applying interventions or constructing a counterfactual model.
 
+        Returns:
+            PGModel: The preprocessed model ready for inference.
+        """
         if not self._counterfactual:
             new_model = self.model.intervention(**self._do)
             logging.getLogger( __name__ ).debug(f"Intervened DAG: {new_model.graph.edges}")
@@ -66,13 +95,38 @@ class CausalInference(Inference):
 
     @property
     def counterfactual(self):
+        """
+        Indicates whether the current inference involves counterfactual analysis.
+
+        Returns:
+            bool: True if counterfactual analysis is involved, False otherwise.
+        """
         return self._counterfactual
 
     def run(self) -> Factor:
+        """
+        Executes the inference and returns the resulting factor.
+
+        Returns:
+            Factor: The result of the inference query.
+        """
         #return self._inf.run()
         return self._inf.query(**self._query_args)
 
     def query(self, target, do, evidence=None, counterfactual=False, targets_subgraphs = None):
+        """
+        Executes a general causal or counterfactual query.
+
+        Args:
+            target: The target variables to query.
+            do: The interventions to apply.
+            evidence (dict, optional): Observational evidence for the query.
+            counterfactual (bool, optional): Whether to perform counterfactual inference. Defaults to False.
+            targets_subgraphs (list, optional): Subgraph indices for counterfactual targets. Defaults to None.
+
+        Returns:
+            The result of the query.
+        """
         if counterfactual:
             #if not isinstance(do, dict): raise ValueError("Intervention must be specified in a single dictionary")
             target = as_lists(target)
@@ -81,13 +135,47 @@ class CausalInference(Inference):
         return self.compile(target, do, evidence,counterfactual).run()
 
     def causal_query(self, target, do, evidence=None):
+        """
+        Handles causal queries.
+
+        Args:
+            target: The target variables to query.
+            do: The interventions to apply.
+            evidence (dict, optional): Observational evidence for the query.
+
+        Returns:
+            The result of the causal query.
+        """
         return self.query(target, do, evidence=evidence, counterfactual=False)
 
     def counterfactual_query(self, target, do, evidence=None, targets_subgraphs = None):
+        """
+        Handles counterfactual queries.
+
+        Args:
+            target: The target variables to query.
+            do: The interventions to apply.
+            evidence (dict, optional): Observational evidence for the query.
+            targets_subgraphs (list, optional): Subgraph indices for counterfactual targets. Defaults to None.
+
+        Returns:
+            The result of the counterfactual query.
+        """
         return self.query(target, do, evidence=evidence, counterfactual=True, targets_subgraphs=targets_subgraphs)
 
     def prob_necessity_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
+        """
+        Computes the probability of necessity and sufficiency for a given cause-effect pair.
 
+        Args:
+            cause: The causal variable.
+            effect: The effect variable.
+            true_false_cause (tuple, optional): Tuple specifying the true and false states of the cause. Defaults to None.
+            true_false_effect (tuple, optional): Tuple specifying the true and false states of the effect. Defaults to None.
+
+        Returns:
+            float: The computed probability.
+        """
         #if not self._compiled: self.compile()
 
         # Determine the true and false states
@@ -102,10 +190,31 @@ class CausalInference(Inference):
         ), {effect + "_1": Feffect, effect + "_2": Teffect})
 
     def _process_output(self, result, obs):
+        """
+        Processes the output of a counterfactual query to compute probabilities.
+
+        Args:
+            result: The raw query result.
+            obs: Observational constraints for processing the result.
+
+        Returns:
+            float: The processed result.
+        """
         return result.R(**obs).marginalize(*list(obs.keys())).values[0]
 
     def prob_necessity(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
-        # PN: P(X_{Y=f} = f |X=t, Y=t)   Y->X
+        """
+        Computes the probability of necessity for a given cause-effect pair.
+
+        Args:
+            cause: The causal variable.
+            effect: The effect variable.
+            true_false_cause (tuple, optional): Tuple specifying the true and false states of the cause. Defaults to None.
+            true_false_effect (tuple, optional): Tuple specifying the true and false states of the effect. Defaults to None.
+
+        Returns:
+            float: The computed probability of necessity.
+        """
 
         #if not self._compiled: self.compile()
         # Determine the true and false states
@@ -121,8 +230,18 @@ class CausalInference(Inference):
         return self._process_output(result, {effect+"_1": Feffect})
 
     def prob_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
-        # PS: P(X_{Y=t} = t |X=f, Y=f)   Y->X
+        """
+        Computes the probability of sufficiency for a given cause-effect pair.
 
+        Args:
+            cause: The causal variable.
+            effect: The effect variable.
+            true_false_cause (tuple, optional): Tuple specifying the true and false states of the cause. Defaults to None.
+            true_false_effect (tuple, optional): Tuple specifying the true and false states of the effect. Defaults to None.
+
+        Returns:
+            float: The computed probability of sufficiency.
+        """
         #if not self._compiled: self.compile()
         # Determine the true and false states
         Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
