@@ -11,6 +11,7 @@ from bcause.learning.aggregator.aggregator import SimpleModelAggregatorEM, Simpl
 from bcause.learning.parameter.expectation_maximization import ExpectationMaximization
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.arrayutils import min_max_iqr
+import bcause.util.domainutils as dutils
 
 
 class CausalMultiInference(CausalInference):
