@@ -146,7 +146,7 @@ class DiscreteDAGModel(PGModel):
 
 
     def get_domains(self, variables):
-        return {v:d for v,d in self._domains.items() if v in variables}
+        return {v:self._domains[v] for v in variables}
 
     def get_varsizes(self, variables):
         return {v:len(d) for v,d in self._domains.items() if v in variables}
