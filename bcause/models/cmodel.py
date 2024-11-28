@@ -13,7 +13,7 @@ import networkx as nx
 import bcause.models.info as info
 
 from bcause.factors import DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, random_deterministic
+from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, random_deterministic, uniform_multinomial
 from bcause.models import BayesianNetwork
 from bcause.models.pgmodel import DiscreteDAGModel
 import bcause.util.domainutils as dutils
@@ -230,6 +230,12 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         for u in self.exogenous:
             dom = dutils.subdomain(domains, u)
             f = random_multinomial(dom)
+            self.set_factor(u, f)
+
+    def fill_uniform_marginals(self, domains):
+        for u in self.exogenous:
+            dom = dutils.subdomain(domains, u)
+            f = uniform_multinomial(dom)
             self.set_factor(u, f)
 
     def fill_random_factors(self, domains):
