@@ -31,22 +31,16 @@ def addGraph(bn: gum.BayesNet, nodes: list[str], card: dict ,  edges: list[tuple
 def setCPT(f: bfd.MultinomialFactor, bn: gum.BayesNet):
     v = list(f.left_domain.keys())
     rv = list(f.right_domain.keys())
+    ndim = len(f.variables)
     # Check nodes
     [bn.add(i) for i in v+rv if not bn.exists(i)]
     # Check edges
-    [bn.addArc(i, v[0]) for i in rv if not bn.existsArc(i, v[0])]
+    [bn.addArc(i, *v) for i in rv if not bn.existsArc(i, *v)]
 
     # Set the CPT
     values = f.values_array()
-    if np.ndim(values)<2:
-        values = np.expand_dims(values, axis=0)
-
-    if np.ndim(values) > 2:
-        shape = values.shape
-        values = values.reshape(np.prod(shape[:-1]), shape[0])
-
-    if v[0] == 'V2':
-        print(values.reshape(16,2,2))
+    shape = [len(f.domain[var]) for var in bn.cpt(*v).names[::-1]]
+    values = values.reshape(*shape)
     bn.cpt(f.left_vars[0])[:] = values
 
 def toAgrum(bn: BayesianNetwork) -> gum.BayesNet:
@@ -57,4 +51,4 @@ def toAgrum(bn: BayesianNetwork) -> gum.BayesNet:
     [setCPT(f,gumbn) for f in bn.factors.values()]
     return gumbn
 
-toAgrum(bn)
+gumbn = toAgrum(bn)
