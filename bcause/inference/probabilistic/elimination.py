@@ -32,7 +32,7 @@ class VariableElimination(ProbabilisticInference):
 
         super(self.__class__, self).__init__(model)
 
-    def _preprocess(self) -> DiscreteDAGModel:
+    def _preprocess_model(self) -> DiscreteDAGModel:
         return minimalize(self.model, self._target, self._evidence)
 
     def run(self) -> MultinomialFactor:
