@@ -12,7 +12,7 @@ model = StructuralCausalModel.read(f"./models/modelTestA_1.uai").rename_vars(dic
 bc.randomUtil.seed(1)
 data = model.sampleEndogenous(1000)
 inf = EMCC(model, data, max_iter=100, num_runs=20)
-
+inf.prob_necessity("X","Y")
 
 p = inf.causal_query("Y", do=dict(X=0))
 print(p)

@@ -13,13 +13,14 @@ import networkx as nx
 import bcause.models.info as info
 
 from bcause.factors import DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, random_deterministic
+from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, random_deterministic, uniform_multinomial
 from bcause.models import BayesianNetwork
 from bcause.models.pgmodel import DiscreteDAGModel
 import bcause.util.domainutils as dutils
 import bcause.util.graphutils as gutils
 
 import bcause.factors.factor as bf
+from bcause.models.transform.combination import counterfactual_model
 
 
 class DiscreteCausalDAGModel(DiscreteDAGModel):
@@ -148,9 +149,10 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
     def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict,list] = None, endogenous:Iterable = None,
                  cast_multinomial:bool = True, check_factors:bool = True):
         self._initialize(dag)
-        self._endogenous = endogenous or [x for x in dag if len(list(dag.predecessors(x)))>0]
+        self._endogenous = endogenous or [x for x in self.graph if len(list(self.graph.predecessors(x)))>0]
         self._cast_multinomial = cast_multinomial
         self._check_factors = check_factors
+        self._rating = 1.0;
 
         if factors is not None:
             self._set_factors(factors)
@@ -191,17 +193,21 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
 
 
     def intervention(self, **obs):
+
+        if any([type(v) in [list, tuple] and len(v) > 1 for v in obs.values()]):
+            raise ValueError("Intervention on multiple values are not allowed")
+
         new_dag = gutils.remove_ingoing_edges(self.graph, obs.keys())
         new_factors = dict()
         for v, f in self.factors.items():
             new_factors[v] = f if v not in obs else f.constant(obs[v])
-        return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=self.endogenous, cast_multinomial=self._cast_multinomial)
+        return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=self.endogenous, cast_multinomial=self._cast_multinomial, check_factors=False)
 
     def rename_vars(self, names_mapping: dict) -> DiscreteDAGModel:
-        logging.debug(f"Renaming variables as {names_mapping}")
+        logging.getLogger( __name__ ).debug(f"Renaming variables as {names_mapping}")
         new_dag = relabel_nodes(self.graph, names_mapping)
         new_factors = [f.rename_vars(names_mapping) for f in self.factors.values()]
-        new_endogenous = [names_mapping[x] for x in self.endogenous]
+        new_endogenous = [names_mapping[x] if x in names_mapping else x for x in self.endogenous]
         return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=new_endogenous, cast_multinomial=self._cast_multinomial)
 
 
@@ -224,6 +230,12 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         for u in self.exogenous:
             dom = dutils.subdomain(domains, u)
             f = random_multinomial(dom)
+            self.set_factor(u, f)
+
+    def fill_uniform_marginals(self, domains):
+        for u in self.exogenous:
+            dom = dutils.subdomain(domains, u)
+            f = uniform_multinomial(dom)
             self.set_factor(u, f)
 
     def fill_random_factors(self, domains):
@@ -249,16 +261,42 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
     def sampleEndogenous(self, n_samples: int, as_pandas = True) -> Union[list[Dict], pd.DataFrame]:
         return self.sample(n_samples, as_pandas)[self.endogenous]
 
+    def exogeneity(self, cause:Hashable, effect:Hashable) -> bool:
+        m = counterfactual_model(self, do=[{cause: 0}, {cause: 1}])
+        x = [f"{effect}_{i}" for i in (1, 2)]
+        return m.d_separated(x, cause)
+
     def log_likelihood(self, data, variables=None):
         bn = self.get_qbnet()
         obs = data.to_dict("records")
         return np.sum(bn.log_prob(obs, variables))
 
+    def ratio(self, data, variables=None):
+        return self.max_log_likelihood(data,variables) / self.log_likelihood(data,variables)
 
     def max_log_likelihood(self, data, variables=None):
         bn = self.get_qbnet(data)
         obs = data.to_dict("records")
         return np.sum(bn.log_prob(obs,variables))
+
+    def update_domains(self, **domains):
+        new_factors = self.factors
+        for v, d in domains.items():
+            for k in new_factors.keys():
+                f = new_factors[k]
+                if v in f.variables:
+                    f = f.change_domains(**{v: d})
+                new_factors[k] = f
+        return self.builder(dag=self.graph, factors=new_factors)
+
+
+    @property
+    def rating(self):
+        return self._rating
+
+    @rating.setter
+    def rating(self, rating):
+        self._rating = rating
 
     def __repr__(self):
         str_card_endo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"
@@ -266,6 +304,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         str_card_exo = ",".join([f"{str(v)}:{'' if d is None else str(len(d))}"
                                   for v, d in self._domains.items() if self.is_exogenous(v)])
         return f"<StructuralCausalModel ({str_card_endo}|{str_card_exo}), dag={gutils.dag2str(self.graph)}>"
+
 
 
     def draw(self, pos=None):

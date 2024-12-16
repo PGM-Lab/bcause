@@ -15,3 +15,6 @@ def to_xmlbif(model:'StructuralCausalModel', filepath):
 
 def to_uai(model:'StructuralCausalModel', filepath, reverse_values=False, var_order=None):
     bnwrite.to_uai(model, filepath, reverse_values, "CAUSAL", integer_varlist=model.endogenous, var_order=var_order);
+
+def to_hugin(model:'StructuralCausalModel', filepath):
+    bnwrite.to_hugin(model.to_bnet(), filepath)

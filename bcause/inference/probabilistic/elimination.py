@@ -32,7 +32,7 @@ class VariableElimination(ProbabilisticInference):
 
         super(self.__class__, self).__init__(model)
 
-    def _preprocess(self) -> DiscreteDAGModel:
+    def _preprocess_model(self) -> DiscreteDAGModel:
         return minimalize(self.model, self._target, self._evidence)
 
     def run(self) -> MultinomialFactor:
@@ -54,13 +54,13 @@ class VariableElimination(ProbabilisticInference):
         ordering = self._heuristic(self._inference_model.graph, to_remove=to_remove,
                                    varsizes=self._inference_model.varsizes)
 
-        logging.info(f"Starting Variable elimination loop. Ordering: {ordering}")
-        logging.debug(f"Current factor list: {[f.name for f in factors]}")
+        logging.getLogger( __name__ ).info(f"Starting Variable elimination loop. Ordering: {ordering}")
+        logging.getLogger( __name__ ).debug(f"Current factor list: {[f.name for f in factors]}")
 
         for select_var in ordering:
             # get relevant factors
             relevant = [f for f in factors if select_var in f.variables]
-            logging.debug(f"Removing variable {select_var}. Relevant factors: {[f.name for f in relevant]}")
+            logging.getLogger( __name__ ).debug(f"Removing variable {select_var}. Relevant factors: {[f.name for f in relevant]}")
 
             # combine them all
             join = reduce((lambda f1, f2: f1 * f2), relevant)
@@ -73,15 +73,18 @@ class VariableElimination(ProbabilisticInference):
             if len(fnew.left_vars)>0:
                 factors += [fnew]
 
-            logging.debug(f"Updated factor list: {[f.name for f in factors]}")
+            logging.getLogger( __name__ ).debug(f"Updated factor list: {[f.name for f in factors]}")
 
 
 
         p = reduce((lambda f1, f2: f1 * f2), factors)
         # combine resulting factors and set evidence
         joint = reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
+
+
+
         result = joint / (joint ** self._target)
         self.time = (time.time()-tstart)*1000
-        logging.info(f"Finished variable elimination in {self.time} ms.")
+        logging.getLogger( __name__ ).info(f"Finished variable elimination in {self.time} ms.")
         return result
 

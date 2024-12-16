@@ -27,3 +27,28 @@ def filter_data(data, obs):
     for k,v in obs.items():
         data = data.loc[data[k]==v]
     return data
+
+
+def to_numeric_dataset(data, dom):
+    data = data.copy()
+
+    for v in data.columns:
+        data[v] = data[v].apply(lambda x: dom[v].index(x))
+
+    return data
+
+
+###
+
+def to_uai_data(data, model):
+    out_data = to_numeric_dataset(data, model.domains)
+
+    var_order = list(reversed(list(model.domains.keys())))
+    var_order = [v for v in var_order if v in model.endogenous]
+
+    out_data = out_data[var_order]
+
+    new_names = {var_order[i]: len(var_order) - i - 1 for i in range(len(var_order))}
+    out_data = out_data.rename(columns=new_names).reset_index(drop=True)
+    return out_data
+

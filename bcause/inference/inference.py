@@ -17,9 +17,9 @@ class Inference(ABC):
     def inference_model(self):
         return self._inference_model
 
-    @abstractmethod
-    def _preprocess(self, *args, **kwargs) -> PGModel:
-        pass
+    def _preprocess_model(self, *args, **kwargs) -> PGModel:
+        return self.model
+
 
     @abstractmethod
     def compile(self, *args, **kwargs) -> Inference:

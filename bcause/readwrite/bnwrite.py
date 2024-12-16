@@ -1,8 +1,10 @@
 import logging
 import os
+import tempfile
 from pathlib import Path
 
 from pgmpy.readwrite import BIFWriter, XMLBIFWriter
+from pyAgrum import pyAgrum
 
 from bcause.factors import MultinomialFactor, DeterministicFactor
 from bcause.util.assertions import assert_file_exists
@@ -19,7 +21,7 @@ def __write(writer, model, filepath):
     folder = filepath.parent
     assert_file_exists(folder)
     format = writer.__name__.replace('Writer', '')
-    logging.info(f"Saving model in {format} to {os.path.abspath(filepath)}")
+    logging.getLogger( __name__ ).info(f"Saving model in {format} to {os.path.abspath(filepath)}")
     getattr(writer(toPgmpyBNet(model)), f"write_{format.lower()}")(filepath)
 
 def to_bif(model:'BayesianNetwork', filepath):
@@ -77,8 +79,24 @@ def to_uai(model:'BayesianNetwork', filepath, reverse_values=False, label="BAYES
     folder = filepath.parent
     assert_file_exists(folder)
 
-    print(out)
     with open(filepath, "w+") as file:
         # Writing data to a file
         file.write(out)
+
+
+
+def to_hugin(model:'BayesianNetwork', filepath):
+
+    with tempfile.NamedTemporaryFile(suffix='.bifxml') as tmp:
+        model.save(tmp.name)
+        # Save states as strings
+        lines = [l.replace('<OUTCOME>', '<OUTCOME>"').replace('</OUTCOME>', '"</OUTCOME>') for l in
+                 open(tmp.name).readlines()]
+        with open(tmp.name, mode='wb+') as temp_fp:
+            temp_fp.writelines([str.encode(l) for l in lines])
+
+        # Load it with pyagrum
+        pamodel = pyAgrum.loadBN(tmp.name)
+        pamodel.setProperty("name", '"bcause_bnet"')
+        pamodel.saveNET(str(filepath))
 

@@ -15,6 +15,7 @@ from bcause.factors.values.store import DataStore
 from bcause.factors.values import store_dict
 
 import bcause.factors.factor as bf
+from bcause.util.arrayutils import as_lists
 
 
 class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
@@ -23,10 +24,20 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
                                                                                                      #       If so, left_vars->event and right_vars->evidence(s) or condition(s)
         vtype = vtype or DataStore.DEFAULT_STORE
 
-        self._domain = OrderedDict(domain) # TODO: Rafa, I think dict() also keeps the order of insertion from Python 3.7
+        if left_vars is None and right_vars is None:
+            raise ValueError("Either left or right variables must be specified")
+
+
+
+        left_vars = as_lists(left_vars)
+
+
+
+        self._domain = OrderedDict(domain)
         self.set_variables(list(domain.keys()), left_vars, right_vars)
 
-        if len(self.left_vars)!=1: raise ValueError("Wrong number of left variables")
+        if len(self.left_vars)!=1:
+            raise ValueError("Wrong number of left variables")
 
         if np.ndim(values)==1: values = np.reshape(values, [len(d) for d in self.right_domain.values()])
 
@@ -63,7 +74,7 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return self.get_value(**righ_obs) == observation[self.left_vars[0]]
 
     def to_multinomial(self, as_int=False):
-        logging.debug(f"Casting deterministic function {self.name} to multinomial")
+        logging.getLogger( __name__ ).debug(f"Casting deterministic function {self.name} to multinomial")
         cast = int if as_int else float
         values = [cast(self.eval(**obs)) for obs in dutils.assingment_space(self.domain)]
         return MultinomialFactor(self.domain, right_vars=self.right_vars, values=values, vtype=self.vtype)
@@ -135,8 +146,10 @@ def canonical_deterministic(domain:Dict, exo_var:Hashable, right_endo_vars:list=
     left_var = [x for x in domain.keys() if x not in right_endo_vars and x != exo_var]
     if len(left_var) != 1:
         raise ValueError("Canonical for non-markovian")
-
     left_var = left_var[0]
+    if exo_var not in domain:
+        exoCard = int(len(domain[left_var]) ** np.prod([len(domain[v]) for v in right_endo_vars]))
+        domain[exo_var] = list(range(0, exoCard))
 
     domEndoPa = dutils.assingment_space(dutils.subdomain(domain, *right_endo_vars))
     m = len(domEndoPa)
@@ -144,5 +157,5 @@ def canonical_deterministic(domain:Dict, exo_var:Hashable, right_endo_vars:list=
     new_values = list(product(*[domain[left_var]] * m))
     new_dom = {**dutils.subdomain(domain, left_var), **dutils.subdomain(domain, exo_var), **dutils.subdomain(domain, *right_endo_vars)}
 
-    return DeterministicFactor(domain=new_dom, values=new_values, left_vars=[left_var], vtype=vtype)
+    return DeterministicFactor(domain=new_dom, values=np.array(new_values).flatten(), left_vars=[left_var], vtype=vtype)
 

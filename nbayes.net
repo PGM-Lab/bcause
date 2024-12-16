@@ -1,0 +1,54 @@
+
+net {
+  name = unknown;
+  software = "aGrUM 1.12.1";
+  node_size = (50 50);
+}
+
+node s {
+   states = (1 0 );
+   label = "s";
+   ID = "s";
+}
+
+node x {
+   states = (1 2 0 );
+   label = "x";
+   ID = "x";
+}
+
+node y {
+   states = (0 1 );
+   label = "y";
+   ID = "y";
+}
+
+node z {
+   states = (0 2 1 );
+   label = "z";
+   ID = "z";
+}
+
+potential ( s | y   ) {
+   data = 
+   ((   0.50272   0.49728)   % y=0   
+   (   0.497687   0.502313));   % y=1   
+}
+
+potential ( x | y   ) {
+   data = 
+   ((   0.480958   0.0609358   0.458107)   % y=0   
+   (   0.425532   0.109158   0.46531));   % y=1   
+}
+
+potential (y) {
+   data = (  0.4595 0.5405);
+}
+
+potential ( z | y   ) {
+   data = 
+   ((   0.189336   0.459195   0.351469)   % y=0   
+   (   0.310823   0.390379   0.298797));   % y=1   
+}
+
+

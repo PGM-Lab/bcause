@@ -77,7 +77,7 @@ class GradientLikelihood(IterativeParameterLearning):
         N_bmVbmY, P_bmVbmYu = self._compute_N_and_P(bmV, bmY, data, m, U)
 
         results = self.fitPMF(initial_params, N_bmVbmY, P_bmVbmYu, **kwargs)
-        updated_factor = MultinomialFactor(m.get_domains(U), values=results['params'])
+        updated_factor = MultinomialFactor(m.get_domains({U}), values=results['params'])
         updated_factor.trajectory = results['trajectory'] # the trajectory of the iterations in the optimization process
 
         return updated_factor
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     import bcause.util.graphutils as gutils
 
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
-    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
+    # logging.getLogger( __name__ ).basicConfig(level=logging.getLogger( __name__ ).DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
     m = define_model0()
     import numpy as np

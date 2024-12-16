@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 import math
 from collections import OrderedDict
@@ -8,6 +9,7 @@ from typing import Dict, List, Iterable, Union, Hashable
 
 import numpy as np
 import pandas as pd
+import bcause.util.domainutils as dutils
 
 from bcause.factors.values.store import  DataStore
 from bcause.factors.values import store_dict
@@ -15,7 +17,7 @@ from bcause.factors.values import store_dict
 import bcause.factors.factor as bf
 #from . import DiscreteFactor
 from bcause.util.domainutils import assingment_space, state_space, steps, random_assignment, to_numeric_domains
-from bcause.util.arrayutils import normalize_array, set_value
+from bcause.util.arrayutils import normalize_array, set_value, concatenate_with
 
 
 class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
@@ -50,23 +52,42 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return DeterministicFactor(self.domain, left_vars=[v], values=values)
 
     def constant(self, left_value):
-
         new_dom = self.left_domain
-        states = new_dom[self.left_vars[0]]
 
         if len(new_dom) != 1:
             raise ValueError("Only one variable on the left is allowed")
 
-        if left_value not in states:
-            raise ValueError("Value not in domain")
-
+        states = new_dom[self.left_vars[0]]
         new_data = [0.0] * len(states)
-        new_data[states.index(left_value)] = 1.0
+
+        if not type(left_value) in [tuple, list]:
+
+            if left_value not in states:
+                raise ValueError("Value not in domain")
+
+            new_data[states.index(left_value)] = 1.0
+
+        else:
+            left_values = list(self.left_domain.values())[0]
+            if not set(left_value).issubset(set(left_values)):
+                raise ValueError("Values are not contained")
+            k = 1 / len(left_value)
+            for v in left_value:
+                new_data[states.index(v)] = k
 
         return self.builder(domain=new_dom, values=new_data)
 
+    def domain_change(self, new_dom):
+        return self.builder(domain=new_dom, values=self.values)
 
-    # Factor operations
+    def domain_to_str(self):
+        new_dom = dict()
+        for v, d in self.domain.items():
+            new_dom[v] = [str(s) for s in d]
+        return self.domain_change(new_dom)
+
+
+        # Factor operations
     def restrict(self, **observation) -> MultinomialFactor:
         if len(set(observation.keys()).intersection(self._variables))==0: return self
         new_store = self.store.restrict(**observation)
@@ -112,7 +133,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
                               if v in self.right_vars or v in other.variables]
             out = self.builder(domain=new_store.domain, values=new_store.data, right_vars=new_right_vars)
 
-            for w in W: logging.warning(f"{w.message}: {self.name}/{other.name}")
+            for w in W: logging.getLogger( __name__ ).warning(f"{w.message}: {self.name}/{other.name}")
 
         return out
 
@@ -164,6 +185,12 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             raise NotImplementedError("Sampling not available for conditional distributions")
             #todo: return [self.restrict(**obs).sample() for obs in assingment_space(self.right_domain)]
 
+    def  copy_with_dummy_state(self, target_var, state_name):
+        axis = self.variables.index(target_var)
+        new_values = concatenate_with(self.values_array(self.variables).copy(), 0.0, axis)
+        new_domain = copy.deepcopy(self.domain)
+        new_domain[target_var] += [state_name]
+        return self.builder(domain=new_domain, values=new_values, left_vars=self.left_vars)
 
     def __mul__(self, other):
         return self.multiply(other)
@@ -243,6 +270,21 @@ def random_deterministic(dom:Dict, right_vars:list=None, vtype=None):
 def canonical_multinomial(domain:Dict, exo_var:Hashable, right_endo_vars:list=None, vtype=None) -> MultinomialFactor:
     from bcause.factors.deterministic import canonical_deterministic
     return canonical_deterministic(domain, exo_var, right_endo_vars, vtype).to_multinomial()
+
+def canonical_for_model(model, domains, x):
+    exoPa = model.get_exogenous_parents(x)
+    exovar = exoPa[0]
+
+    if len(exoPa)>1 or len(model.get_edogenous_children(exovar))!=1:
+        raise ValueError("Method only valid for Markovian models")
+
+    right_endoVars = model.get_edogenous_parents(x)
+    endoVars = right_endoVars + [x]
+    dom = dutils.subdomain(domains, *endoVars)
+    return canonical_multinomial(dom, exovar, right_endoVars).reorder(*endoVars)
+
+
+
 
 if __name__ == "__main__":
 

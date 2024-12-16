@@ -42,7 +42,7 @@ def _barren_info(dag: nx.DiGraph, S=None):
         else:
             break
 
-    logging.debug(f"Barren nodes wrt {S} are: {barren}")
+    logging.getLogger( __name__ ).debug(f"Barren nodes wrt {S} are: {barren}")
     return dag, barren
 
 
@@ -60,7 +60,7 @@ def dsep_nodes(dag: nx.DiGraph, target, evidence_nodes):
     dsep = set(
         [v for v in dag.nodes if
          nx.d_separated(dag, x=set(target), y={v}, z=set(evidence_nodes)-{v})])
-    logging.debug(f"D-separated nodes wrt {target} given {evidence_nodes} are: {dsep}")
+    logging.getLogger( __name__ ).debug(f"D-separated nodes wrt {target} given {evidence_nodes} are: {dsep}")
     return dsep
 
 def dcon_nodes(dag: nx.DiGraph, target, evidence_nodes):
@@ -112,6 +112,31 @@ def markov_blanket(dag, v, hidden=None):
     # Case in which some variables are hidden
     observed = set(dag.nodes).difference(set(hidden) | {v})
     return dcon_nodes(dag, v, observed)
+
+
+def reorder_nodes(graph, order):
+    """
+    Reorder the nodes of a NetworkX graph based on a given order.
+
+    Parameters:
+    graph (nx.Graph): The original NetworkX graph.
+    order (list): A list of nodes in the desired order.
+
+    Returns:
+    nx.Graph: A new graph with nodes reordered according to 'order'.
+    """
+    # Create a new graph with the same type as the original
+    new_graph = nx.Graph() if not graph.is_directed() else nx.DiGraph()
+
+    # Add nodes in the specified order
+    new_graph.add_nodes_from(order)
+
+    # Add edges from the original graph
+    new_graph.add_edges_from(graph.edges(data=True))
+
+    return new_graph
+
+
 
 '''
 

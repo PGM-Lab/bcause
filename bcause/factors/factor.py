@@ -123,6 +123,16 @@ class DiscreteFactor(Factor):
 
         return self.builder(**kwargs)
 
+    def reorder(self, *var_order):
+        var_order = list(var_order) + [v for v in self.variables if v not in var_order]
+        new_dom = {x:self.domain[x] for x in var_order}
+        new_vals = self.values_array(var_order)
+        return self.builder(domain=new_dom, values=new_vals)
+    def change_domains(self, **domains):
+        new_dom = self.domain
+        for v in new_dom.keys():
+            if v in domains: new_dom[v] = domains[v]
+        return self.builder(domain=new_dom, values=self.values)
 
 
 class ConditionalFactor(Factor):

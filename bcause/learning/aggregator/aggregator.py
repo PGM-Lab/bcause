@@ -77,7 +77,9 @@ class ModelAggregatorEM(ModelAggregator):
         optimizer = ExpectationMaximization(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars)
         optimizer.run(self._data, max_iter=self._max_iter)
         self._learn_objects.append(optimizer)
-        return optimizer.model
+        model = optimizer.model
+        model.rating = model.ratio(self._data)
+        return model
 
 class SimpleModelAggregatorEM(SimpleModelAggregator, ModelAggregatorEM):
 
@@ -94,6 +96,8 @@ class ModelAggregatorGD(ModelAggregator):
         optimizer = GradientLikelihood(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars, tol=self._tol)
         optimizer.run(self._data, max_iter=self._max_iter)
         self._learn_objects.append(optimizer)
+        model = optimizer.model
+        model.rating = model.ratio(self._data)
         return optimizer.model
 
 
@@ -120,7 +124,7 @@ if __name__ == "__main__":
 
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 
-    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
+    # logging.getLogger( __name__ ).basicConfig(level=logging.getLogger( __name__ ).DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
     import networkx as nx
 
