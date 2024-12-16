@@ -81,10 +81,11 @@ class VariableElimination(ProbabilisticInference):
         # combine resulting factors and set evidence
         joint = reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
 
-
+        logging.getLogger(__name__).debug(f"Calculated join probability {joint}")
 
         result = joint / (joint ** self._target)
         self.time = (time.time()-tstart)*1000
+        logging.getLogger(__name__).debug(f"Result {result}")
         logging.getLogger( __name__ ).info(f"Finished variable elimination in {self.time} ms.")
         return result
 
