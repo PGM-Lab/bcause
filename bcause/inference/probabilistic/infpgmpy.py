@@ -1,18 +1,19 @@
-from pgmpy.inference import VariableElimination
 
 from bcause.conversion.pgmpy import toPgmpyBNet, discrete_to_multinomial
 from bcause.factors.factor import Factor
 from bcause.inference.probabilistic import ProbabilisticInference
 from bcause.models.pgmodel import PGModel
 
-
 class VariableEliminationPGMPY(ProbabilisticInference):
     def __init__(self, model: PGModel):
+
         self._model = model
         self._evidence = dict()
         self._target = None
-        self._inf = VariableElimination(toPgmpyBNet(self._model))
         self._compiled = False
+
+        from pgmpy.inference import VariableElimination
+        self._inf = VariableElimination(toPgmpyBNet(self._model))
 
     def run(self) -> Factor:
         p = self._inf.query(self._target, self._evidence)
