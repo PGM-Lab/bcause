@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     import bcause.models as bm
 
 
-def toMultinomialFactor(factor : pfd.TabularCPD, vtype=None) -> bfd.MultinomialFactor:
+def tabularCPD_to_multinomial(factor : pfd.TabularCPD, vtype=None) -> bfd.MultinomialFactor:
     vtype = vtype or DataStore.DEFAULT_STORE
     domain = factor.state_names
     card = [len(d) for d in domain.values()]
@@ -22,7 +22,15 @@ def toMultinomialFactor(factor : pfd.TabularCPD, vtype=None) -> bfd.MultinomialF
     right_vars = [v for v in factor.variables if v != factor.variable]
     return bfd.MultinomialFactor(domain, data, right_vars=right_vars, vtype=vtype)
 
-def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
+def discrete_to_multinomial(factor : pfd.DiscreteFactor, left_vars=None, vtype=None) -> bfd.MultinomialFactor:
+    vtype = vtype or DataStore.DEFAULT_STORE
+    domain = factor.state_names
+    data = factor.values
+    left_vars = left_vars or factor.variables
+    return bfd.MultinomialFactor(domain, data, left_vars=left_vars, vtype=vtype)
+
+
+def multinomial_to_tabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
 
     f = f.reorder(*f.left_vars)
     v = list(f.left_domain.keys())[0]
@@ -56,16 +64,16 @@ def toTabularCPT(f : bfd.MultinomialFactor) -> pfd.TabularCPD:
 def toBCauseBNet(orig : pm.BayesianNetwork, vtype=None) -> 'bm.BayesianNetwork':
     vtype = vtype or DataStore.DEFAULT_STORE
     dag = DiGraph(orig.in_edges)
-    factors = {f.variable:toMultinomialFactor(f, vtype) for f in orig.cpds}
+    factors = {f.variable:tabularCPD_to_multinomial(f, vtype) for f in orig.cpds}
     import bcause.models as bm
     return bm.BayesianNetwork(dag, factors)
 
 
 def toPgmpyBNet(orig : 'bm.BayesianNetwork') -> pm.BayesianNetwork:
     dest = pm.BayesianNetwork(orig.graph)
-    dest.add_cpds(*[toTabularCPT(f) for f in orig.factors.values()])
+    dest.add_cpds(*[multinomial_to_tabularCPT(f) for f in orig.factors.values()])
 
     for f in orig.factors.values():
-        toTabularCPT(f)
+        multinomial_to_tabularCPT(f)
 
     return dest
