@@ -75,7 +75,6 @@ class VariableElimination(ProbabilisticInference):
 
             logging.getLogger(__name__).debug(f"Updated factor list: {[f.name for f in factors]}")
 
-        p = reduce((lambda f1, f2: f1 * f2), factors)
         # combine resulting factors and set evidence
         joint = reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
 
