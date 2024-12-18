@@ -123,6 +123,15 @@ class NumpyStoreOperations(OperationSet):
         return store.builder(domain=new_dom, data=new_data)
 
 
+    @staticmethod
+    def log(store : 'NumpyStore') -> 'NumpyStore':
+        return store.builder(domain=store.domain, data = np.log(store.data))
+
+    @staticmethod
+    def exp(store: 'NumpyStore') -> 'NumpyStore':
+        return store.builder(domain=store.domain, data = np.exp(store.data))
+
+
 
 def _indexing(data, idx):
     idx_ = idx.copy()

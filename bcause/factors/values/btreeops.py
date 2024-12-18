@@ -55,3 +55,14 @@ class BTreeStoreOperations(OperationSet):
     @staticmethod
     def restrict(store : 'BTreeStore', observarion:dict) -> 'BTreeStore':
         raise NotImplementedError("Not implemented")
+
+
+
+    @staticmethod
+    def log(store : 'BTreeStore') -> 'BTreeStore':
+        raise NotImplementedError("Not implemented")
+
+    @staticmethod
+    def exp(store: 'BTreeStore') -> 'BTreeStore':
+        raise NotImplementedError("Not implemented")
+

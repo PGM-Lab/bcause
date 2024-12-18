@@ -151,6 +151,14 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         return self.builder(domain=new_store.domain, values=new_store.data, right_vars = new_right_vars)
 
 
+    def log(self):
+        new_store = self.store.log()
+        return self.builder(domain=new_store.domain, values=new_store.data)
+
+    def exp(self):
+        new_store = self.store.exp()
+        return self.builder(domain=new_store.domain, values=new_store.data)
+
 
     def prob(self, observations:List[Dict]) -> List:
         return [self.get_value(**x) for x in observations]

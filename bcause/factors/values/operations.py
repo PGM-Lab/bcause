@@ -49,6 +49,15 @@ class OperationSet(ABC):
     def restrict(store : 'DataStore', observation:dict) -> 'DataStore':
         pass
 
+    @staticmethod
+    @abstractmethod
+    def log(store : 'DataStore') -> 'DataStore':
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def exp(store: 'NumpyStore') -> 'DataStore':
+        pass
 
 class GenericOperations(OperationSet):
     @staticmethod

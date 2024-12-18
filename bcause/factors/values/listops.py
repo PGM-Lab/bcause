@@ -73,3 +73,12 @@ class  ListStoreOperations(OperationSet):
         new_data = [store._data[i] for i in idx]
         new_dom = OrderedDict([(k, d) for k, d in store.domain.items() if k not in observation])
         return store.builder(data= new_data, domain = new_dom)
+
+    @staticmethod
+    def log(store : 'ListStore') -> 'ListStore':
+        raise NotImplementedError("Not implemented")
+
+    @staticmethod
+    def exp(store: 'ListStore') -> 'ListStore':
+        raise NotImplementedError("Not implemented")
+

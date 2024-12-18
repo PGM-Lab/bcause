@@ -86,7 +86,8 @@ class DiscreteStore(DataStore):
 
     def set_operationSet(self, ops:OperationSet):
         for f in [self.set_marginalize, self.set_maxmarginalize, self.set_multiply,
-                  self.set_addition, self.set_subtract, self.set_divide, self.set_restrict]:
+                  self.set_addition, self.set_subtract, self.set_divide, self.set_restrict,
+                  self.set_log, self.set_exp]:
             f(ops)
 
     def set_restrict(self, ops:OperationSet):
@@ -110,6 +111,12 @@ class DiscreteStore(DataStore):
     def set_divide(self, ops:OperationSet):
         self._divide = ops.divide
 
+    def set_log(self, ops:OperationSet):
+        self._log = ops.log
+
+    def set_exp(self, ops:OperationSet):
+        self._exp = ops.exp
+
     def marginalize(self, *vars_remove) -> DiscreteStore:
         return self._marginalize(self, vars_remove)
 
@@ -130,6 +137,15 @@ class DiscreteStore(DataStore):
 
     def restrict(self, **observation) -> DiscreteStore:
         return self._restrict(self, observation)
+
+
+    def log(self : 'DiscreteStore') -> DiscreteStore:
+        return self._log(self)
+
+
+    def exp(self : 'DiscreteStore') -> DiscreteStore:
+        return self._exp(self)
+
 
     @abstractmethod
     def sum_all(self):

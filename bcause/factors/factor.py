@@ -64,6 +64,14 @@ class Factor(ABC):
     def maxmarginalize(self, *vars_remove) -> Factor:
         pass
 
+    @abstractmethod
+    def log(self) -> Factor:
+        pass
+
+    @abstractmethod
+    def exp(self) -> Factor:
+        pass
+
     @staticmethod
     def combine_all(*factors) -> Factor:
         return reduce((lambda f1, f2: f1 * f2), factors)
