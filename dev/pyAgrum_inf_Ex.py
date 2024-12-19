@@ -12,13 +12,6 @@ import bcause.util.domainutils as dutils
 import bcause.util.graphutils as gutils
 
 
-# Import pyAgrum inference methods
-from pyAgrum import LazyPropagation, ShaferShenoyInference
-
-# Import our pyagrum inference method
-from dev.pyAgrum_inference import pyAgrumInference
-
-
 
 # Set the seed
 randomUtil.seed(1)
@@ -79,15 +72,18 @@ bn = BayesianNetwork(dag,model.factor_list)
 ve = VariableElimination(bn)
 ve.query("V2")
 
-gumbn = toAgrum(bn)
-LazyPropagation(gumbn).posterior("V2")
+#gumbn = toAgrum(bn)
+#LazyPropagation(gumbn).posterior("V2")
 
 # PyAgrum inference methods
-aa = pyAgrumInference(bn)
+from bcause.inference.probabilistic.infpyagrum import LazyPropagationPYAgrum
+aa = LazyPropagationPYAgrum(model)
 aa.query("V2")
 
+from bcause.inference.probabilistic.infpyagrum import ShaferShenoyPYAgrum
+
 # Other result
-ab = pyAgrumInference(bn,ShaferShenoyInference)
+ab = ShaferShenoyPYAgrum(bn)
 ab.query("V2")
 
 # Import expectation maximization
@@ -99,7 +95,7 @@ em.run(data, max_iter=10)
 var = em.model_evolution[-1].factors["U2"]
 
 # Example of use using pyAgrumInference
-em = ExpectationMaximization(model.randomize_factors(model.exogenous, allow_zero=False), inference_method=pyAgrumInference)
+em = ExpectationMaximization(model.randomize_factors(model.exogenous, allow_zero=False), inference_method=ShaferShenoyPYAgrum)
 em.run(data, max_iter=10)
 var = em.model_evolution[-1].factors["U2"]
 

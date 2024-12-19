@@ -10,14 +10,23 @@ from bcause.util import randomUtil
 import bcause.util.domainutils as dutils
 import bcause.util.graphutils as gutils
 
-def addGraph(bn: gum.BayesNet, nodes: list[str], card: dict ,  edges: list[tuple[str, str]]):
+def _get_node(var,values):
+    if any(isinstance(x,str) for x in values):
+        node = gum.LabelizedVariable(var, var, len(values))
+        for index, label in enumerate(values):
+            node.changeLabel(index, label)
+    if all(isinstance(x,int) for x in values):
+        node = gum.IntegerVariable(var, var, values)
+    return node
+
+def _addGraph(bn: gum.BayesNet, domain: dict,  edges: list[tuple[str, str]]):
     # add Nodes
-    list(map(lambda node: bn.add(node, card[node]), nodes))
+    list(map(lambda node: bn.add(_get_node(node, domain[node])), domain.keys()))
     # add Edges
     list(starmap(bn.addArc, edges))
 
 # Add CPTs
-def setCPT(f: bfd.MultinomialFactor, bn: gum.BayesNet):
+def _setCPT(f: bfd.MultinomialFactor, bn: gum.BayesNet):
     v = list(f.left_domain.keys())
     rv = list(f.right_domain.keys())
 
@@ -36,18 +45,25 @@ def toAgrum(bn: BayesianNetwork) -> gum.BayesNet:
     gumbn = gum.BayesNet()
     card = {v: len(d) for v,d in bn.domains.items()}
 
-    addGraph(gumbn, bn.variables, card,list(bn.graph.edges))
-    [setCPT(f,gumbn) for f in bn.factors.values()]
+    _addGraph(gumbn, bn.domains,list(bn.graph.edges))
+    [_setCPT(f,gumbn) for f in bn.factors.values()]
     return gumbn
 
-def createFactor(bn: gum.BayesNet,domains, dag, node: str) -> bfd.MultinomialFactor:
-    parents = [bn.variable(i).name() for i in bn.parents(bn.idFromName(node))]
-    dom = dutils.subdomain(domains, *gutils.relevat_vars(dag, node))
-    values = bn.cpt(node).toarray().flatten()
-    return bfd.MultinomialFactor(dom, values, right_vars=parents)
+def _value_from_var_domain(var) -> list:
+    if var.varType() == 3:
+        return list(range(var.minVal(), var.maxVal() + 1))
+    elif var.varType() in [0,2]:
+        return list(var.integerDomain())
+    elif var.varType() == 1:
+        return list(var.labels())
 
-def value_from_var_domain(var) -> list:
-    return list(range(var.minVal(), var.maxVal() + 1))
+def potential_to_factor(potential: gum.Potential) -> bfd.MultinomialFactor:
+    vars = potential.variablesSequence()
+    left_vars = [vars[0].name()]
+    right_vars = [var.name() for var in vars[1:]]
+    domain = {var.name(): _value_from_var_domain(var) for var in vars}
+    values = potential.toarray().flatten()
+    return bfd.MultinomialFactor(domain, values, left_vars=left_vars, right_vars=right_vars)
 
 def fromAgrum(bn: gum.BayesNet) -> BayesianNetwork:
     # Create a DiGraph from the arcs
@@ -61,27 +77,29 @@ def fromAgrum(bn: gum.BayesNet) -> BayesianNetwork:
     # Change name ot the nodes in dag
     dag = nx.relabel_nodes(dag, nodes)
     # Get the domains with keys the name of the nodes and the values a list of the possible values of the node
-    domains = {bn.variable(i).name(): value_from_var_domain(bn.variable(i)) for i in range(bn.size())}
+    domains = {bn.variable(i).name(): _value_from_var_domain(bn.variable(i)) for i in range(bn.size())}
     # Base on the cpt tables, create the factors to then use it in the MultinomialFactor function
     factors = {}
     for i in range(bn.size()):
         node = bn.variable(i).name()
-        factors[node] = createFactor(bn,domains,dag, node)
+        dom = dutils.subdomain(domains, *gutils.relevat_vars(dag, node))
+        value = bn.cpt(node).toarray().flatten()
+        parents = [bn.variable(j).name() for j in bn.parents(i)]
+        factors[node] = bfd.MultinomialFactor(dom, value, left_vars=[node], right_vars=parents)
     # Return the BayesianNetwork with the dag and the factors
     return BayesianNetwork(dag, factors)
 
 
-## Example of use
+if __name__=="__main__":
 
-# Define a DAG and the domains
-dag = nx.DiGraph([("V1", "V2"), ("V2", "V3"),("V3", "V4"),("U1", "V1"),("U2", "V2"),("U2", "V4"),("U3", "V3")])
-model = StructuralCausalModel(dag)
-domains = dict(V1=[0,1],V2=[0,1],V3=[0,1],V4=[0,1], U1=[0,1],U2=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],U3=[0,1,2,3])
-randomUtil.seed(1)
-model.fill_random_factors(domains)
-data = model.sample(1000, as_pandas=True)
+    dag = nx.DiGraph([("V1", "V2"), ("V2", "V3"),("V3", "V4"),("U1", "V1"),("U2", "V2"),("U2", "V4"),("U3", "V3")])
+    model = StructuralCausalModel(dag)
+    domains = dict(V1=[0,1],V2=[0,1],V3=[0,1],V4=[0,1], U1=[0,1],U2=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],U3=[0,1,2,3])
+    randomUtil.seed(1)
+    model.fill_random_factors(domains)
+    data = model.sample(1000, as_pandas=True)
 
-bn = BayesianNetwork(dag,model.factor_list)
+    bn = BayesianNetwork(dag,model.factor_list)
 
-gumbn = toAgrum(bn)
-newbn = fromAgrum(gumbn)
+    gumbn = toAgrum(bn)
+    newbn = fromAgrum(gumbn)
