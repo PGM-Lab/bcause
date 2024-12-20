@@ -1,6 +1,6 @@
 import pyAgrum as gum
 import networkx as nx
-from bcause.conversion.pyagrum import toAgrum
+from bcause.conversion.pyagrum_conversion import toAgrum
 
 
 from bcause.inference.probabilistic.elimination import VariableElimination

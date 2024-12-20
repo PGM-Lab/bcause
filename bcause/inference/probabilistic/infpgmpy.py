@@ -1,7 +1,9 @@
 from typing import Union
 
 import pandas as pd
-from bcause.conversion.pgmpy import toPgmpyBNet, discrete_to_multinomial
+
+import bcause.util.randomUtil
+from bcause.conversion.pgmpy_conversion import toPgmpyBNet, discrete_to_multinomial
 from bcause.factors.factor import Factor
 from bcause.inference.probabilistic import ProbabilisticInference
 from bcause.models.pgmodel import PGModel
@@ -65,7 +67,8 @@ class BeliefPropagationPGMPY(ProbabilisticInference):
         self._compiled = False
 
         from pgmpy.inference import BeliefPropagation
-        self._inf = BeliefPropagation(toPgmpyBNet(self._model))
+        self._pgmpymodel = toPgmpyBNet(self._model)
+        self._inf = BeliefPropagation(self._pgmpymodel)
 
     def run(self) -> Factor:
         """
@@ -75,6 +78,7 @@ class BeliefPropagationPGMPY(ProbabilisticInference):
         Returns:
             Factor: The resulting probability distribution as a bcause-compatible Factor object.
         """
+
         p = self._inf.query(self._target, self._evidence, show_progress=False)
         return discrete_to_multinomial(p, left_vars=self._target)
 
@@ -125,28 +129,38 @@ if __name__=="__main__":
     warnings.filterwarnings("ignore")
 
     bnet = BayesianNetwork.read("models/asia.bif")
-    #inf = VariableElimination(bnet, heuristic=Heuristic.MIN_FILL)
+    inf = VariableElimination(bnet, heuristic=Heuristic.MIN_FILL)
     #inf = VariableEliminationPGMPY(bnet)
     #inf = BeliefPropagationPGMPY(bnet)
-    inf = SamplingPGMPY(bnet, generated_samples=1000)
+    #inf = SamplingPGMPY(bnet, generated_samples=1000)
 
-    p = inf.query("bronc")
-    print(p)
+    # p = inf.query("dysp")
+    # print(p)
+    #
+    # p = inf.query("dysp", evidence=dict(smoke="yes"))
+    # print(p)
+    #
+    # p = inf.query("smoke", evidence=dict(dysp="yes"))
+    # print(p)
+    #
+    # p = inf.query(["bronc","lung"])
+    # print(p)
 
-    p = inf.query("bronc", evidence=dict(smoke="yes"))
-    print(p)
-
-    p = inf.query("bronc", conditioning="smoke")
-    print(p)
-
-    p = inf.query(["bronc","lung"])
-    print(p)
+    # p = inf.query(["smoke", "dysp"])
+    # print(p)
 
     p = inf.query("smoke", conditioning="dysp")
     print(p)
 
-    p = inf.query(target="smoke", conditioning="dysp", evidence=dict(asia="yes"))
+    inf = VariableEliminationPGMPY(bnet)
+    # p = inf.query(["smoke", "dysp"])
+    # print(p)
+
+    p = inf.query("smoke", conditioning="dysp")
     print(p)
+
+    # p = inf.query(target="smoke", conditioning="dysp", evidence=dict(asia="yes"))
+    # print(p)
 
     # from bcause.util.watch import Watch
     # # Check time

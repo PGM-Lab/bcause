@@ -172,13 +172,17 @@ def test_LazyPropagationPYAgrum():
             dict(target="dysp", evidence=dict(smoke="yes")),
             dict(target="smoke", evidence=dict(dysp="yes")),
             dict(target="either", evidence=None),
+            dict(target="smoke", conditioning="dysp"),
+            dict(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes")),
             ]
 
     expected = [
         0.43597060000000004,
         0.552808,
         0.6339968796061018,
-        0.06482799999999998]
+        0.06482799999999998,
+        0.6339968796061018,
+        0.6259198578212214]
 
     from bcause.inference.probabilistic.infpyagrum import LazyPropagationPYAgrum
     inf = LazyPropagationPYAgrum(model)
@@ -191,13 +195,17 @@ def test_ShaferShenoyPYAgrum():
             dict(target="dysp", evidence=dict(smoke="yes")),
             dict(target="smoke", evidence=dict(dysp="yes")),
             dict(target="either", evidence=None),
+            dict(target="smoke", conditioning="dysp"),
+            dict(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes")),
             ]
 
     expected = [
         0.43597060000000004,
         0.552808,
         0.6339968796061018,
-        0.06482799999999998]
+        0.06482799999999998,
+        0.6339968796061018,
+        0.6259198578212214]
 
     from bcause.inference.probabilistic.infpyagrum import ShaferShenoyPYAgrum
     inf = ShaferShenoyPYAgrum(model)
@@ -210,13 +218,17 @@ def test_VariableEliminationPYAgrum():
             dict(target="dysp", evidence=dict(smoke="yes")),
             dict(target="smoke", evidence=dict(dysp="yes")),
             dict(target="either", evidence=None),
+            dict(target="smoke", conditioning="dysp"),
+            dict(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes")),
             ]
 
     expected = [
         0.43597060000000004,
         0.552808,
         0.6339968796061018,
-        0.06482799999999998]
+        0.06482799999999998,
+        0.6339968796061018,
+        0.6259198578212214]
 
     from bcause.inference.probabilistic.infpyagrum import VariableEliminationPYAgrum
     inf = VariableEliminationPYAgrum(model)
@@ -226,11 +238,15 @@ def test_VariableEliminationPYAgrum():
 
 def test_GibbsSamplingPYAgrum():
     args = [dict(target="dysp", evidence=None),
+            dict(target="dysp", evidence=dict(smoke="yes")),
+            dict(target="smoke", evidence=dict(dysp="yes")),
             dict(target="either", evidence=None)
             ]
 
     expected = [
         0.43597060000000004,
+        0.552808,
+        0.6339968796061018,
         0.06482799999999998]
 
     from bcause.inference.probabilistic.infpyagrum import GibbsSamplingPYAgrum

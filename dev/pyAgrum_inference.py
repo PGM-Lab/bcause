@@ -5,7 +5,7 @@ import time
 import pyAgrum as gum
 
 from pyAgrum import LazyPropagation
-from bcause.conversion.pyagrum import toAgrum, fromAgrum
+from bcause.conversion.pyagrum_conversion import toAgrum, fromAgrum
 from bcause.inference.probabilistic import ProbabilisticInference
 from bcause.factors import MultinomialFactor
 from bcause.models.pgmodel import DiscreteDAGModel

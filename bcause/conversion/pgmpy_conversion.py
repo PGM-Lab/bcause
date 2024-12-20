@@ -25,7 +25,9 @@ def tabularCPD_to_multinomial(factor : pfd.TabularCPD, vtype=None) -> bfd.Multin
 def discrete_to_multinomial(factor : pfd.DiscreteFactor, left_vars=None, vtype=None) -> bfd.MultinomialFactor:
     vtype = vtype or DataStore.DEFAULT_STORE
     domain = factor.state_names
-    data = factor.values
+    #data = factor.values
+    card = [len(d) for d in domain.values()]
+    data = np.reshape([factor.get_value(**s) for s in assingment_space(domain)], card)
     left_vars = left_vars or factor.variables
     return bfd.MultinomialFactor(domain, data, left_vars=left_vars, vtype=vtype)
 

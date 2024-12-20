@@ -1,9 +1,9 @@
 import pyAgrum as gum
 import networkx as nx
 import bcause.factors as bfd
+import numpy as np
 
-from pgmpy.models import BayesianNetwork
-from itertools import starmap
+from itertools import starmap, product
 from bcause.models import BayesianNetwork
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util import randomUtil
@@ -36,10 +36,16 @@ def _setCPT(f: bfd.MultinomialFactor, bn: gum.BayesNet):
     [bn.addArc(i, *v) for i in rv if not bn.existsArc(i, *v)]
 
     # Set the CPT
-    values = f.values_array()
-    shape = [len(f.domain[var]) for var in bn.cpt(*v).names[::-1]]
-    values = values.reshape(*shape)
-    bn.cpt(f.left_vars[0])[:] = values
+    right_combinations = [dict(zip(f.right_domain, combo)) for combo in product(*f.right_domain.values())]
+    left_combinations = [dict(zip(f.left_domain, combo)) for combo in product(*f.left_domain.values())]
+    for combo in right_combinations:
+        bn.cpt(f.left_vars[0])[combo] = [f.get_value(**i, **combo) for i in left_combinations]
+
+    # values = f.values_array()
+    # shape = [len(f.domain[var]) for var in bn.cpt(*v).names[::-1]]
+    # print(shape)
+    # values = values.reshape(*shape)
+    # bn.cpt(f.left_vars[0])[:] = values
 
 def toAgrum(bn: BayesianNetwork) -> gum.BayesNet:
     gumbn = gum.BayesNet()
