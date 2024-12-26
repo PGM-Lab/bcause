@@ -175,7 +175,7 @@ class EMCC(CausalMultiInference, CausalObservationalInference):
     def compile_incremental(self, step_runs=1, *args, **kwargs) -> Inference:
         #for i in range(self._num_runs):
         while len(self.models)<self._num_runs:
-            self._agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter, parallel=self._parallel)
+            self._agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter, parallel=self._parallel, inference_method=self._em_inf_fn)
             self._agg.run(num_models=step_runs)
             self.add_models(self._agg.models)
             yield super().compile()
