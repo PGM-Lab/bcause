@@ -98,8 +98,8 @@ class ModelAggregatorGD(ModelAggregator):
         optimizer.run(self._data, max_iter=self._max_iter)
         self._learn_objects.append(optimizer)
         model = optimizer.model
-        model.rating = model.ratio(self._data)
-        return optimizer.model
+        #model.rating = model.ratio(self._data)
+        return model
 
 
 class SimpleModelAggregatorGD(SimpleModelAggregator, ModelAggregatorGD):

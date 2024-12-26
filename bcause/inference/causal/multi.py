@@ -17,11 +17,12 @@ import bcause.util.domainutils as dutils
 
 class CausalMultiInference(CausalInference):
     def __init__(self, models: list[StructuralCausalModel] = None, causal_inf_fn: Callable = None, interval_result=True,
-                 min_rating=0.0, outliers_removal = True):
+                 min_rating=0.0, calculate_rating = False, outliers_removal = True):
         self.set_models(models or [])
         self._interval_result = interval_result
         self._min_rating = min_rating
         self._outliers_removal = outliers_removal
+        self._calculate_rating = calculate_rating
 
         if causal_inf_fn is None:
             from bcause.inference.causal.elimination import CausalVariableElimination
@@ -45,7 +46,14 @@ class CausalMultiInference(CausalInference):
     def compile(self, *args, **kwargs) -> Inference:
         if len(self._models)<1: raise ValueError("Required at least 1 precise model")
         self._model = self._models[0]
-        self._causal_inf = [self._causal_inf_fn(m) for m in self._models if m.rating > self._min_rating]
+
+        if self._calculate_rating:
+            for m in self._models: m.rating = m.ratio(self._data)
+            self._causal_inf = [self._causal_inf_fn(m) for m in self._models if m.rating >= self._min_rating]
+        else:
+            self._causal_inf = [self._causal_inf_fn(m) for m in self._models]
+
+
         self._compiled = True
         return self
 
@@ -153,7 +161,7 @@ class CausalMultiInference(CausalInference):
 
 
 class EMCC(CausalMultiInference, CausalObservationalInference):
-    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, em_inf_fn: Callable = VariableElimination, interval_result=True, max_iter=100, num_runs=10, parallel = False, min_rating=0.9, outliers_removal=True):
+    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, em_inf_fn: Callable = VariableElimination, interval_result=True, max_iter=100, num_runs=10, parallel = False, min_rating=0.0, calculate_rating=False, outliers_removal=True):
         self._data = data
         self._prior_model = model
         self._model = model
@@ -162,7 +170,7 @@ class EMCC(CausalMultiInference, CausalObservationalInference):
         self._agg = None
         self._parallel = parallel
         self._em_inf_fn = em_inf_fn
-        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result, min_rating=min_rating, outliers_removal=outliers_removal)
+        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result, min_rating=min_rating, calculate_rating=calculate_rating, outliers_removal=outliers_removal)
 
     def compile(self, *args, **kwargs) -> Inference:
         self._agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter, parallel=self._parallel, inference_method=self._em_inf_fn)
@@ -182,7 +190,7 @@ class EMCC(CausalMultiInference, CausalObservationalInference):
 
 class GDCC(CausalMultiInference, CausalObservationalInference):
     def __init__(self, model: StructuralCausalModel, data, causal_inf_fn: Callable = None, interval_result=True,
-                 num_runs=10, tol=1e-7, max_iter = float("inf"), parallel=False, min_rating=0.9, outliers_removal=True):
+                 num_runs=10, tol=1e-7, max_iter = float("inf"), parallel=False, min_rating=0.0, calculate_rating=False, outliers_removal=True):
         self._data = data
         self._prior_model = model
         self._num_runs = num_runs
@@ -190,7 +198,7 @@ class GDCC(CausalMultiInference, CausalObservationalInference):
         self._parallel = parallel
         self._tol = tol
         self._max_iter = max_iter
-        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result, min_rating=min_rating, outliers_removal=outliers_removal)
+        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result, min_rating=min_rating, calculate_rating=calculate_rating, outliers_removal=outliers_removal)
 
     def compile(self, *args, **kwargs) -> Inference:
         self._agg = SimpleModelAggregatorGD(self._prior_model, self._data, tol=self._tol, max_iter=self._max_iter, parallel=self._parallel)
