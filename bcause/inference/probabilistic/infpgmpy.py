@@ -149,14 +149,17 @@ if __name__=="__main__":
     # p = inf.query(["smoke", "dysp"])
     # print(p)
 
-    p = inf.query("smoke", conditioning="dysp")
+    # p = inf.query("smoke", conditioning="dysp")
+    # print(p)
+
+    p = inf.query("either", evidence=None)
     print(p)
 
-    inf = VariableEliminationPGMPY(bnet)
+    inf = SamplingPGMPY(bnet, generated_samples=20000)
     # p = inf.query(["smoke", "dysp"])
     # print(p)
 
-    p = inf.query("smoke", conditioning="dysp")
+    p = inf.query("either", evidence=None)
     print(p)
 
     # p = inf.query(target="smoke", conditioning="dysp", evidence=dict(asia="yes"))

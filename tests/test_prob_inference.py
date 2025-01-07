@@ -162,7 +162,7 @@ def test_SamplingPGMPY():
         0.6259198578212214]
 
     from bcause.inference.probabilistic.infpgmpy import SamplingPGMPY
-    inf = SamplingPGMPY(model, generated_samples=10000)
+    inf = SamplingPGMPY(model, generated_samples=20000)
     actual = [inf.query(**arg).values[0] for arg in args]
 
     assert_array_almost_equal(actual, expected, decimal=2)
