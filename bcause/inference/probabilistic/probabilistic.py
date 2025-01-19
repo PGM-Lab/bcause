@@ -66,4 +66,9 @@ class ProbabilisticInference(Inference):
         p2 = p1.R(**multi_evidence)
         p3 = p2.marginalize(*multi_evidence.keys())
         pout = p3 / p3.marginalize(*target)
+
+
+        self.factors
+
+
         return pout
