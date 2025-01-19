@@ -234,7 +234,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
     def name(self):
         vars_str = ",".join(self.left_vars)
         if len(self.right_vars) > 0:
-            if not self.potential_output: vars_str += "|"
+            vars_str += "|" if not self.potential_output else ","
             vars_str +=  ",".join(self.right_vars)
 
         out = f"P({vars_str})" if not self.potential_output else f"phi({vars_str})"
