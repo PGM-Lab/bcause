@@ -35,6 +35,7 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
         self.set_variables(list(domain.keys()), left_vars, right_vars)
         self.vtype = vtype
 
+
         def builder(**kwargs):
             if "left_vars" not in kwargs and "right_vars" not in kwargs:
                 kwargs["left_vars"] = self.left_vars
@@ -227,12 +228,17 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
             return self.marginalize(vars_remove)
         return self.marginalize(*vars_remove)
 
+    potential_output = False
+
     @property
     def name(self):
         vars_str = ",".join(self.left_vars)
         if len(self.right_vars) > 0:
-            vars_str += "|" + ",".join(self.right_vars)
-        return f"P({vars_str})"
+            if not self.potential_output: vars_str += "|"
+            vars_str +=  ",".join(self.right_vars)
+
+        out = f"P({vars_str})" if not self.potential_output else f"phi({vars_str})"
+        return out
 
     def __repr__(self):
         cardinality_dict = self.store.cardinality_dict
