@@ -4,6 +4,7 @@ from functools import reduce
 import pandas as pd
 
 from bcause.factors import MultinomialFactor, DeterministicFactor
+from bcause.factors.mulitnomial import uniform_multinomial
 from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
@@ -64,7 +65,12 @@ class ExpectationMaximization(AbastractExpectationMaximization):
                 hidden = [x for x in relevant if x not in obs]
 
                 #print(f"{hidden} | {obs}")
-                exp_counts = self._inf.query(target=hidden, evidence=obs) * c
+
+                post = self._inf.query(target=hidden, evidence=obs)
+                if all(v==0 for v in post.values):
+                    post = uniform_multinomial(post.domain)
+
+                exp_counts = post * c
                 pcounts[v] = pcounts[v] + exp_counts
 
         return pcounts

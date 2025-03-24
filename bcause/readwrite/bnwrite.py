@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from bcause.models import BayesianNetwork
 
 def __write(writer, model, filepath):
-    from bcause.conversion.pgmpy import toPgmpyBNet
+    from bcause.conversion.pgmpy_conversion import toPgmpyBNet
     filepath = Path(filepath)
     folder = filepath.parent
     assert_file_exists(folder)

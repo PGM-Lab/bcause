@@ -74,7 +74,7 @@ class SimpleModelAggregator(ModelAggregator):
 
 class ModelAggregatorEM(ModelAggregator):
     def _single_generate(self, i):
-        optimizer = ExpectationMaximization(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars)
+        optimizer = ExpectationMaximization(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars, inference_method=self._inference_method)
         optimizer.run(self._data, max_iter=self._max_iter)
         self._learn_objects.append(optimizer)
         model = optimizer.model
@@ -83,11 +83,12 @@ class ModelAggregatorEM(ModelAggregator):
 
 class SimpleModelAggregatorEM(SimpleModelAggregator, ModelAggregatorEM):
 
-    def __init__(self, model, data, trainable_vars=None, max_iter=200, parallel=False):
+    def __init__(self, model, data, trainable_vars=None, max_iter=200, parallel=False, inference_method = None):
         self._model = model
         self._data = data
         self._trainlable_vars = trainable_vars or model.exogenous
         self._max_iter = max_iter
+        self._inference_method = inference_method
         super().__init__(parallel=parallel)
 
 

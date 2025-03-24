@@ -5,7 +5,7 @@ import re
 import networkx as nx
 from pgmpy.readwrite import BIFReader, XMLBIFReader
 
-from bcause.conversion.pgmpy import toBCauseBNet
+from bcause.conversion.pgmpy_conversion import toBCauseBNet
 from bcause.factors import MultinomialFactor
 from bcause.factors.values.store import DataStore
 

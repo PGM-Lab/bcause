@@ -11,7 +11,7 @@ from bcause.models.cmodel import StructuralCausalModel
 model = StructuralCausalModel.read(f"./models/modelTestA_1.uai").rename_vars(dict(V0="X", V1="Z", V2="Y"))
 bc.randomUtil.seed(1)
 data = model.sampleEndogenous(1000)
-inf = EMCC(model, data, max_iter=100, num_runs=20)
+inf = EMCC(model, data, max_iter=10, num_runs=20)
 inf.prob_necessity("X","Y")
 
 p = inf.causal_query("Y", do=dict(X=0))

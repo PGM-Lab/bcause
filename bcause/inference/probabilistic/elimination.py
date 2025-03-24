@@ -32,7 +32,7 @@ class VariableElimination(ProbabilisticInference):
 
         super(self.__class__, self).__init__(model)
 
-    def _preprocess(self) -> DiscreteDAGModel:
+    def _preprocess_model(self) -> DiscreteDAGModel:
         return minimalize(self.model, self._target, self._evidence)
 
     def run(self) -> MultinomialFactor:
@@ -73,18 +73,16 @@ class VariableElimination(ProbabilisticInference):
             if len(fnew.left_vars)>0:
                 factors += [fnew]
 
-            logging.getLogger( __name__ ).debug(f"Updated factor list: {[f.name for f in factors]}")
+            logging.getLogger(__name__).debug(f"Updated factor list: {[f.name for f in factors]}")
 
-
-
-        p = reduce((lambda f1, f2: f1 * f2), factors)
         # combine resulting factors and set evidence
         joint = reduce((lambda f1, f2: f1 * f2), factors).R(**self._evidence)
 
-
+        logging.getLogger(__name__).debug(f"Calculated join probability {joint}")
 
         result = joint / (joint ** self._target)
         self.time = (time.time()-tstart)*1000
+        logging.getLogger(__name__).debug(f"Result {result}")
         logging.getLogger( __name__ ).info(f"Finished variable elimination in {self.time} ms.")
         return result
 
