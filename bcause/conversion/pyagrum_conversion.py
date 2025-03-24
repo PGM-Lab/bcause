@@ -9,6 +9,7 @@ from bcause.models.cmodel import StructuralCausalModel
 from bcause.util import randomUtil
 import bcause.util.domainutils as dutils
 import bcause.util.graphutils as gutils
+from bcause.util.domainutils import assingment_space
 
 def _get_node(var,values):
     if any(isinstance(x,str) for x in values):
@@ -68,7 +69,10 @@ def potential_to_factor(potential: gum.Potential) -> bfd.MultinomialFactor:
     left_vars = [vars[0].name()]
     right_vars = [var.name() for var in vars[1:]]
     domain = {var.name(): _value_from_var_domain(var) for var in vars}
-    values = potential.toarray().flatten()
+    card = [len(d) for d in domain.values()]
+    I = gum.Instantiation(potential)
+    values = np.reshape([potential.get(I.fromdict(s)) for s in assingment_space(domain)],card)
+    #values = potential.toarray().flatten()
     return bfd.MultinomialFactor(domain, values, left_vars=left_vars, right_vars=right_vars)
 
 def fromAgrum(bn: gum.BayesNet) -> BayesianNetwork:
@@ -85,14 +89,7 @@ def fromAgrum(bn: gum.BayesNet) -> BayesianNetwork:
     # Get the domains with keys the name of the nodes and the values a list of the possible values of the node
     domains = {bn.variable(i).name(): _value_from_var_domain(bn.variable(i)) for i in range(bn.size())}
     # Base on the cpt tables, create the factors to then use it in the MultinomialFactor function
-    factors = {}
-    for i in range(bn.size()):
-        node = bn.variable(i).name()
-        dom = dutils.subdomain(domains, *gutils.relevat_vars(dag, node))
-        value = bn.cpt(node).toarray().flatten()
-        parents = [bn.variable(j).name() for j in bn.parents(i)]
-        factors[node] = bfd.MultinomialFactor(dom, value, left_vars=[node], right_vars=parents)
-    # Return the BayesianNetwork with the dag and the factors
+    factors = {bn.variable(i).name(): potential_to_factor(bn.cpt(bn.variable(i).name())) for i in range(bn.size())}
     return BayesianNetwork(dag, factors)
 
 
@@ -109,3 +106,4 @@ if __name__=="__main__":
 
     gumbn = toAgrum(bn)
     newbn = fromAgrum(gumbn)
+
