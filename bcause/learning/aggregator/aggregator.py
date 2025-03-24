@@ -74,43 +74,48 @@ class SimpleModelAggregator(ModelAggregator):
 
 class ModelAggregatorEM(ModelAggregator):
     def _single_generate(self, i):
-        optimizer = ExpectationMaximization(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars, inference_method=self._inference_method)
+        optimizer = ExpectationMaximization(self._prior_model, trainable_vars=self._trainlable_vars, inference_method=self._inference_method)
         optimizer.run(self._data, max_iter=self._max_iter)
         self._learn_objects.append(optimizer)
         model = optimizer.model
-        model.rating = model.ratio(self._data)
+        #model.rating = model.ratio(self._data)
         return model
 
 class SimpleModelAggregatorEM(SimpleModelAggregator, ModelAggregatorEM):
 
-    def __init__(self, model, data, trainable_vars=None, max_iter=200, parallel=False, inference_method = None):
+    def __init__(self, model, data, trainable_vars=None, max_iter=200, parallel=False, inference_method = None, random_init=True):
         self._model = model
+
         self._data = data
         self._trainlable_vars = trainable_vars or model.exogenous
         self._max_iter = max_iter
         self._inference_method = inference_method
+        self._prior_model = self._model.randomize_factors(self._trainlable_vars, allow_zero=False) if random_init else self._model
+
         super().__init__(parallel=parallel)
 
 
 class ModelAggregatorGD(ModelAggregator):
     def _single_generate(self, i):
-        optimizer = GradientLikelihood(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars, tol=self._tol)
+        optimizer = GradientLikelihood(self._prior_model, trainable_vars=self._trainlable_vars, tol=self._tol)
         optimizer.run(self._data, max_iter=self._max_iter)
         self._learn_objects.append(optimizer)
         model = optimizer.model
-        model.rating = model.ratio(self._data)
-        return optimizer.model
+        #model.rating = model.ratio(self._data)
+        return model
 
 
 class SimpleModelAggregatorGD(SimpleModelAggregator, ModelAggregatorGD):
 
-    def __init__(self, model, data, tol, max_iter, trainable_vars=None, parallel=False):
+    def __init__(self, model, data, tol, max_iter, trainable_vars=None, parallel=False, random_init=True):
         # TODO: set here the specific arguments for Gradient descent
         self._model = model
         self._data = data
         self._tol = tol
         self._max_iter = max_iter
         self._trainlable_vars = trainable_vars or model.exogenous
+        self._prior_model = self._model.randomize_factors(self._trainlable_vars, allow_zero=False) if random_init else self._model
+
         super().__init__(parallel=parallel)
 
 
