@@ -345,6 +345,13 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
     # TO DO: check to merge +3 variables and check variables sorting when assigning values
     def merge_exogenous(self, V, U) -> StructuralCausalModel:
 
+        m = self.copy()
+        merge_var = str(U) + str(V)
+
+        #check if any of the factors is DeterministicFactor
+        if not all([isinstance(f, MultinomialFactor) for f in m.factors]):
+            raise ValueError("factors must be MultinomialFactor, R method for DeterministicFactor is not implemented yet")
+
         #Generate the new matrix for U and V
         def get_new_matrix(dom,v,exo_var):
             endoVars = [e for e in m.factors[v].variables if e != exo_var]
@@ -362,9 +369,6 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
                 new_row = pd.Series(list(x.values()) + merge_df['Target'].tolist(), index = colnames)
                 result_df = pd.concat([result_df, new_row.to_frame().T], ignore_index=True)
             return result_df
-
-        m = self.copy()
-        merge_var = str(U) + str(V)
 
         # Relations between the new variables and the previous one.
         key_df = pd.DataFrame(
