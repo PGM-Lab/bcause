@@ -128,6 +128,21 @@ class ExpectationMazimizationPrecomputed(ExpectationMaximization):
         self.phi_1 = phi_1
         self.phi_2 = phi_2
 
+        @property
+        def phi_1(self):
+            return self._phi_1
+
+        @phi_1.setter
+        def phi_1(self, value):
+            self._phi_1 = value
+
+        @property
+        def phi_2(self):
+            return self._phi_2
+
+        @phi_2.setter
+        def phi_2(self, value):
+            self._phi_2 = value
 
     def _calculate_updated_factors(self):
         self._inf = self._inference_method(self._model)
@@ -174,23 +189,19 @@ if __name__ == "__main__":
 
     m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 
+    # Set seed
+    from bcause.util import randomUtil
     data = m.sample(10000, as_pandas=True)[m.endogenous]
 
     print(m)
 
+    randomUtil.seed(1)
     em1 = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False))
+    randomUtil.seed(1)
     em2 = ExpectationMazimizationPrecomputed(m.randomize_factors(m.exogenous, allow_zero=False))
     em1.run(data, max_iter=10)
     em2.run(data, max_iter=10)
 
 
     print(em1.prior_model)
-    print(em1.prior_model.factors["U"].values)
-    print(em2.prior_model.factors["U"].values)
-
-
     print(len(em1.model_evolution))
-
-    for i in range(len(em1.model_evolution)):
-        print(em1.model_evolution[i].factors["U"].values)
-        print(em2.model_evolution[i].factors["U"].values)
