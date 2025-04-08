@@ -30,9 +30,6 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
 
         left_vars = as_lists(left_vars)
-
-
-
         self._domain = OrderedDict(domain)
         self.set_variables(list(domain.keys()), left_vars, right_vars)
 
