@@ -2,6 +2,7 @@ from abc import abstractmethod
 from functools import reduce
 
 import pandas as pd
+from requests.packages import target
 
 from bcause.factors import MultinomialFactor, DeterministicFactor
 from bcause.factors.mulitnomial import uniform_multinomial
@@ -10,7 +11,8 @@ from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.models.pgmodel import DiscreteDAGModel
 from bcause.util.datadeps import DataDepAnalysis
-
+from bcause.util.datautils import to_counts
+#from dev_ig.Prueba_EM import phi_1
 
 
 class AbastractExpectationMaximization(IterativeParameterLearning):
@@ -51,7 +53,6 @@ class ExpectationMaximization(AbastractExpectationMaximization):
     def _get_obs_counts(self, target):
         obs_blanket = self._datadeps.get_minimal_obs_blanket(target)
         return [(obs, sum(reduce( lambda x,y : x&y, [self._data[v] == s for v,s in obs.items()]))) for obs in obs_blanket]
-
 
 
     def _expectation(self, **kwargs):
@@ -111,12 +112,37 @@ class ExpectationMazimizationPrecomputed(ExpectationMaximization):
 
     def initialize(self, data: pd.DataFrame, **kwargs):
         super().initialize(data, **kwargs)
-
+        data = self._data.copy()[self.model.endogenous]
         # Precomputed factors
         # TODO: AÑADIR AQUÍ TODO LO QUE CALCULA AL PRINCIPIO
-        self._data
 
+        # get the data as factor
+        factor_data = to_counts(domains= {k:v for k,v in self._model.domains.items() if k in self._model.endogenous}, data= data, normalize=True)
+        # multiply the factors of the model for each ccomponent. E.g. P(V1|Y,U) * P(V2|V1,U)
+        endo_component = {v: self._model.get_endo_ccomponent(v) for v in self.trainable_vars}
+        phi_1 =  {v: reduce(lambda x, y: x * y, [self._model.factors[f] for f in endo_component[v]])
+                         for v in self.trainable_vars}
 
+        #Product for each factor_table with factor_data marginalize by the corresponding variables
+        phi_2 = {v: factor_data.marginalize(*set(factor_data.variables).difference(phi_1[v].variables)) * phi_1[v] for v in self.trainable_vars}
+        self.phi_1 = phi_1
+        self.phi_2 = phi_2
+
+        @property
+        def phi_1(self):
+            return self._phi_1
+
+        @phi_1.setter
+        def phi_1(self, value):
+            self._phi_1 = value
+
+        @property
+        def phi_2(self):
+            return self._phi_2
+
+        @phi_2.setter
+        def phi_2(self, value):
+            self._phi_2 = value
 
     def _calculate_updated_factors(self):
         self._inf = self._inference_method(self._model)
@@ -125,7 +151,11 @@ class ExpectationMazimizationPrecomputed(ExpectationMaximization):
         # loop over trainable variables
         for v in set(self.trainable_vars).difference(self._converged_vars):
             # TODO: CALCULAR NUEVOS P(U)
-            pass
+            # Multiply each v of self.phi_1 by the probability of "U"
+            numerator = self.phi_2[v] * self._model.factors[v]
+            denominator = (self.phi_1[v] * self._model.factors[v]).marginalize(v)
+            result = (numerator / denominator).marginalize(*set(numerator.variables).difference(v))
+            new_probs[v] = result/ (result.marginalize(v))
 
         return new_probs    # return the updated factors
 
@@ -159,12 +189,19 @@ if __name__ == "__main__":
 
     m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 
+    # Set seed
+    from bcause.util import randomUtil
     data = m.sample(10000, as_pandas=True)[m.endogenous]
 
     print(m)
-    em = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False))
-    em.run(data, max_iter=10)
 
-    print(em.prior_model)
+    randomUtil.seed(1)
+    em1 = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False))
+    randomUtil.seed(1)
+    em2 = ExpectationMazimizationPrecomputed(m.randomize_factors(m.exogenous, allow_zero=False))
+    em1.run(data, max_iter=10)
+    em2.run(data, max_iter=10)
 
-    print(len(em.model_evolution))
+
+    print(em1.prior_model)
+    print(len(em1.model_evolution))
