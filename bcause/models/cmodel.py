@@ -17,7 +17,7 @@ from pandas.core.computation.ops import isnumeric
 import bcause.models.info as info
 
 from bcause.factors import DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, random_deterministic
+from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, random_deterministic, uniform_multinomial
 from bcause.models import BayesianNetwork
 from bcause.models.pgmodel import DiscreteDAGModel
 import bcause.util.domainutils as dutils
@@ -175,7 +175,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
     def __init__(self, dag:Union[nx.DiGraph,str], factors:Union[dict,list] = None, endogenous:Iterable = None,
                  cast_multinomial:bool = True, check_factors:bool = True):
         self._initialize(dag)
-        self._endogenous = endogenous or [x for x in dag if len(list(dag.predecessors(x)))>0]
+        self._endogenous = endogenous or [x for x in self.graph if len(list(self.graph.predecessors(x)))>0]
         self._cast_multinomial = cast_multinomial
         self._check_factors = check_factors
         self._rating = 1.0;
@@ -219,17 +219,21 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
 
 
     def intervention(self, **obs):
+
+        if any([type(v) in [list, tuple] and len(v) > 1 for v in obs.values()]):
+            raise ValueError("Intervention on multiple values are not allowed")
+
         new_dag = gutils.remove_ingoing_edges(self.graph, obs.keys())
         new_factors = dict()
         for v, f in self.factors.items():
             new_factors[v] = f if v not in obs else f.constant(obs[v])
-        return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=self.endogenous, cast_multinomial=self._cast_multinomial)
+        return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=self.endogenous, cast_multinomial=self._cast_multinomial, check_factors=False)
 
     def rename_vars(self, names_mapping: dict) -> DiscreteDAGModel:
         logging.getLogger( __name__ ).debug(f"Renaming variables as {names_mapping}")
         new_dag = relabel_nodes(self.graph, names_mapping)
         new_factors = [f.rename_vars(names_mapping) for f in self.factors.values()]
-        new_endogenous = [names_mapping[x] for x in self.endogenous]
+        new_endogenous = [names_mapping[x] if x in names_mapping else x for x in self.endogenous]
         return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=new_endogenous, cast_multinomial=self._cast_multinomial)
 
     def randomize_factors(self, variables, in_place = False, allow_zero = True):
@@ -250,6 +254,12 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         for u in self.exogenous:
             dom = dutils.subdomain(domains, u)
             f = random_multinomial(dom)
+            self.set_factor(u, f)
+
+    def fill_uniform_marginals(self, domains):
+        for u in self.exogenous:
+            dom = dutils.subdomain(domains, u)
+            f = uniform_multinomial(dom)
             self.set_factor(u, f)
 
     def fill_random_factors(self, domains):

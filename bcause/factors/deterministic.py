@@ -24,6 +24,11 @@ class DeterministicFactor(bf.DiscreteFactor, bf.ConditionalFactor):
                                                                                                      #       If so, left_vars->event and right_vars->evidence(s) or condition(s)
         vtype = vtype or DataStore.DEFAULT_STORE
 
+        if left_vars is None and right_vars is None:
+            raise ValueError("Either left or right variables must be specified")
+
+
+
         left_vars = as_lists(left_vars)
         self._domain = OrderedDict(domain)
         self.set_variables(list(domain.keys()), left_vars, right_vars)

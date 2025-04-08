@@ -44,14 +44,15 @@ class CausalInference(Inference):
 
         evidence = {**evidence, **do}
 
-        self._inference_model = self._preprocess()
+        self._inference_model = self._preprocess_model()
         self._inf = self._prob_inf_fn(self._inference_model)
-        self._inf.compile(target, evidence)
+        #self._inf.compile(target, evidence)
+        self._query_args = dict(target=target, evidence=evidence)
         self._compiled = True
 
         return self
 
-    def _preprocess(self, *args, **kwargs) -> PGModel:
+    def _preprocess_model(self, *args, **kwargs) -> PGModel:
 
         if not self._counterfactual:
             new_model = self.model.intervention(**self._do)
@@ -68,9 +69,11 @@ class CausalInference(Inference):
         return self._counterfactual
 
     def run(self) -> Factor:
-        return self._inf.run()
+        #return self._inf.run()
+        return self._inf.query(**self._query_args)
 
-    def query(self, target, do, evidence=None, counterfactual=False, targets_subgraphs = None):
+    def query(self, target, do=None, evidence=None, counterfactual=False, targets_subgraphs = None):
+        do = do or dict()
         if counterfactual:
             #if not isinstance(do, dict): raise ValueError("Intervention must be specified in a single dictionary")
             target = as_lists(target)
@@ -86,7 +89,7 @@ class CausalInference(Inference):
 
     def prob_necessity_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
 
-        if not self._compiled: self.compile()
+        #if not self._compiled: self.compile()
 
         # Determine the true and false states
         Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
@@ -100,27 +103,28 @@ class CausalInference(Inference):
         ), {effect + "_1": Feffect, effect + "_2": Teffect})
 
     def _process_output(self, result, obs):
-        return result.get_value(**obs)
+        return result.R(**obs).marginalize(*list(obs.keys())).values[0]
 
     def prob_necessity(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         # PN: P(X_{Y=f} = f |X=t, Y=t)   Y->X
 
-        if not self._compiled: self.compile()
+        #if not self._compiled: self.compile()
         # Determine the true and false states
         Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
         Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
 
         # Run the query
-        return self._process_output(self.counterfactual_query(
+        result = self.counterfactual_query(
             effect,
             do={cause: Fcause},
             evidence={cause: Tcause, effect: Teffect},
-        ), {effect+"_1": Feffect})
+        )
+        return self._process_output(result, {effect+"_1": Feffect})
 
     def prob_sufficiency(self, cause, effect, true_false_cause:tuple=None, true_false_effect:tuple=None):
         # PS: P(X_{Y=t} = t |X=f, Y=f)   Y->X
 
-        if not self._compiled: self.compile()
+        #if not self._compiled: self.compile()
         # Determine the true and false states
         Tcause, Fcause = true_false_cause or dutils.identify_true_false(cause, self.model.domains[cause])
         Teffect, Feffect = true_false_effect or dutils.identify_true_false(effect, self.model.domains[effect])
@@ -150,7 +154,7 @@ class PearlBounds(CausalInference, CausalObservationalInference):
 
         return self
 
-    def _preprocess(self, *args, **kwargs) -> PGModel:
+    def _preprocess_model(self, *args, **kwargs) -> PGModel:
         pass
 
     @property

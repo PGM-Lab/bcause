@@ -118,6 +118,19 @@ class NumpyStoreOperations(OperationSet):
             else:
                 items.append(slice(None))
                 new_dom[v] = store.domain[v]
-        new_data = store._data[tuple(items)].copy()
+        new_data = _indexing(store._data, items)
+        #new_data = store._data[tuple(items)].copy()
         return store.builder(domain=new_dom, data=new_data)
 
+
+
+def _indexing(data, idx):
+    idx_ = idx.copy()
+    sn = slice(None)
+    for i in range(len(idx)):
+        if isinstance(idx[i], list) and len(idx[i])>1:
+            sub_idx = [sn]*len(idx_)
+            sub_idx[i] = idx_[i]
+            idx_[i] = sn
+            data = data[tuple(sub_idx)]
+    return data[tuple(idx_)]

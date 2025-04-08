@@ -113,6 +113,31 @@ def markov_blanket(dag, v, hidden=None):
     observed = set(dag.nodes).difference(set(hidden) | {v})
     return dcon_nodes(dag, v, observed)
 
+
+def reorder_nodes(graph, order):
+    """
+    Reorder the nodes of a NetworkX graph based on a given order.
+
+    Parameters:
+    graph (nx.Graph): The original NetworkX graph.
+    order (list): A list of nodes in the desired order.
+
+    Returns:
+    nx.Graph: A new graph with nodes reordered according to 'order'.
+    """
+    # Create a new graph with the same type as the original
+    new_graph = nx.Graph() if not graph.is_directed() else nx.DiGraph()
+
+    # Add nodes in the specified order
+    new_graph.add_nodes_from(order)
+
+    # Add edges from the original graph
+    new_graph.add_edges_from(graph.edges(data=True))
+
+    return new_graph
+
+
+
 '''
 
 dag = nx.DiGraph([("A","B"),("B","C"),("D","C"),("D","G"),("C","E"),("E","F")])
