@@ -1,5 +1,8 @@
 import sys
 import logging
+import logging
+import sys
+
 import random
 
 import matplotlib.pyplot as plt
@@ -117,9 +120,14 @@ for i in range(max_iter):
 
 
     # get the counts of U and update the parameters of the U
+<<<<<<< HEAD
 
     w =random.uniform(0, 100)
     counts_u = [samples_u.count(u)*1 for u in model.domains["U"]]
+=======
+    counts_u = [samples_u.count(u) for u in model.domains["U"]]
+    print(f'Time: {time.time() - start}')
+>>>>>>> e095e74 (Update)
     total_counts_u += [counts_u]
     beta = [int(a + c) for a, c in zip(alpha, counts_u)]
     #alpha = beta
@@ -160,8 +168,11 @@ for i in range(max_iter):
         plt.hist(Q[100:],density=True)
         plt.xlim(0, 1)
         plt.show()
+<<<<<<< HEAD
 
 
 
 
 dirichlet.rvs([1,1,0.1])[0]
+=======
+>>>>>>> e095e74 (Update)
