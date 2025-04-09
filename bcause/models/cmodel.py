@@ -349,7 +349,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         merge_var = str(U) + str(V)
 
         #check if any of the factors is DeterministicFactor
-        if not all([isinstance(f, MultinomialFactor) for f in m.factors]):
+        if any([isinstance(f, DeterministicFactor) for f in m.factors]):
             raise ValueError("factors must be MultinomialFactor, R method for DeterministicFactor is not implemented yet")
 
         #Generate the new matrix for U and V
@@ -374,7 +374,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         key_df = pd.DataFrame(
             [(f'w{k}', f'v{i}', f'u{j}', str(v) + '_' + str(u) )
              for k, ((i, v), (j, u)) in enumerate(itertools.product(enumerate(m.domains[V]), enumerate(m.domains[U])))]
-            , columns=['merge_var', 'V', 'U', 'merge_values']
+            , columns=['merge_var', V, U, 'merge_values']
         )
 
         # Define the new dag
