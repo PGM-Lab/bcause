@@ -154,9 +154,8 @@ class ExpectationMazimizationPrecomputed(ExpectationMaximization):
             # Multiply each v of self.phi_1 by the probability of "U"
             numerator = self.phi_2[v] * self._model.factors[v]
             denominator = (self.phi_1[v] * self._model.factors[v]).marginalize(v)
-            result = (numerator / denominator).marginalize(*set(numerator.variables).difference(v))
+            result = (numerator / denominator).marginalize(*set(numerator.variables).difference({v}))
             new_probs[v] = result/ (result.marginalize(v))
-
         return new_probs    # return the updated factors
 
 

@@ -352,23 +352,22 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         nx.draw_networkx_edges(G, pos=pos, edgelist=endo_edges, edge_color="black", style="solid", arrowsize=15)
         plt.box(False)
 
-    # TO DO: check to merge +3 variables and check variables sorting when assigning values
     def merge_exogenous(self, V, U) -> StructuralCausalModel:
-
         m = self.copy()
         merge_var = str(U) + str(V)
 
-        #check if any of the factors is DeterministicFactor
-        if not all([isinstance(f, MultinomialFactor) for f in m.factors]):
-            raise ValueError("factors must be MultinomialFactor, R method for DeterministicFactor is not implemented yet")
+        # check if any of the factors is DeterministicFactor
+        if any([isinstance(f, DeterministicFactor) for f in m.factors]):
+            raise ValueError(
+                "factors must be MultinomialFactor, R method for DeterministicFactor is not implemented yet")
 
-        #Generate the new matrix for U and V
-        def get_new_matrix(dom,v,exo_var):
+        # Generate the new matrix for U and V
+        def get_new_matrix(dom, v, exo_var):
             endoVars = [e for e in m.factors[v].variables if e != exo_var]
             endoDom = dutils.subdomain(dom, *endoVars)
-            exoVars = [f'u{i}' if U==exo_var else f'v{i}' for i in range(len(m.domains[exo_var]))]
+            exoVars = [f'u{i}' if U == exo_var else f'v{i}' for i in range(len(m.domains[exo_var]))]
             colnames = endoVars + key_df['merge_var'].tolist()
-            result_df = pd.DataFrame(columns = colnames)
+            result_df = pd.DataFrame(columns=colnames)
 
             for x in dutils.assingment_space(endoDom):
                 df = pd.DataFrame({
@@ -376,36 +375,36 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
                     'Target': m.factors[v].R(**x).values
                 })
                 merge_df = key_df.merge(df, left_on=exo_var, right_on='Columns', how='left')
-                new_row = pd.Series(list(x.values()) + merge_df['Target'].tolist(), index = colnames)
+                new_row = pd.Series(list(x.values()) + merge_df['Target'].tolist(), index=colnames)
                 result_df = pd.concat([result_df, new_row.to_frame().T], ignore_index=True)
             return result_df
 
         # Relations between the new variables and the previous one.
         key_df = pd.DataFrame(
-            [(f'w{k}', f'v{i}', f'u{j}', str(v) + '_' + str(u) )
+            [(f'w{k}', f'v{i}', f'u{j}', str(v) + '_' + str(u))
              for k, ((i, v), (j, u)) in enumerate(itertools.product(enumerate(m.domains[V]), enumerate(m.domains[U])))]
-            , columns=['merge_var', 'V', 'U', 'merge_values']
+            , columns=['merge_var', V, U, 'merge_values']
         )
 
         # Define the new dag
         dag = m.graph.copy()
         affected_edges = list(filter(lambda tup: U in tup or V in tup, list(dag.edges())))
-        dag.remove_nodes_from([U,V])
+        dag.remove_nodes_from([U, V])
         dag.add_node(merge_var)
-        dag.add_edges_from( [(merge_var, tup[1]) for tup in affected_edges])
+        dag.add_edges_from([(merge_var, tup[1]) for tup in affected_edges])
 
         # Define the new domain
         dom = m.domains.copy()
-        [dom.pop(exo) for exo in [U,V]]
+        [dom.pop(exo) for exo in [U, V]]
         dom[merge_var] = key_df['merge_values'].tolist()
 
         # Define the new factors
         new_factors = {merge_var: MultinomialFactor(domain={merge_var: key_df['merge_values'].to_list()},
                                                     values=[x * y for x, y in
-                                                            itertools.product(m.factors[U].values,
-                                                                              m.factors[V].values)])}
+                                                            itertools.product(m.factors[V].values,
+                                                                              m.factors[U].values)])}
         for v, factor in m.factors.items():
-            if v not in {U,V}:
+            if v not in {U, V}:
                 exo_var = next((x for x in factor.right_vars if x in {U, V}), None)
 
                 if exo_var:
@@ -413,10 +412,10 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
                     right_vars[right_vars.index(exo_var)] = merge_var
 
                     var_involved = [v] + list(dag.predecessors(v))
-                    f_dom = {k: v for k, v in dom.items() if k in var_involved }
+                    f_dom = {k: v for k, v in dom.items() if k in var_involved}
 
                     matrix = get_new_matrix(dom, v, exo_var)
-                    values = matrix.drop(columns= [col for col in factor.variables if col in matrix.columns]).to_numpy()
+                    values = matrix.drop(columns=[col for col in factor.variables if col in matrix.columns]).to_numpy()
 
                     new_factors[v] = MultinomialFactor(
                         domain=f_dom,
