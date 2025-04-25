@@ -148,7 +148,6 @@ class SimpleModelAggregatorGibbs(SimpleModelAggregator, ModelAggregatorGibbs):
 
 
 
-
 if __name__ == "__main__":
     import logging, sys
 

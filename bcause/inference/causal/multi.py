@@ -225,30 +225,43 @@ class GDCC(CausalMultiInference, CausalObservationalInference):
 
 
 class GibbsCausal(CausalMultiInference, CausalObservationalInference):
-    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None,  interval_result=True, num_runs=10, parallel = False, min_rating=0.0, calculate_rating=False, outliers_removal=True):
+    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None,  interval_result=True,
+                 num_runs=10, parallel = False, min_rating=0.0, calculate_rating=False, outliers_removal=True, burnin_iter = 100):
         self._data = data
         self._prior_model = model
         self._model = model
         self._num_runs = num_runs
         self._agg = None
         self._parallel = parallel
+        self._burnin_iter = burnin_iter
         super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result, min_rating=min_rating, calculate_rating=calculate_rating, outliers_removal=outliers_removal)
+
+
+
 
     def compile(self, *args, **kwargs) -> Inference:
         self._agg = SimpleModelAggregatorGibbs(self._prior_model, self._data, parallel=self._parallel)
+        self._burnin()
         self._agg.run(num_models=self._num_runs)
         self.set_models(self._agg.models)
         return super().compile()
 
+
     def compile_incremental(self, step_runs=1, *args, **kwargs) -> Inference:
         #for i in range(self._num_runs):
         while len(self.models)<self._num_runs:
-            self._agg = SimpleModelAggregatorGibbs(self._prior_model, self._data, parallel=self._parallel)
+            if self._agg is None:
+                self._agg = SimpleModelAggregatorGibbs(self._prior_model, self._data, parallel=self._parallel)
+                self._burnin()
             self._agg.run(num_models=step_runs)
             self.add_models(self._agg.models)
+            self._agg.reset()
             yield super().compile()
 
 
+    def _burnin(self):
+        self._agg.run(self._burnin_iter)
+        self._agg.reset()
 
 
 
@@ -287,7 +300,15 @@ if __name__=="__main__":
 
 
     Watch.start()
-    inf = GibbsCausal(m,data, num_runs=1000)
+    inf = GibbsCausal(m,data, num_runs=100, burnin_iter=10)
+    for _ in inf.compile_incremental(5): pass
+
+
+    for m in inf.models:
+        print(m.factors["U"])
+
+    exit()
+
     print(inf.causal_query("X", do=dict(Y=0)))
     print(inf.counterfactual_query("X", do=dict(Y=0)))
     print(inf.prob_necessity("Y","X"))
@@ -300,6 +321,7 @@ if __name__=="__main__":
     print(inf.counterfactual_query("X", do=dict(Y=0)))
     print(inf.prob_necessity("Y","X"))
     Watch.stop_print()
+
 
     #
     #
