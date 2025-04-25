@@ -81,7 +81,7 @@ class IterativeParameterLearning(ParameterLearning):
         self._model = self._model.builder(dag=self._model.graph, factors=new_probs, check_factors=False)
         self._record_model(self.model)
 
-    def run(self, data: pd.DataFrame, max_iter: int = float("inf")):
+    def run(self, data: pd.DataFrame, max_iter: int = float("inf"), init=True):
         """
         This method performs a given number of optimization steps.
         Args:
@@ -91,8 +91,7 @@ class IterativeParameterLearning(ParameterLearning):
         Returns:
 
         """
-
-        self.initialize(data)
+        if init: self.initialize(data)
         i = 0
         while i < max_iter:
             self.step()
