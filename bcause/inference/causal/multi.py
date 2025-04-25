@@ -8,11 +8,13 @@ from bcause.factors.imprecise import IntervalProbFactor
 from bcause.inference.causal.causal import CausalInference, CausalObservationalInference
 from bcause.inference.inference import Inference
 from bcause.inference.probabilistic.elimination import VariableElimination
-from bcause.learning.aggregator.aggregator import SimpleModelAggregatorEM, SimpleModelAggregatorGD
+from bcause.learning.aggregator.aggregator import SimpleModelAggregatorEM, SimpleModelAggregatorGD, \
+    SimpleModelAggregatorGibbs
 from bcause.learning.parameter.expectation_maximization import ExpectationMaximization
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.arrayutils import min_max_iqr
 import bcause.util.domainutils as dutils
+from bcause.util.watch import Watch
 
 
 class CausalMultiInference(CausalInference):
@@ -220,7 +222,39 @@ class GDCC(CausalMultiInference, CausalObservationalInference):
         if self._agg is not None:
             return self._agg.learn_objects[index].model_evolution
 
+
+
+class GibbsCausal(CausalMultiInference, CausalObservationalInference):
+    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None,  interval_result=True, num_runs=10, parallel = False, min_rating=0.0, calculate_rating=False, outliers_removal=True):
+        self._data = data
+        self._prior_model = model
+        self._model = model
+        self._num_runs = num_runs
+        self._agg = None
+        self._parallel = parallel
+        super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result, min_rating=min_rating, calculate_rating=calculate_rating, outliers_removal=outliers_removal)
+
+    def compile(self, *args, **kwargs) -> Inference:
+        self._agg = SimpleModelAggregatorGibbs(self._prior_model, self._data, parallel=self._parallel)
+        self._agg.run(num_models=self._num_runs)
+        self.set_models(self._agg.models)
+        return super().compile()
+
+    def compile_incremental(self, step_runs=1, *args, **kwargs) -> Inference:
+        #for i in range(self._num_runs):
+        while len(self.models)<self._num_runs:
+            self._agg = SimpleModelAggregatorGibbs(self._prior_model, self._data, parallel=self._parallel)
+            self._agg.run(num_models=step_runs)
+            self.add_models(self._agg.models)
+            yield super().compile()
+
+
+
+
+
 if __name__=="__main__":
+    import logging, sys
+
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 
     # logging.getLogger( __name__ ).basicConfig(level=logging.getLogger( __name__ ).DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
@@ -228,7 +262,7 @@ if __name__=="__main__":
     import networkx as nx
 
     dag = nx.DiGraph([("Y", "X"), ("V", "Y"), ("U", "X")])
-    domains = dict(X=["x1", "x2"], Y=[0, 1], U=["u1", "u2", "u3", "u4"], V=["v1", "v2"])
+    domains = dict(X=[0,1], Y=[0, 1], U=[0,1,2,3], V=[0,1])
 
     import bcause.util.domainutils as dutils
     import bcause.util.graphutils as gutils
@@ -238,7 +272,7 @@ if __name__=="__main__":
 
     domx = dutils.subdomain(domains, *gutils.relevat_vars(dag, "X"))
 
-    values = ["x1", "x1", "x2", "x1", "x1", "x1", "x2", "x1"]
+    values = [0, 0, 1, 0, 0, 0, 1, 0]
     fx = DeterministicFactor(domx, left_vars=["X"], values=values)
 
     domv = dutils.subdomain(domains, "V")
@@ -249,12 +283,23 @@ if __name__=="__main__":
 
     m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 
-    data = m.sample(10000, as_pandas=True)[m.endogenous]
+    data = m.sample(1000, as_pandas=True)[m.endogenous]
 
-    # inf = EMCC(m, data, num_runs=10, max_iter=3)
-    # print(inf.causal_query("X", do=dict(Y=0)))
-    # print(inf.counterfactual_query("X", do=dict(Y=0)))
-    # print(inf.prob_necessity("Y","X"))
+
+    Watch.start()
+    inf = GibbsCausal(m,data, num_runs=1000)
+    print(inf.causal_query("X", do=dict(Y=0)))
+    print(inf.counterfactual_query("X", do=dict(Y=0)))
+    print(inf.prob_necessity("Y","X"))
+    Watch.stop_print()
+
+    Watch.start()
+
+    inf = EMCC(m, data, num_runs=100, max_iter=50)
+    print(inf.causal_query("X", do=dict(Y=0)))
+    print(inf.counterfactual_query("X", do=dict(Y=0)))
+    print(inf.prob_necessity("Y","X"))
+    Watch.stop_print()
 
     #
     #

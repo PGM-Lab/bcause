@@ -115,6 +115,35 @@ class SimpleModelAggregatorGD(SimpleModelAggregator, ModelAggregatorGD):
 
 
 
+class ModelAggregatorGibbs(ModelAggregator):
+    def _single_generate(self, i):
+
+        init_flag = False
+
+        if not hasattr(self, '_optimizer'):
+            from bcause.learning.parameter.gibbs import GibbsSampling
+
+            self._optimizer = GibbsSampling(self._model.randomize_factors(self._trainlable_vars, allow_zero=False), trainable_vars=self._trainlable_vars)
+            init_flag = True
+            self._learn_objects.append(self._optimizer)
+
+        self._optimizer.run(self._data, max_iter=1, init=init_flag)
+
+        model = self._optimizer.model_evolution[-1]
+        #model.rating = model.ratio(self._data)
+        return model
+
+
+class SimpleModelAggregatorGibbs(SimpleModelAggregator, ModelAggregatorGibbs):
+
+    def __init__(self, model, data, trainable_vars=None, parallel=False):
+        # TODO: set here the specific arguments for Gradient descent
+        self._model = model
+        self._data = data
+        self._trainlable_vars = trainable_vars or model.exogenous
+        super().__init__(parallel=parallel)
+
+
 
 
 
@@ -130,7 +159,7 @@ if __name__ == "__main__":
     import networkx as nx
 
     dag = nx.DiGraph([("Y", "X"), ("V", "Y"), ("U", "X")])
-    domains = dict(X=["x1", "x2"], Y=[0, 1], U=["u1", "u2", "u3", "u4"], V=["v1", "v2"])
+    domains = dict(X=[0,1], Y=[0, 1], U=[0,1,2,3], V=[0,1])
 
     import bcause.util.domainutils as dutils
     import bcause.util.graphutils as gutils
@@ -140,7 +169,7 @@ if __name__ == "__main__":
 
     domx = dutils.subdomain(domains, *gutils.relevat_vars(dag, "X"))
 
-    values = ["x1", "x1", "x2", "x1", "x1", "x1", "x2", "x1"]
+    values = [0, 0, 1, 0, 0, 0, 1, 0]
     fx = DeterministicFactor(domx, left_vars=["X"], values=values)
 
     domv = dutils.subdomain(domains, "V")
@@ -156,12 +185,15 @@ if __name__ == "__main__":
     print(m)
 
 
-    em = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False))
 
-    agg = SimpleModelAggregatorEM(m, data, max_iter=20, parallel=True)
+    agg = SimpleModelAggregatorGibbs(m, data, parallel=False)
 
     Watch.start()
     agg.run(10)
+
+    for m in agg.models:
+        print(m.factors["U"])
+
     Watch.stop_print()
 
     #
