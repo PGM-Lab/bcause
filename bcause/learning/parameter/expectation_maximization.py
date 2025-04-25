@@ -107,6 +107,29 @@ class ExpectationMaximization(AbastractExpectationMaximization):
         return set(self._trainable_vars) == self._converged_vars
 
 
+class ExpectationMazimizationPrecomputed(ExpectationMaximization):
+
+    def initialize(self, data: pd.DataFrame, **kwargs):
+        super().initialize(data, **kwargs)
+
+        # Precomputed factors
+        # TODO: AÑADIR AQUÍ TODO LO QUE CALCULA AL PRINCIPIO
+        self._data
+
+
+
+    def _calculate_updated_factors(self):
+        self._inf = self._inference_method(self._model)
+        new_probs = dict()
+
+        # loop over trainable variables
+        for v in set(self.trainable_vars).difference(self._converged_vars):
+            # TODO: CALCULAR NUEVOS P(U)
+            pass
+
+        return new_probs    # return the updated factors
+
+
 if __name__ == "__main__":
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 

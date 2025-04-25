@@ -1,0 +1,30 @@
+network unknown {
+}
+variable S {
+    type discrete [ 2 ] { 0, 1 };
+    property weight = None ;
+}
+variable T {
+    type discrete [ 2 ] { 0, 1 };
+    property weight = None ;
+}
+variable U {
+    type discrete [ 4 ] { 0, 1, 2, 3 };
+    property weight = None ;
+}
+variable V {
+    type discrete [ 2 ] { 0, 1 };
+    property weight = None ;
+}
+probability ( S | T, U ) {
+    table 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0 ;
+}
+probability ( T | V ) {
+    table 1.0, 0.0, 0.0, 1.0 ;
+}
+probability ( U ) {
+    table 0.045073022070127484, 0.4041570709375301, 0.4881044082611335, 0.06266549873120905 ;
+}
+probability ( V ) {
+    table 0.5618790171838499, 0.43812098281615003 ;
+}
