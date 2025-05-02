@@ -260,8 +260,9 @@ class GibbsCausal(CausalMultiInference, CausalObservationalInference):
 
 
     def _burnin(self):
-        self._agg.run(self._burnin_iter)
-        self._agg.reset()
+        if self._burnin_iter > 0:
+            self._agg.run(self._burnin_iter)
+            self._agg.reset()
 
 
 
