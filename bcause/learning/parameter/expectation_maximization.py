@@ -3,6 +3,7 @@ from functools import reduce
 
 import pandas as pd
 from requests.packages import target
+from sympy.logic.boolalg import Boolean
 
 from bcause.factors import MultinomialFactor, DeterministicFactor
 from bcause.factors.mulitnomial import uniform_multinomial
@@ -44,11 +45,12 @@ class AbastractExpectationMaximization(IterativeParameterLearning):
 
 class ExpectationMaximization(AbastractExpectationMaximization):
     def __init__(self, prior_model: DiscreteDAGModel, trainable_vars: list = None,
-                 inference_method=VariableElimination):
+                 ignore_convergence:bool = False, inference_method=VariableElimination):
         self._prior_model = prior_model
         self._trainable_vars = trainable_vars
         self._inference_method = inference_method
         self._converged_vars = set()
+        self._ignore_convergence = ignore_convergence
 
     def _get_obs_counts(self, target):
         obs_blanket = self._datadeps.get_minimal_obs_blanket(target)
@@ -97,6 +99,8 @@ class ExpectationMaximization(AbastractExpectationMaximization):
 
     def _stop_learning(self) -> bool:
         from scipy.special import rel_entr
+        if self._ignore_convergence:
+            return False
 
         for v in self._trainable_vars:
             if v not in self._converged_vars:
@@ -114,7 +118,6 @@ class ExpectationMazimizationPrecomputed(ExpectationMaximization):
         super().initialize(data, **kwargs)
         data = self._data.copy()[self.model.endogenous]
         # Precomputed factors
-        # TODO: AÑADIR AQUÍ TODO LO QUE CALCULA AL PRINCIPIO
 
         # get the data as factor
         factor_data = to_counts(domains= {k:v for k,v in self._model.domains.items() if k in self._model.endogenous}, data= data, normalize=True)
@@ -150,7 +153,6 @@ class ExpectationMazimizationPrecomputed(ExpectationMaximization):
 
         # loop over trainable variables
         for v in set(self.trainable_vars).difference(self._converged_vars):
-            # TODO: CALCULAR NUEVOS P(U)
             # Multiply each v of self.phi_1 by the probability of "U"
             numerator = self.phi_2[v] * self._model.factors[v]
             denominator = (self.phi_1[v] * self._model.factors[v]).marginalize(v)
@@ -184,7 +186,7 @@ if __name__ == "__main__":
     pv = MultinomialFactor(domv, values=[.1, .9])
 
     domu = dutils.subdomain(domains, "U")
-    pu = MultinomialFactor(domu, values=[.2, .2, .1, .5])
+    pu = MultinomialFactor(domu, values=[0.95, 0.02, 0.01, 0.02])
 
     m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 
@@ -192,13 +194,12 @@ if __name__ == "__main__":
     from bcause.util import randomUtil
     data = m.sample(10000, as_pandas=True)[m.endogenous]
 
-    print(m)
-
-    randomUtil.seed(1)
-    em1 = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False))
-    randomUtil.seed(1)
-    em2 = ExpectationMazimizationPrecomputed(m.randomize_factors(m.exogenous, allow_zero=False))
+    randomUtil.seed(1234)
+    em1 = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False), ignore_convergence=True)
     em1.run(data, max_iter=10)
+
+    randomUtil.seed(1234)
+    em2 = ExpectationMazimizationPrecomputed(m.randomize_factors(m.exogenous, allow_zero=False), ignore_convergence=True)
     em2.run(data, max_iter=10)
 
 
