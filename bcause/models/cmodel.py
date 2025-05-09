@@ -459,6 +459,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
 
         m.fill_random_marginals(dom)
 
+        return m
 
 if __name__ == "__main__":
 
