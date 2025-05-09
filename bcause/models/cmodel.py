@@ -17,7 +17,8 @@ from pandas.core.computation.ops import isnumeric
 import bcause.models.info as info
 
 from bcause.factors import DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, random_deterministic, uniform_multinomial
+from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, random_deterministic, uniform_multinomial, \
+    canonical_for_model
 from bcause.models import BayesianNetwork
 from bcause.models.pgmodel import DiscreteDAGModel
 import bcause.util.domainutils as dutils
@@ -428,6 +429,36 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
                     new_factors[v] = factor
 
         return self.builder(dag=dag, factors=new_factors)
+
+
+
+    def to_markovian(self):
+        endo_graph = self.endo_graph
+        endo_domains = dutils.subdomain(self.domains, *self.endogenous)
+        return StructuralCausalModel.markovian_model(endo_graph, endo_domains)
+
+
+    @staticmethod
+    def markovian_model(endo_graph, endo_domains):
+
+
+        X = list(endo_graph.nodes)
+        graph = endo_graph.copy()
+
+        U = []
+        for x in X:
+            U.append(u := f"U_{x}")
+            graph.add_edge(u, x)
+
+        m = StructuralCausalModel(graph)
+        dom = {**endo_domains}
+
+        for x in X:
+            m.set_factor(x, f := canonical_for_model(m, endo_domains, x))
+            dom[u] = f.domain[u := m.get_exogenous_parents(x)[0]]
+
+        m.fill_random_marginals(dom)
+
 
 if __name__ == "__main__":
 
