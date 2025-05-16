@@ -190,9 +190,11 @@ class GibbsSamplingPYAgrum(ProbabilisticInference):
         Preprocess the model before running the inference algorithm.
         Set the evidence in the model and make inference if evidence is present.
         """
+        self._inf.setEpsilon(0.01)
         self._inf.setBurnIn(self._burn_in)
         self._inf.setMaxIter(self._max_iter)
         self._inf.setEvidence(self._evidence)
+        self._inf.setTargets(set(self._target))
         self._inf.makeInference()
         return self._model
 
@@ -204,7 +206,7 @@ class GibbsSamplingPYAgrum(ProbabilisticInference):
         Returns:
             Factor: The resulting probability distribution as a bcause-compatible Factor object.
         """
-        self._inf.addTarget(*self._target)
+        #elf._inf.addTarget(*self._target)
         p = self._inf.posterior(*self._target)
         # Create a MultinomialFactor with the result
         return potential_to_factor(p)
@@ -332,12 +334,12 @@ if __name__=="__main__":
     warnings.filterwarnings("ignore")
 
     bnet = BayesianNetwork.read("models/asia.bif")
-    #inf = LazyPropagationPYAgrum(bnet)
-    #inf = ShaferShenoyPYAgrum(bnet)
-    inf = VariableEliminationPYAgrum(bnet)
+    # inf = LazyPropagationPYAgrum(bnet)
+    # inf = ShaferShenoyPYAgrum(bnet)
+    #inf = VariableEliminationPYAgrum(bnet)
     #inf = LoopyBeliefPropagationPYAgrum(bnet)
-    #inf = GibbsSamplingPYAgrum(bnet, burn_in=1000, max_iter=10000)
-    #inf = MonteCarloSamplingPyAgrum(bnet)
+    # inf = GibbsSamplingPYAgrum(bnet, burn_in=1000, max_iter=10000)
+    inf = MonteCarloSamplingPyAgrum(bnet)
     #inf = WeightedSamplingPyAgrum(bnet)
     #inf = ImportanceSamplingPyAgrum(bnet)
 
@@ -352,13 +354,16 @@ if __name__=="__main__":
     #
     # p = inf.query(["bronc","lung"])
     # print(p)
+    #
+    # p = inf.query(["smoke", "dysp"])
+    # print(p)
 
-    p = inf.query(["smoke", "dysp"])
+    p = inf.query("either", evidence=None)
     print(p)
 
     p = inf.query("smoke", conditioning="dysp")
     print(p)
-    #
+
     # p = inf.query(target="smoke", conditioning="dysp", evidence=dict(asia="yes"))
     # print(p)
 
