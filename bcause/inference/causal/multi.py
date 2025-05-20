@@ -163,7 +163,7 @@ class CausalMultiInference(CausalInference):
 
 
 class EMCC(CausalMultiInference, CausalObservationalInference):
-    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, em_inf_fn: Callable = VariableElimination, interval_result=True, max_iter=100, num_runs=10, parallel = False, min_rating=0.0, calculate_rating=False, outliers_removal=True):
+    def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, em_inf_fn: Callable = VariableElimination, interval_result=True, max_iter=100, num_runs=10, parallel = False, min_rating=0.0, calculate_rating=False, outliers_removal=True, random_init=True):
         self._data = data
         self._prior_model = model
         self._model = model
@@ -172,10 +172,11 @@ class EMCC(CausalMultiInference, CausalObservationalInference):
         self._agg = None
         self._parallel = parallel
         self._em_inf_fn = em_inf_fn
+        self._random_init = random_init
         super().__init__([], causal_inf_fn=causal_inf_fn, interval_result=interval_result, min_rating=min_rating, calculate_rating=calculate_rating, outliers_removal=outliers_removal)
 
     def compile(self, *args, **kwargs) -> Inference:
-        self._agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter, parallel=self._parallel, inference_method=self._em_inf_fn)
+        self._agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter, parallel=self._parallel, inference_method=self._em_inf_fn, random_init=self._random_init)
         self._agg.run(num_models=self._num_runs)
         self.set_models(self._agg.models)
         #self._model = self._models[0]
@@ -185,7 +186,7 @@ class EMCC(CausalMultiInference, CausalObservationalInference):
     def compile_incremental(self, step_runs=1, *args, **kwargs) -> Inference:
         #for i in range(self._num_runs):
         while len(self.models)<self._num_runs:
-            self._agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter, parallel=self._parallel, inference_method=self._em_inf_fn)
+            self._agg = SimpleModelAggregatorEM(self._prior_model, self._data, max_iter=self._max_iter, parallel=self._parallel, inference_method=self._em_inf_fn, random_init=self._random_init)
             self._agg.run(num_models=step_runs)
             self.add_models(self._agg.models)
             yield super().compile()
