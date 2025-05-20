@@ -85,12 +85,13 @@ class SimpleModelAggregatorEM(SimpleModelAggregator, ModelAggregatorEM):
 
     def __init__(self, model, data, trainable_vars=None, max_iter=200, parallel=False, inference_method = None, random_init=True):
         self._model = model
-        self._prior_model = self._model.randomize_factors(self._trainlable_vars, allow_zero=False) if random_init else self._model
 
         self._data = data
         self._trainlable_vars = trainable_vars or model.exogenous
         self._max_iter = max_iter
         self._inference_method = inference_method
+        self._prior_model = self._model.randomize_factors(self._trainlable_vars, allow_zero=False) if random_init else self._model
+
         super().__init__(parallel=parallel)
 
 
@@ -109,12 +110,12 @@ class SimpleModelAggregatorGD(SimpleModelAggregator, ModelAggregatorGD):
     def __init__(self, model, data, tol, max_iter, trainable_vars=None, parallel=False, random_init=True):
         # TODO: set here the specific arguments for Gradient descent
         self._model = model
-        self._prior_model = self._model.randomize_factors(self._trainlable_vars, allow_zero=False) if random_init else self._model
-
         self._data = data
         self._tol = tol
         self._max_iter = max_iter
         self._trainlable_vars = trainable_vars or model.exogenous
+        self._prior_model = self._model.randomize_factors(self._trainlable_vars, allow_zero=False) if random_init else self._model
+
         super().__init__(parallel=parallel)
 
 
