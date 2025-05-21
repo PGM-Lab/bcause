@@ -455,7 +455,8 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
 
         for x in X:
             m.set_factor(x, f := canonical_for_model(m, endo_domains, x))
-            dom[u] = f.domain[u := m.get_exogenous_parents(x)[0]]
+            u = m.get_exogenous_parents(x)[0]
+            dom[u] = f.domain[u]
 
         m.fill_random_marginals(dom)
 

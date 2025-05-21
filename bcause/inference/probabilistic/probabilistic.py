@@ -68,7 +68,4 @@ class ProbabilisticInference(Inference):
         pout = p3 / p3.marginalize(*target)
 
 
-        self.factors
-
-
         return pout
