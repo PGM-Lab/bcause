@@ -33,6 +33,8 @@ def test_causal_query(label,expected):
     actual = p.values
     print(actual)
 
+    p
+
     assert_array_almost_equal(actual, expected)
 
 

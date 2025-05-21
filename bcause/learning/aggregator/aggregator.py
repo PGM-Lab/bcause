@@ -74,6 +74,8 @@ class SimpleModelAggregator(ModelAggregator):
 
 class ModelAggregatorEM(ModelAggregator):
     def _single_generate(self, i):
+
+        self._prior_model = self._model.randomize_factors(self._trainlable_vars, allow_zero=False) if self._random_init else self._model
         optimizer = ExpectationMaximization(self._prior_model, trainable_vars=self._trainlable_vars, inference_method=self._inference_method)
         optimizer.run(self._data, max_iter=self._max_iter)
         self._learn_objects.append(optimizer)
@@ -90,13 +92,16 @@ class SimpleModelAggregatorEM(SimpleModelAggregator, ModelAggregatorEM):
         self._trainlable_vars = trainable_vars or model.exogenous
         self._max_iter = max_iter
         self._inference_method = inference_method
-        self._prior_model = self._model.randomize_factors(self._trainlable_vars, allow_zero=False) if random_init else self._model
+        self._prior_model = model
+        self._random_init=random_init
 
         super().__init__(parallel=parallel)
 
 
 class ModelAggregatorGD(ModelAggregator):
     def _single_generate(self, i):
+        self._prior_model = self._model.randomize_factors(self._trainlable_vars, allow_zero=False) if self._random_init else self._model
+
         optimizer = GradientLikelihood(self._prior_model, trainable_vars=self._trainlable_vars, tol=self._tol)
         optimizer.run(self._data, max_iter=self._max_iter)
         self._learn_objects.append(optimizer)
@@ -114,7 +119,7 @@ class SimpleModelAggregatorGD(SimpleModelAggregator, ModelAggregatorGD):
         self._tol = tol
         self._max_iter = max_iter
         self._trainlable_vars = trainable_vars or model.exogenous
-        self._prior_model = self._model.randomize_factors(self._trainlable_vars, allow_zero=False) if random_init else self._model
+        self._random_init=random_init
 
         super().__init__(parallel=parallel)
 
