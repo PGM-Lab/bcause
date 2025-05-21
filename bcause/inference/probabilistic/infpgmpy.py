@@ -117,7 +117,8 @@ class SamplingPGMPY(ProbabilisticInference):
         Returns:
             Factor: The resulting probability distribution as a bcause-compatible Factor object.
         """
-        p = self._inf.query(self._target,n_samples= self._n_samples, samples=self._samples, evidence=self._evidence,  show_progress=False)
+        _state_names =  {key: self._model._domains[key] for key in self._target if key in self._model._domains.keys()}
+        p = self._inf.query(self._target,n_samples= self._n_samples, samples=self._samples, evidence=self._evidence, state_names=_state_names ,show_progress=False)
         return discrete_to_multinomial(p, left_vars=self._target)
 
 if __name__=="__main__":
@@ -129,19 +130,19 @@ if __name__=="__main__":
     warnings.filterwarnings("ignore")
 
     bnet = BayesianNetwork.read("models/asia.bif")
-    inf = VariableElimination(bnet, heuristic=Heuristic.MIN_FILL)
+    #inf = VariableElimination(bnet, heuristic=Heuristic.MIN_FILL)
     #inf = VariableEliminationPGMPY(bnet)
     #inf = BeliefPropagationPGMPY(bnet)
-    #inf = SamplingPGMPY(bnet, generated_samples=1000)
+    inf = SamplingPGMPY(bnet, generated_samples=10000)
 
-    # p = inf.query("dysp")
+    # p = inf.query("dysp", evidence= None)
     # print(p)
     #
     # p = inf.query("dysp", evidence=dict(smoke="yes"))
     # print(p)
     #
-    # p = inf.query("smoke", evidence=dict(dysp="yes"))
-    # print(p)
+    p = inf.query("smoke", evidence=dict(dysp="yes"))
+    print(p)
     #
     # p = inf.query(["bronc","lung"])
     # print(p)
@@ -149,7 +150,13 @@ if __name__=="__main__":
     # p = inf.query(["smoke", "dysp"])
     # print(p)
 
+    # p = inf.query("either", evidence=None)
+    # print(p)
+
     p = inf.query("smoke", conditioning="dysp")
+    print(p)
+
+    p = inf.query(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes"))
     print(p)
 
     inf = VariableEliminationPGMPY(bnet)

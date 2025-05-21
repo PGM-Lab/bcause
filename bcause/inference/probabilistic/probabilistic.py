@@ -25,7 +25,6 @@ class ProbabilisticInference(Inference):
         self._target = target
         self._evidence = evidence or dict()
         logging.getLogger( __name__ ).info(f"Starting inference: target={str(target)} evidence={str(evidence)}")
-        # TODO: error with multievidence counterfactuals
         #assert_dag_with_nodes(self.model.graph, self._target | self._evidence.keys())
 
         self._inference_model = self._preprocess_model()
