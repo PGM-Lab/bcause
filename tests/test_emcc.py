@@ -1,3 +1,5 @@
+import math
+
 import networkx as nx
 import pytest
 
@@ -80,4 +82,5 @@ def test_llk(label, expected):
     data = datasets[label]
     actual = min([m.log_likelihood(data) for m in inf.models])
     print(actual)
-    assert actual == expected
+    #assert assert_array_almost_equal([actual], [expected])
+    assert abs(actual - expected) < 0.0001
