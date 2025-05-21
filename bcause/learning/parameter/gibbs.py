@@ -68,7 +68,7 @@ class GibbsSampling(IterativeParameterLearning):
             cpt = self._get_conditional_probability_table(model_adjusted)
             cpt_count = cpt.merge(self._frequency_tables[U], on=model_adjusted.right_vars, how='left').fillna(0)
             samples_u = np.concatenate(cpt_count.apply(lambda row: np.random.choice(model_adjusted.left_domain[U],
-                                                                                  size=row['count'], p=row['Probabilities']),axis=1).to_list())
+                                                                                  size=int(row['count']), p=row['Probabilities']),axis=1).to_list())
             # Get posterior
             counts_u = np.bincount(samples_u, minlength=len(model_adjusted.left_domain[U]))
             beta = [int(a + c) for a, c in zip(self._alpha[U], counts_u)]
@@ -122,9 +122,9 @@ if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
 
-    #m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
+    m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
     #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
-    #data = pd.read_csv("./models/literature/pearl_small.csv")
+    data = pd.read_csv("./models/literature/pearl_small.csv")
     #data = pd.read_csv("./models/modelTest_SM.csv")
 
 
@@ -134,7 +134,12 @@ if __name__ == "__main__":
     start_time = time.time()
 
     gs = GibbsSampling(m)
-    gs.run(data, max_iter=10000)
+    gs.run(data, max_iter=10)
+    gs.run(data, max_iter=10, init=False)
+    gs.run(data, max_iter=10, init=False)
+
+    print(len(gs.model_evolution))
+
 
     # End the timer
     end_time = time.time()
