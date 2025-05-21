@@ -1,1 +1,1 @@
-from . import pgmpy
+from . import pgmpy_conversion

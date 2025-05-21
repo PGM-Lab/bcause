@@ -5,6 +5,7 @@ import bcause.readwrite.bnread as bnread
 from bcause import BayesianNetwork
 from bcause.inference.probabilistic.datainference import LaplaceInference
 from bcause.inference.probabilistic.elimination import VariableElimination
+from bcause.inference.probabilistic.infpgmpy import VariableEliminationPGMPY
 from bcause.models.transform.simplification import minimalize
 
 model = bnread.from_bif("models/asia.bif")
@@ -92,5 +93,164 @@ def test_multi_evidence():
             assert_almost_equal(p1,p2)
             assert_almost_equal(p3,p4)
 
+"""
+Test for the PGMPY package inference
+"""
+
+def test_VariableEliminationPGMPY():
+    args = [dict(target="dysp", evidence=None),
+            dict(target="dysp", evidence=dict(smoke="yes")),
+            dict(target="smoke", evidence=dict(dysp="yes")),
+            dict(target="either", evidence=None),
+            dict(target="smoke", conditioning="dysp"),
+            dict(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes")),
+            ]
+
+    expected = [
+        0.43597060000000004,
+        0.552808,
+        0.6339968796061018,
+        0.06482799999999998,
+        0.6339968796061018,
+        0.6259198578212214]
 
 
+    inf = VariableEliminationPGMPY(model)
+    actual = [inf.query(**arg).values[0] for arg in args]
+
+    assert_array_almost_equal(actual, expected)
+
+
+def test_BeliefPropagationPGMPY():
+    args = [dict(target="dysp", evidence=None),
+            dict(target="dysp", evidence=dict(smoke="yes")),
+            dict(target="smoke", evidence=dict(dysp="yes")),
+            dict(target="either", evidence=None),
+            dict(target="smoke", conditioning="dysp"),
+            dict(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes")),
+            ]
+
+    expected = [
+        0.43597060000000004,
+        0.552808,
+        0.6339968796061018,
+        0.06482799999999998,
+        0.6339968796061018,
+        0.6259198578212214]
+
+    from bcause.inference.probabilistic.infpgmpy import BeliefPropagationPGMPY
+    inf = BeliefPropagationPGMPY(model)
+    actual = [inf.query(**arg).values[0] for arg in args]
+
+    assert_array_almost_equal(actual, expected)
+
+def test_SamplingPGMPY():
+    args = [dict(target="dysp", evidence=None),
+            dict(target="dysp", evidence=dict(smoke="yes")),
+            dict(target="smoke", evidence=dict(dysp="yes")),
+            dict(target="either", evidence=None),
+            dict(target="smoke", conditioning="dysp"),
+            dict(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes")),
+            ]
+
+    expected = [
+        0.43597060000000004,
+        0.552808,
+        0.6339968796061018,
+        0.06482799999999998,
+        0.6339968796061018,
+        0.6259198578212214]
+
+    from bcause.inference.probabilistic.infpgmpy import SamplingPGMPY
+    inf = SamplingPGMPY(model, generated_samples=10000)
+    actual = [inf.query(**arg).values[0] for arg in args]
+
+    assert_array_almost_equal(actual, expected, decimal=1)
+
+def test_LazyPropagationPYAgrum():
+    args = [dict(target="dysp", evidence=None),
+            dict(target="dysp", evidence=dict(smoke="yes")),
+            dict(target="smoke", evidence=dict(dysp="yes")),
+            dict(target="either", evidence=None),
+            dict(target="smoke", conditioning="dysp"),
+            dict(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes")),
+            ]
+
+    expected = [
+        0.43597060000000004,
+        0.552808,
+        0.6339968796061018,
+        0.06482799999999998,
+        0.6339968796061018,
+        0.6259198578212214]
+
+    from bcause.inference.probabilistic.infpyagrum import LazyPropagationPYAgrum
+    inf = LazyPropagationPYAgrum(model)
+    actual = [inf.query(**arg).values[0] for arg in args]
+
+    assert_array_almost_equal(actual, expected)
+
+def test_ShaferShenoyPYAgrum():
+    args = [dict(target="dysp", evidence=None),
+            dict(target="dysp", evidence=dict(smoke="yes")),
+            dict(target="smoke", evidence=dict(dysp="yes")),
+            dict(target="either", evidence=None),
+            dict(target="smoke", conditioning="dysp"),
+            dict(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes")),
+            ]
+
+    expected = [
+        0.43597060000000004,
+        0.552808,
+        0.6339968796061018,
+        0.06482799999999998,
+        0.6339968796061018,
+        0.6259198578212214]
+
+    from bcause.inference.probabilistic.infpyagrum import ShaferShenoyPYAgrum
+    inf = ShaferShenoyPYAgrum(model)
+    actual = [inf.query(**arg).values[0] for arg in args]
+
+    assert_array_almost_equal(actual, expected)
+
+def test_VariableEliminationPYAgrum():
+    args = [dict(target="dysp", evidence=None),
+            dict(target="dysp", evidence=dict(smoke="yes")),
+            dict(target="smoke", evidence=dict(dysp="yes")),
+            dict(target="either", evidence=None),
+            dict(target="smoke", conditioning="dysp"),
+            dict(target=["smoke"], conditioning="dysp", evidence=dict(asia="yes")),
+            ]
+
+    expected = [
+        0.43597060000000004,
+        0.552808,
+        0.6339968796061018,
+        0.06482799999999998,
+        0.6339968796061018,
+        0.6259198578212214]
+
+    from bcause.inference.probabilistic.infpyagrum import VariableEliminationPYAgrum
+    inf = VariableEliminationPYAgrum(model)
+    actual = [inf.query(**arg).values[0] for arg in args]
+
+    assert_array_almost_equal(actual, expected)
+# # Pendiente de revisión
+# def test_GibbsSamplingPYAgrum():
+#     args = [dict(target="dysp", evidence=None),
+#             dict(target="dysp", evidence=dict(smoke="yes")),
+#             dict(target="smoke", evidence=dict(dysp="yes")),
+#             dict(target="either", evidence=None)
+#             ]
+#
+#     expected = [
+#         0.43597060000000004,
+#         0.552808,
+#         0.6339968796061018,
+#         0.06482799999999998]
+#
+#     from bcause.inference.probabilistic.infpyagrum import GibbsSamplingPYAgrum
+#     inf = GibbsSamplingPYAgrum(model, burn_in=1000, max_iter=10000)
+#     actual = [inf.query(**arg).values[0] for arg in args]
+#
+#     assert_array_almost_equal(actual, expected)

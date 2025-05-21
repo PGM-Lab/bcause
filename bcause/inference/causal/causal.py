@@ -44,7 +44,7 @@ class CausalInference(Inference):
 
         evidence = {**evidence, **do}
 
-        self._inference_model = self._preprocess()
+        self._inference_model = self._preprocess_model()
         self._inf = self._prob_inf_fn(self._inference_model)
         #self._inf.compile(target, evidence)
         self._query_args = dict(target=target, evidence=evidence)
@@ -52,7 +52,7 @@ class CausalInference(Inference):
 
         return self
 
-    def _preprocess(self, *args, **kwargs) -> PGModel:
+    def _preprocess_model(self, *args, **kwargs) -> PGModel:
 
         if not self._counterfactual:
             new_model = self.model.intervention(**self._do)
@@ -154,7 +154,7 @@ class PearlBounds(CausalInference, CausalObservationalInference):
 
         return self
 
-    def _preprocess(self, *args, **kwargs) -> PGModel:
+    def _preprocess_model(self, *args, **kwargs) -> PGModel:
         pass
 
     @property
