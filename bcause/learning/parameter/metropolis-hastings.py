@@ -3,9 +3,9 @@ Compute the PMF of exogenous variables given data for endogenous variable using
 Metropolis-Hastings
 
 improvements:
- - Change dictionary approach to preloaded tables and SQL joins for conditional probability
- - Sampling only possible values?
  - Accept a perturbation and a transition function as inputs for the method
+ - Change dictionary approach to preloaded tables and SQL joins for conditional probability?
+ - Sampling only possible values?
 """
 
 from collections import defaultdict
@@ -48,6 +48,8 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         self._get_involved_factors()
         # Initial sampling of U
         self._initial_sampling = {U: self._get_precise_sampling(U,data) for U in self._trainable_vars}
+        # value to index mapping for exogenous variables
+        self._value_to_index = {U: {v: i for i, v in enumerate(self._model.factors[U].domain[U])} for U in self._trainable_vars}
 
     def _stop_learning(self) -> bool:
         pass
@@ -74,14 +76,16 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
 
             # Probabilities with the previous U
             data['old'] = self._initial_sampling[U]
-            prob_u_old = np.array(exo_f.values)[data['old'].to_numpy()]
-            conditional_probs_old = {v: np.ones(len(data)) for v in endo_f.keys()} # base ("old") U should be always compatible
+            old_values_index = np.array([self._value_to_index[U][val] for val in data['old'].to_numpy()])
+            prob_u_old = np.array(exo_f.values)[old_values_index]
+            conditional_probs_old = {v: np.ones(len(data)) for v in endo_f.keys()}
 
             # Proposal distribution to change u
             transition_matrix = self._transition_function(U)
             # How u changes
-            data[U] = np.array([self._perturbation_function(u,U, transition_matrix) for u in self._initial_sampling[U]])
-            prob_u_new = np.array(exo_f.values)[data[U].to_numpy()]
+            data[U] = np.array([self._perturbation_function(self._value_to_index[U][u],U, transition_matrix) for u in self._initial_sampling[U]])
+            new_values_index = np.array([self._value_to_index[U][val] for val in data[U].to_numpy()])
+            prob_u_new = np.array(exo_f.values)[new_values_index]
 
             filt_cols = {v: filter_columns(f, data.columns) for v, f in endo_f.items()}
             conditional_probs_new = {
@@ -91,8 +95,8 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
             data = data.rename(columns={U: 'new'})
 
             # Generate U values
-            prob_new = np.prod(np.array(list(conditional_probs_new.values())), axis = 0) * np.array(prob_u_new) * transition_matrix[data['old'].to_numpy(),data['new'].to_numpy()]
-            prob_old = np.prod(np.array(list(conditional_probs_old.values())), axis = 0) * np.array(prob_u_old) * transition_matrix[data['new'].to_numpy(),data['old'].to_numpy()]
+            prob_new = np.prod(np.array(list(conditional_probs_new.values())), axis = 0) * np.array(prob_u_new) * transition_matrix[old_values_index,new_values_index]
+            prob_old = np.prod(np.array(list(conditional_probs_old.values())), axis = 0) * np.array(prob_u_old) * transition_matrix[new_values_index,old_values_index]
 
             # Compute acceptance ratios
             ratios = np.minimum(1, prob_new / prob_old)
@@ -186,6 +190,7 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         return np.array([dirichlet.rvs(param)[0] for _ in range(num_states)])
 
     def _uniform_perturbation(self, u, U, transition_matrix):
+        # idx = self._model.factors[U].domain[U].index(u)
         return np.random.choice(self._model.factors[U].domain[U], p = transition_matrix[u])
 
     def _set_non_informative_alpha(self):
@@ -201,17 +206,17 @@ if __name__ == "__main__":
 
     # Nota: probar también con modelos semi-markovianos
 
-    #m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
-
+    m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
+    m2 = m.merge_exogenous("V","U")
     #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
-    #data = pd.read_csv("./models/literature/pearl_small.csv")
+    data = pd.read_csv("./models/literature/pearl_small.csv")
     #data = pd.read_csv("./models/modelTest_SM.csv")
 
     import time
 
     # Start the timer
     start_time = time.time()
-
+    # Initialize the Metropolis-Hastings sampling transition function "random" or "uniform"
     mhs = MetropolisHastingsSampling(m, transition_select = "random")
     mhs.run(data, max_iter=10000)
 

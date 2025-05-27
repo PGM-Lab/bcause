@@ -12,6 +12,7 @@ import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import dirichlet
 import itertools
+from collections import Counter
 import random
 from typing import Dict, List, Tuple, Any
 
@@ -70,7 +71,9 @@ class GibbsSampling(IterativeParameterLearning):
             samples_u = np.concatenate(cpt_count.apply(lambda row: np.random.choice(model_adjusted.left_domain[U],
                                                                                   size=int(row['count']), p=row['Probabilities']),axis=1).to_list())
             # Get posterior
-            counts_u = np.bincount(samples_u, minlength=len(model_adjusted.left_domain[U]))
+            # counts_u = np.bincount(samples_u, minlength=len(model_adjusted.left_domain[U]))
+            counts = Counter(samples_u)
+            counts_u = np.array([counts.get(cat, 0) for cat in model_adjusted.left_domain[U]])
             beta = [int(a + c) for a, c in zip(self._alpha[U], counts_u)]
 
             # sample the theta and set it to the model
@@ -123,6 +126,7 @@ if __name__ == "__main__":
 
 
     m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
+    # m_semi = m.merge_exogenous("V","U")
     #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
     data = pd.read_csv("./models/literature/pearl_small.csv")
     #data = pd.read_csv("./models/modelTest_SM.csv")
