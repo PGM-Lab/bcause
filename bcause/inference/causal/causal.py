@@ -1,5 +1,5 @@
 import logging
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Callable
 
 from bcause.factors.factor import Factor
@@ -44,7 +44,7 @@ class CausalInference(Inference):
 
         evidence = {**evidence, **do}
 
-        self._inference_model = self._preprocess_model()
+        self._inference_model = self._preprocess_model(exclude_from_common=evidence.keys())
         self._inf = self._prob_inf_fn(self._inference_model)
         #self._inf.compile(target, evidence)
         self._query_args = dict(target=target, evidence=evidence)
@@ -58,10 +58,15 @@ class CausalInference(Inference):
             new_model = self.model.intervention(**self._do)
             logging.getLogger( __name__ ).debug(f"Intervened DAG: {new_model.graph.edges}")
         else:
-            new_model = counterfactual_model(self.model, self._do)
+            new_model = counterfactual_model(self.model, self._do, **kwargs)
             logging.getLogger( __name__ ).debug(f"Counterfactual DAG: {new_model.graph.edges}")
 
         return new_model
+
+#    @abstractmethod
+#    def get_counterfactual_model(self):
+#        pass
+
 
 
     @property

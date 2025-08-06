@@ -23,12 +23,19 @@ def fusion_roots(models, on, **builder_kargs):
     return models[0].builder(dag=new_dag, factors=new_factors, **builder_kargs)
 
 
-def counterfactual_model(model, do):
+def counterfactual_model(model, do, exclude_from_common=None):
+
+    exclude_from_common = exclude_from_common or []
+    common_vars =  [v for v in model.exogenous if v not in exclude_from_common]
+    replicate_vars = [v for v in model.variables if v not in common_vars]
+
+
+
     do = do if isinstance(do, list) else [do]
     models = [model]
     for i in range(0, len(do)):
-        mapping = {v: f"{v}_{i + 1}" for v in model.endogenous}
+        mapping = {v: f"{v}_{i + 1}" for v in replicate_vars}
         models.append(model.intervention(**do[i]).rename_vars(mapping))
     new_endogenous = sum([m.endogenous for m in models], [])
-    return fusion_roots(models, on=model.exogenous, endogenous=new_endogenous)
+    return fusion_roots(models, on=common_vars, endogenous=new_endogenous)
 

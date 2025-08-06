@@ -12,6 +12,7 @@ from bcause.learning.aggregator.aggregator import SimpleModelAggregatorEM, Simpl
     SimpleModelAggregatorGibbs
 from bcause.learning.parameter.expectation_maximization import ExpectationMaximization
 from bcause.models.cmodel import StructuralCausalModel
+from bcause.models.transform.combination import counterfactual_model
 from bcause.util.arrayutils import min_max_iqr
 import bcause.util.domainutils as dutils
 from bcause.util.watch import Watch
@@ -161,6 +162,19 @@ class CausalMultiInference(CausalInference):
         return self._process_output(result, {effect + "_1": Feffect, effect + "_2": Teffect})
 
 
+    def get_counterfactual_model(self, do, exclude_from_common=None, as_bnet=False):
+        out = [counterfactual_model(m, do, exclude_from_common) for m in self.models]
+        if as_bnet:
+            return [m.to_bnet() for m in out]
+        return out
+
+    def query_on_twin_model(self, target, do, evidence=None, exclude_from_common=None):
+        # Extract the twin models
+        twin_models = self.get_counterfactual_model(do, exclude_from_common)
+
+        # Create a new inference engine
+        inf2 = CausalMultiInference(twin_models)
+        return inf2.query(target, evidence)
 
 class EMCC(CausalMultiInference, CausalObservationalInference):
     def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, em_inf_fn: Callable = VariableElimination, interval_result=True, max_iter=100, num_runs=10, parallel = False, min_rating=0.0, calculate_rating=False, outliers_removal=True, random_init=True):
