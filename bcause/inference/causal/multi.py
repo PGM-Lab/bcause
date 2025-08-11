@@ -168,14 +168,14 @@ class CausalMultiInference(CausalInference):
             return [m.to_bnet() for m in out]
         return out
 
-    def query_on_twin_model(self, target, do, evidence=None, exclude_from_common=None, set_interval_result=True):
+    def query_on_twin_model(self, target, do, evidence=None, exclude_from_common=None):
         # Extract the twin models
         twin_models = self.get_counterfactual_model(do, exclude_from_common)
 
         # Create a new inference engine
 
         inf2 = CausalMultiInference(twin_models)
-        inf2.set_interval_result(set_interval_result)
+        inf2.set_interval_result(self._interval_result)
         return inf2.query(target, evidence)
 
 class EMCC(CausalMultiInference, CausalObservationalInference):
