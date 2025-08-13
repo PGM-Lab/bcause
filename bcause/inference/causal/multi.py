@@ -25,6 +25,7 @@ class CausalMultiInference(CausalInference):
         self._min_rating = min_rating
         self._outliers_removal = outliers_removal
         self._calculate_rating = calculate_rating
+        self._tcompile = 0
 
         if causal_inf_fn is None:
             from bcause.inference.causal.elimination import CausalVariableElimination
@@ -35,6 +36,10 @@ class CausalMultiInference(CausalInference):
     @property
     def models(self) -> list[StructuralCausalModel]:
         return self._models
+
+    @property
+    def tcompile(self) -> float:
+        return self._tcompile
 
     def set_models(self, models: list[StructuralCausalModel]):
         self._models = models or []
@@ -47,6 +52,8 @@ class CausalMultiInference(CausalInference):
 
     def compile(self, *args, **kwargs) -> Inference:
         if len(self._models)<1: raise ValueError("Required at least 1 precise model")
+        t1 = Watch.time_absolut()
+
         self._model = self._models[0]
 
         if self._calculate_rating:
@@ -57,6 +64,9 @@ class CausalMultiInference(CausalInference):
 
 
         self._compiled = True
+
+        t2 = Watch.time_absolut()
+        self._tcompile += t2-t1
         return self
 
     def query(self, target, do=None, evidence=None, counterfactual=False, targets_subgraphs = None):

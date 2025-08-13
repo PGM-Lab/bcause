@@ -23,5 +23,7 @@ class Watch(ABC):
     @classmethod
     def get_time(cls):
         return (time.time() - cls.tstart)*1000
+    def time_absolut(self):
+        return time.time()*1000
 
 
