@@ -176,7 +176,7 @@ class CausalMultiInference(CausalInference):
 
         inf2 = CausalMultiInference(twin_models)
         inf2.set_interval_result(self._interval_result)
-        return inf2.query(target, evidence)
+        return inf2.query(target, evidence=evidence)
 
 class EMCC(CausalMultiInference, CausalObservationalInference):
     def __init__(self, model:StructuralCausalModel, data, causal_inf_fn: Callable = None, em_inf_fn: Callable = VariableElimination, interval_result=True, max_iter=100, num_runs=10, parallel = False, min_rating=0.0, calculate_rating=False, outliers_removal=True, random_init=True):
