@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 import time
 
 class Watch(ABC):
@@ -23,5 +23,8 @@ class Watch(ABC):
     @classmethod
     def get_time(cls):
         return (time.time() - cls.tstart)*1000
+    @classmethod
+    def time_absolut(cls):
+        return time.time()*1000
 
 
