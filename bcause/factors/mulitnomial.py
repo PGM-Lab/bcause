@@ -49,6 +49,8 @@ class MultinomialFactor(bf.DiscreteFactor, bf.ConditionalFactor):
 
         v = self.left_vars[0]
         values = self.values_array().argmax(axis=self.variables.index(v))
+        dom = np.array(self.domain[v])
+        values = dom[values]
         from bcause.factors import DeterministicFactor
         return DeterministicFactor(self.domain, left_vars=[v], values=values)
 

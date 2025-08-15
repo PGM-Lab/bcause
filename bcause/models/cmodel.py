@@ -141,6 +141,14 @@ class DiscreteCausalDAGModel(DiscreteDAGModel):
         '''
         return info.get_qgraph(self)
 
+
+    def add_to_endogenous(self, v):
+        self._endogenous.append(v)
+
+
+    def remove_from_endogenous(self, v):
+        self._endogenous.remove(v)
+
     def fix_numeric_domains(self) -> StructuralCausalModel:
         '''
         Converts all numerical inputs to int and ensures boolean inputs remain of type bool
@@ -212,7 +220,7 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         super().set_factor(var, f)
 
     def to_multinomial(self) -> StructuralCausalModel:
-        return StructuralCausalModel(dag=self.graph, factors=self.factors, cast_multinomial=True)
+        return self.builder(dag=self.graph, factors=self.factors, cast_multinomial=True)
 
     @property
     def has_deterministic(self):
