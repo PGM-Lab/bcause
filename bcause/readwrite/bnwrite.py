@@ -71,6 +71,7 @@ def to_uai(model:'BayesianNetwork', filepath, reverse_values=False, label="BAYES
         #     var_order = var_order[::-1]
         values = f.values_array(vorder).flatten()
         if v in integer_varlist:
+            print(values)
             values = [int(p) for p in values]
         out += f"{len(values)}\t" + " ".join([str(p) for p in values]) + "\n"
 
