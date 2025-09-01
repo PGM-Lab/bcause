@@ -136,6 +136,11 @@ class BTreeStore(DiscreteStore):
         return BTreeNode.build(v, table.domain[v], left_child=tree_left, right_child=tree_right, left_states=tl)
 
     @staticmethod
+    def _build_from_equation(table):
+        pass
+
+
+    @staticmethod
     def _best_split_point(table):
         info_max = float("-Inf")
         best_var = None
