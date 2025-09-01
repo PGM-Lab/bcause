@@ -84,7 +84,7 @@ print(bt.data.summary())
 var_domain = ["u1", "u2", "u3"]
 
 
-n = BTreeNodeConsecutive(variable = "U", var_domain=var_domain, left_child=0.5, right_child=0.25, left_states=["u2"])
+n = BTreeNodeNonConsecutive(variable = "U", var_domain=var_domain, left_child=0.5, right_child=0.25, left_states=["u2"])
 assert set(n.left_states) == set(["u2"])
 assert set(n.right_states) == set(["u1","u3"])
 assert n.is_on_left("u2") == True
