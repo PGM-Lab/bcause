@@ -33,13 +33,13 @@ USE_FULL_PARAMETERS = False
 if USE_FULL_PARAMETERS:
     seed_values = [1] # after our discussion, we keep only one value for the moment
     remove_outliers_values = [True, False]
-    method_values = ["EMCC", "GDCC"]
+    method_values = ["EMCC", "GDCC", "GSCC"]
     max_iter_values_emcc = [25, 50, 100, 150, 200]  # Relevant for EMCC
     tol_values_gdcc = [1e-3, 1e-5, 1e-7, 1e-9]     # Relevant for GDCC
 else: # subset of full parameters used for debugg
     seed_values = [1]
     remove_outliers_values = [True, False]
-    method_values = ["GDCC"] #["EMCC", "GDCC"]
+    method_values = ["GSCC"]#["GDCC"] #["EMCC", "GDCC"]
     max_iter_values_emcc = [25, 50, 100, 150]  # Relevant for EMCC
     tol_values_gdcc = [1e-3, 1e-5, 1e-7, 1e-9]  # Relevant for GDCC
     # this settings renders 16 independent process, as we have 16 available workers at our machine
@@ -115,6 +115,8 @@ def process_parameters(params, log):
         inf = GDCC(model, data, num_runs=num_runs, tol = tol, outliers_removal=remove_outliers)
     elif method == "EMCC":
         inf = EMCC(model, data, num_runs=num_runs, max_iter=max_iter, outliers_removal=remove_outliers)
+    elif method == "GSCC":
+        inf = GibbsCausal(model, data, num_runs=num_runs, burnin_iter=100)
     else:
         raise ValueError("Wrong learning method")
 
@@ -180,6 +182,9 @@ def generate_parameter_combinations(modelpath):
             elif method == "GDCC":
                 for tol in tol_values_gdcc:
                     parameter_combinations.append((num_runs, modelpath, resfolder, run_step, seed, remove_outliers, method, None, tol))
+            elif method == "GSCC":
+                parameter_combinations.append(
+                    (num_runs, modelpath, resfolder, run_step, seed, remove_outliers, method, None, None))
     return parameter_combinations
 
 
