@@ -27,12 +27,12 @@ class LaplaceInference(ProbabilisticInference):
         self._evidence = evidence or dict()
         logging.getLogger( __name__ ).info(f"Starting inference: target={str(target)} evidence={str(evidence)}")
 
-        self._inference_model = self._preprocess()
+        self._inference_model = self._preprocess_model()
         self._compiled = True;
         return self
 
 
-    def _preprocess(self) -> pd.DataFrame:
+    def _preprocess_model(self) -> pd.DataFrame:
         if not self._preprocess_flag:
             return self._model
         relevant_vars = set(self._target).union(self._evidence.keys())

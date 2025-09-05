@@ -1,3 +1,4 @@
+
 import logging
 import sys
 
@@ -5,6 +6,7 @@ import networkx as nx
 
 import bcause.util.domainutils as dutils
 import bcause.util.graphutils as gutils
+import bcause.util.runningutils
 from bcause.factors import DeterministicFactor
 from bcause.factors.mulitnomial import MultinomialFactor
 from bcause.inference.causal.elimination import CausalVariableElimination
@@ -13,6 +15,8 @@ from bcause.models.cmodel import StructuralCausalModel
 log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
+
+bcause.util.runningutils.get_logger()
 
 
 dag = nx.DiGraph([("Y", "X"), ("V", "Y"), ("U", "X")])

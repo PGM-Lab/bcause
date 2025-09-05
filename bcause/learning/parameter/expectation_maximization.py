@@ -2,14 +2,18 @@ from abc import abstractmethod
 from functools import reduce
 
 import pandas as pd
+from requests.packages import target
+from sympy.logic.boolalg import Boolean
 
 from bcause.factors import MultinomialFactor, DeterministicFactor
+from bcause.factors.mulitnomial import uniform_multinomial
 from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.models.pgmodel import DiscreteDAGModel
 from bcause.util.datadeps import DataDepAnalysis
-
+from bcause.util.datautils import to_counts
+#from dev_ig.Prueba_EM import phi_1
 
 
 class AbastractExpectationMaximization(IterativeParameterLearning):
@@ -41,16 +45,16 @@ class AbastractExpectationMaximization(IterativeParameterLearning):
 
 class ExpectationMaximization(AbastractExpectationMaximization):
     def __init__(self, prior_model: DiscreteDAGModel, trainable_vars: list = None,
-                 inference_method=VariableElimination):
+                 ignore_convergence:bool = False, inference_method=VariableElimination):
         self._prior_model = prior_model
         self._trainable_vars = trainable_vars
         self._inference_method = inference_method
         self._converged_vars = set()
+        self._ignore_convergence = ignore_convergence
 
     def _get_obs_counts(self, target):
         obs_blanket = self._datadeps.get_minimal_obs_blanket(target)
         return [(obs, sum(reduce( lambda x,y : x&y, [self._data[v] == s for v,s in obs.items()]))) for obs in obs_blanket]
-
 
 
     def _expectation(self, **kwargs):
@@ -64,7 +68,12 @@ class ExpectationMaximization(AbastractExpectationMaximization):
                 hidden = [x for x in relevant if x not in obs]
 
                 #print(f"{hidden} | {obs}")
-                exp_counts = self._inf.query(target=hidden, evidence=obs) * c
+
+                post = self._inf.query(target=hidden, evidence=obs)
+                if all(v==0 for v in post.values):
+                    post = uniform_multinomial(post.domain)
+
+                exp_counts = post * c
                 pcounts[v] = pcounts[v] + exp_counts
 
         return pcounts
@@ -90,6 +99,8 @@ class ExpectationMaximization(AbastractExpectationMaximization):
 
     def _stop_learning(self) -> bool:
         from scipy.special import rel_entr
+        if self._ignore_convergence:
+            return False
 
         for v in self._trainable_vars:
             if v not in self._converged_vars:
@@ -99,6 +110,55 @@ class ExpectationMaximization(AbastractExpectationMaximization):
                 if kl_div == 0:
                     self._converged_vars = self._converged_vars | {v}
         return set(self._trainable_vars) == self._converged_vars
+
+
+class ExpectationMazimizationPrecomputed(ExpectationMaximization):
+
+    def initialize(self, data: pd.DataFrame, **kwargs):
+        super().initialize(data, **kwargs)
+        data = self._data.copy()[self.model.endogenous]
+        # Precomputed factors
+
+        # get the data as factor
+        factor_data = to_counts(domains= {k:v for k,v in self._model.domains.items() if k in self._model.endogenous}, data= data, normalize=True)
+        # multiply the factors of the model for each ccomponent. E.g. P(V1|Y,U) * P(V2|V1,U)
+        endo_component = {v: self._model.get_endo_ccomponent(v) for v in self.trainable_vars}
+        phi_1 =  {v: reduce(lambda x, y: x * y, [self._model.factors[f] for f in endo_component[v]])
+                         for v in self.trainable_vars}
+
+        #Product for each factor_table with factor_data marginalize by the corresponding variables
+        phi_2 = {v: factor_data.marginalize(*set(factor_data.variables).difference(phi_1[v].variables)) * phi_1[v] for v in self.trainable_vars}
+        self.phi_1 = phi_1
+        self.phi_2 = phi_2
+
+        @property
+        def phi_1(self):
+            return self._phi_1
+
+        @phi_1.setter
+        def phi_1(self, value):
+            self._phi_1 = value
+
+        @property
+        def phi_2(self):
+            return self._phi_2
+
+        @phi_2.setter
+        def phi_2(self, value):
+            self._phi_2 = value
+
+    def _calculate_updated_factors(self):
+        self._inf = self._inference_method(self._model)
+        new_probs = dict()
+
+        # loop over trainable variables
+        for v in set(self.trainable_vars).difference(self._converged_vars):
+            # Multiply each v of self.phi_1 by the probability of "U"
+            numerator = self.phi_2[v] * self._model.factors[v]
+            denominator = (self.phi_1[v] * self._model.factors[v]).marginalize(v)
+            result = (numerator / denominator).marginalize(*set(numerator.variables).difference({v}))
+            new_probs[v] = result/ (result.marginalize(v))
+        return new_probs    # return the updated factors
 
 
 if __name__ == "__main__":
@@ -126,16 +186,22 @@ if __name__ == "__main__":
     pv = MultinomialFactor(domv, values=[.1, .9])
 
     domu = dutils.subdomain(domains, "U")
-    pu = MultinomialFactor(domu, values=[.2, .2, .1, .5])
+    pu = MultinomialFactor(domu, values=[0.95, 0.02, 0.01, 0.02])
 
     m = StructuralCausalModel(dag, [fx, fy, pu, pv], cast_multinomial=True)
 
+    # Set seed
+    from bcause.util import randomUtil
     data = m.sample(10000, as_pandas=True)[m.endogenous]
 
-    print(m)
-    em = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False))
-    em.run(data, max_iter=10)
+    randomUtil.seed(1234)
+    em1 = ExpectationMaximization(m.randomize_factors(m.exogenous, allow_zero=False), ignore_convergence=True)
+    em1.run(data, max_iter=10)
 
-    print(em.prior_model)
+    randomUtil.seed(1234)
+    em2 = ExpectationMazimizationPrecomputed(m.randomize_factors(m.exogenous, allow_zero=False), ignore_convergence=True)
+    em2.run(data, max_iter=10)
 
-    print(len(em.model_evolution))
+
+    print(em1.prior_model)
+    print(len(em1.model_evolution))

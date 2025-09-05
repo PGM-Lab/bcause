@@ -9,6 +9,7 @@ from bcause.factors.mulitnomial import MultinomialFactor
 from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.inference.causal.elimination import CausalVariableElimination
 from bcause.models.cmodel import StructuralCausalModel
+from bcause.util.equtils import seq_to_pandas
 
 log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')

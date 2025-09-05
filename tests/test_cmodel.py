@@ -1,5 +1,6 @@
 
 import networkx as nx
+import numpy as np
 from networkx.utils import graphs_equal
 
 import bcause as bc
@@ -62,13 +63,19 @@ def test_causal_queries():
 
     # Run causal inference with Variable Elimination
     cve = CausalVariableElimination(model)
-    # p = cve.causal_query("V4", do=dict(V2=0))
+    p = cve.causal_query("V4", do=dict(V2=0))
 
-    # assert p.values == [0.7611346018757232,0.2388653981242768]
+    print(p.values)
+    assert p.values == [0.7611346018757232,0.2388653981242768]
 
     # Run a counterfactual query
     p = cve.counterfactual_query("V4",do=dict(V1=0), evidence=dict(V2=1))
-    assert p.values == [0.6773272316833546,0.32267276831664543]
+
+
+    print(p.values)
+
+    #assert p.values == [0.6773272316833545, 0.32267276831664543]
+    np.testing.assert_almost_equal(p.values, [0.6773272316833545, 0.32267276831664543], decimal=5)
     #
     # factors = cve.inference_model.factors
     #

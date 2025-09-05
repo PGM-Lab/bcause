@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 
 from bcause.factors.factor import Factor
+from bcause.inference.probabilistic.datainference import LaplaceInference
 
 
 class ParameterLearning(ABC):
@@ -18,8 +19,24 @@ class ParameterLearning(ABC):
     def trainable_vars(self):
         return self._trainable_vars
 
-class IterativeParameterLearning(ParameterLearning):
 
+class MaximumLikelihoodEstimation(ParameterLearning):
+    def __init__(self, prior_model, trainable_vars = None):
+        self._prior_model = prior_model
+        self._trainable_vars = trainable_vars or prior_model.variables
+    def run(self, data: pd.DataFrame):
+        inf = LaplaceInference(data, self.prior_model.domains)
+        factors = dict()
+        for v in self.prior_model.variables:
+            if v not in self.trainable_vars:
+                factors[v] = self.prior_model.factors[v]
+            else:
+                factors[v] = inf.query(v, conditioning=self.prior_model.get_parents(v))
+
+        self._model = self.prior_model.builder(dag=self.prior_model.graph, factors=factors)
+
+
+class IterativeParameterLearning(ParameterLearning):
 
     def step(self, data:pd.DataFrame=None):
         if data is not None: self._process_data(data)
@@ -64,7 +81,7 @@ class IterativeParameterLearning(ParameterLearning):
         self._model = self._model.builder(dag=self._model.graph, factors=new_probs, check_factors=False)
         self._record_model(self.model)
 
-    def run(self, data: pd.DataFrame, max_iter: int = float("inf")):
+    def run(self, data: pd.DataFrame, max_iter: int = float("inf"), init=True):
         """
         This method performs a given number of optimization steps.
         Args:
@@ -74,8 +91,7 @@ class IterativeParameterLearning(ParameterLearning):
         Returns:
 
         """
-
-        self.initialize(data)
+        if init: self.initialize(data)
         i = 0
         while i < max_iter:
             self.step()

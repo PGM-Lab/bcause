@@ -78,10 +78,12 @@ class PGModel(ABC):
         filepath = Path(filepath)
         if str(filepath).endswith(".uai"):
             self._writer.to_uai(model=self, filepath=filepath, **kwargs)
-        elif str(filepath).endswith(".xmlbif"):
+        elif str(filepath).endswith(".xmlbif") or str(filepath).endswith(".bifxml"):
             self._writer.to_xmlbif(model=self, filepath=filepath)
         elif str(filepath).endswith(".bif"):
             self._writer.to_bif(model=self, filepath=filepath)
+        elif str(filepath).endswith(".net"):
+            self._writer.to_hugin(model=self, filepath=filepath)
         else:
             raise ValueError(f"Unknown format for {filepath}")
 
@@ -110,7 +112,11 @@ class PGModel(ABC):
         return np.prod([f.prob(observations) for f in self.factor_list], axis=0)
 
 
+    def reorder_variables(self, new_order):
+        if set(new_order) != set(self.variables):
+            raise ValueError("Wrong new order")
 
+        self._graph = gutils.reorder_nodes(self.graph, new_order)
 
 
 
@@ -140,7 +146,7 @@ class DiscreteDAGModel(PGModel):
 
 
     def get_domains(self, variables):
-        return {v:d for v,d in self._domains.items() if v in variables}
+        return {v:self._domains[v] for v in variables}
 
     def get_varsizes(self, variables):
         return {v:len(d) for v,d in self._domains.items() if v in variables}
@@ -159,6 +165,19 @@ class DiscreteDAGModel(PGModel):
 
     def get_parents(self, *variables) -> list:
         return list(dict.fromkeys(sum([list(self.graph.predecessors(v)) for v in variables], [])))
+
+    def is_leaf(self, v):
+        return self.graph.out_degree(v) == 0
+
+    def is_root(self, v):
+        return self.graph.in_degree(v) == 0
+
+    @property
+    def leaf_nodes(self):
+        return [v for v in self.variables if self.is_leaf(v)]
+    @property
+    def root_nodes(self):
+        return [v for v in self.variables if self.is_root(v)]
 
     def markov_blanket(self, v)-> list:
         ch = set(self.get_children(v))
@@ -185,7 +204,7 @@ class DiscreteDAGModel(PGModel):
     def submodel(self, nodes:list) -> DiscreteDAGModel:
         new_dag = self.graph.subgraph(nodes)
         new_factors = {x: f for x, f in self.factors.items() if x in nodes}
-        return self.builder(new_dag, new_factors)
+        return self.builder(dag=new_dag, factors=new_factors)
 
     def rename_vars(self, names_mapping: dict) -> DiscreteDAGModel:
         logging.getLogger( __name__ ).debug(f"Renaming variables as {names_mapping}")
@@ -193,6 +212,9 @@ class DiscreteDAGModel(PGModel):
         new_factors = [f.rename_vars(names_mapping) for f in self.factors.values()]
         return self.builder(dag=new_dag, factors=new_factors)
 
+    def domain_to_str(self):
+        new_factors = {v: f.domain_to_str() for v, f in self.factors.items()}
+        return self.builder(dag=self.graph, factors=new_factors)
 
     def sample(self, n_samples: int, as_pandas = True) -> Union[list[Dict], pd.DataFrame]:
         logging.getLogger( __name__ ).info(f"Sampling {n_samples} instances from model")
@@ -203,6 +225,9 @@ class DiscreteDAGModel(PGModel):
 
     def copy(self):
         return self.builder(dag=self.graph, factors=self.factors)
+
+
+
 
 
 
