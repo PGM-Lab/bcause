@@ -35,7 +35,7 @@ num_runs = 100
 run_step = 5
 resfolder = "./papers/gradient_journal/results/synthetic/s123/"
 rewrite = True
-PARALLEL_FLAG = False
+PARALLEL_FLAG = True
 
 # Multi parameters
 USE_FULL_PARAMETERS = True
