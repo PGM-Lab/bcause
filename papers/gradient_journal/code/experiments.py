@@ -12,6 +12,14 @@ import sys
 
 import pandas as pd
 
+# Change working directory
+os.chdir("../../../")
+
+
+sys.path.insert(0, ".")
+
+
+
 from bcause.inference.causal.multi import GDCC, EMCC, GibbsCausal
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util import randomUtil
@@ -27,6 +35,7 @@ num_runs = 100
 run_step = 5
 resfolder = "./papers/gradient_journal/results/synthetic/s123/"
 rewrite = True
+PARALLEL_FLAG = False
 
 # Multi parameters
 USE_FULL_PARAMETERS = True
@@ -205,7 +214,7 @@ if __name__ == "__main__":
         else: # the results are not yet computed
             log.info(f'Processing {model_name} ({i} out of {n-1}) ...')
             parameter_combinations = generate_parameter_combinations(modelpath)
-            if 0: # set to True to test in non-parallel settings
+            if not PARALLEL_FLAG:
                 log.info(parameter_combinations[0])
                 process_parameters_wrapper(parameter_combinations[0])  
             else:

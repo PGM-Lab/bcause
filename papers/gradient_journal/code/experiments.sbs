@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --time=3-00:00:00
+#SBATCH -o /mnt/beegfs/rcabanas/dev/bcause/papers/gradient_journal/logs/%x.%j.out
+
+srun -n 1 -N 1 -c 1  /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py  2> /dev/null &
+
+
+
+wait
+
+
+## usage: sbatch experiments.sbs
+
