@@ -12,7 +12,7 @@ import sys
 
 import pandas as pd
 
-from bcause.inference.causal.multi import GDCC, EMCC
+from bcause.inference.causal.multi import GDCC, EMCC, GibbsCausal
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util import randomUtil
 from bcause.util.mathutils import rrmse, rmse
