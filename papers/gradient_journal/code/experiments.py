@@ -29,7 +29,7 @@ resfolder = "./papers/gradient_journal/results/synthetic/s123/"
 rewrite = True
 
 # Multi parameters
-USE_FULL_PARAMETERS = False
+USE_FULL_PARAMETERS = True
 if USE_FULL_PARAMETERS:
     seed_values = [1] # after our discussion, we keep only one value for the moment
     remove_outliers_values = [True, False]
@@ -205,7 +205,7 @@ if __name__ == "__main__":
         else: # the results are not yet computed
             log.info(f'Processing {model_name} ({i} out of {n-1}) ...')
             parameter_combinations = generate_parameter_combinations(modelpath)
-            if 1: # set to True to test in non-parallel settings
+            if 0: # set to True to test in non-parallel settings
                 log.info(parameter_combinations[0])
                 process_parameters_wrapper(parameter_combinations[0])  
             else:
