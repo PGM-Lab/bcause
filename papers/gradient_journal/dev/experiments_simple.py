@@ -13,7 +13,7 @@ import sys
 
 import pandas as pd
 
-from bcause.inference.causal.multi import GDCC, EMCC
+from bcause.inference.causal.multi import GDCC, EMCC, GibbsCausal
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util import randomUtil
 from bcause.util.mathutils import rrmse, rmse
@@ -35,7 +35,7 @@ USE_FULL_PARAMETERS = True
 if USE_FULL_PARAMETERS:
     seed_values = [1] # after our discussion, we keep only one value for the moment
     remove_outliers_values = [True, False]
-    method_values = ["EMCC", "GDCC"]
+    method_values = ["EMCC", "GDCC", "GSCC"]
     max_iter_values_emcc = [25, 50, 100, 150, 200]  # Relevant for EMCC
     tol_values_gdcc = [10 ** -i for i in range(1,11)]     # Relevant for GDCC
 else: # subset of full parameters used for debugg
@@ -127,6 +127,9 @@ def process_parameters(params, log):
         inf = GDCC(model, data, num_runs=num_runs, tol = tol, outliers_removal=remove_outliers)
     elif method == "EMCC":
         inf = EMCC(model, data, num_runs=num_runs, max_iter=max_iter, outliers_removal=remove_outliers)
+    elif method == "GSCC":
+        inf = GibbsCausal(model, data, num_runs=num_runs, burnin_iter=100)
+
     else:
         raise ValueError("Wrong learning method")
     
@@ -208,6 +211,10 @@ def generate_parameter_combinations(modelpath):
             elif method == "GDCC":
                 for tol in tol_values_gdcc:
                     parameter_combinations.append((num_runs, modelpath, resfolder, run_step, seed, remove_outliers, method, None, tol))
+            elif method == "GSCC":
+                parameter_combinations.append(
+                    (num_runs, modelpath, resfolder, run_step, seed, remove_outliers, method, None, None))
+
     return parameter_combinations
 
 
@@ -236,8 +243,3 @@ if __name__ == "__main__":
             # Parallel approach
             with Pool() as pool:
                 pool.map(process_parameters_wrapper, parameter_combinations)
-
-
-
-
-
