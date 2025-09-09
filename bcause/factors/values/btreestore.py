@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from typing import Hashable, List, OrderedDict, Dict, Union, Iterable
 
 import numpy as np
+from pandas.core.computation.expr import intersection
 
-from bcause.factors.values.btreeops import BTreeStoreOperations
 from bcause.factors.values.store import DiscreteStore
 
 
@@ -67,7 +67,23 @@ class BTreeNode(ABC):
             return BTreeNodeConsecutive(variable, var_domain, left_child, right_child, spoints[0])
 
         else:
-            raise NotImplementedError("build bt node not implemented for non consecutive")
+
+            ls = set(left_states) if left_states is not None else set()
+            rs = set(right_states) if right_states is not None else set()
+
+            if var_domain is None:
+                var_domain = list(ls.union(rs))
+
+            # In case of binary variables there is no need of specifying the states
+            if not ls and not rs and len(var_domain) == 2:
+                ls = {var_domain[0]}
+                rs = {var_domain[1]}
+            if not ls:
+                ls = set(var_domain) - rs
+            if not rs:
+                rs = set(var_domain) - ls
+
+            return BTreeNodeNonConsecutive(variable, left_child, right_child, ls, rs, var_domain)
 
 
 class BTreeNodeConsecutive(BTreeNode):
@@ -102,6 +118,51 @@ class BTreeNodeConsecutive(BTreeNode):
         s += f"right: <{self.right_child.summary(n+1) if isinstance(self.right_child, BTreeNode) else self.right_child}>>"
         return s
 
+class BTreeNodeNonConsecutive(BTreeNode):
+    def __init__(self, variable: Hashable, left_child, right_child, left_states: set, right_states: set, var_domain: list):
+
+        # validations
+        if not left_states and not right_states:
+            raise ValueError(f"Either left_states or right_states must be provided")
+
+        if left_states and right_states:
+            if left_states.intersection(right_states)!=set():
+                raise ValueError(f"left_states and right_states must be disjoint")
+
+            if left_states.union(right_states)!= set(var_domain):
+                raise ValueError(f"left_states and right_states must cover the whole var_domain")
+
+        self._variable = variable
+        self._var_domain = var_domain
+        self._left_states = left_states
+        self._right_states = right_states
+        self._left_child = left_child
+        self._right_child = right_child
+
+    @property
+    def left_states(self):
+        return self._left_states
+
+    @property
+    def right_states(self):
+        return self._right_states
+
+    def is_on_left(self, state):
+        return state in self._left_states
+
+    def is_on_right(self, state):
+        return state in self._right_states
+
+    def summary(self, n=0):
+        s = f"<BTNode({self.variable})[{self.left_states}|{self.right_states}]"
+        s += "\n"
+        s += "  "*n
+        s += f"left: <{self.left_child.summary(n+1) if isinstance(self.left_child, BTreeNode) else self.left_child}>,"
+        s += "\n"
+        s += "  "*n
+        s += f"right: <{self.right_child.summary(n+1) if isinstance(self.right_child, BTreeNode) else self.right_child}>>"
+        return s
+
 
 class BTreeStore(DiscreteStore):
 
@@ -118,6 +179,7 @@ class BTreeStore(DiscreteStore):
             return BTreeStore(**kwargs)
 
         self.builder = builder
+        from bcause.factors.values.btreeops import BTreeStoreOperations
         self.set_operationSet(BTreeStoreOperations)
         super(self.__class__, self).__init__(domain=domain, data=data)
 
@@ -135,10 +197,44 @@ class BTreeStore(DiscreteStore):
 
         return BTreeNode.build(v, table.domain[v], left_child=tree_left, right_child=tree_right, left_states=tl)
 
-    @staticmethod
-    def _build_from_equation(table):
-        pass
 
+    @staticmethod
+    def _build_from_equation(table, exovar):
+
+        # Select current variable
+        #endo_vars = [v for v in table.variables if v != exovar]
+
+        # Select first the left variables and then the right-vars
+        vars = table.left_vars + table.right_vars
+        endo_vars = [v for v in vars if v != exovar]
+
+        assert all(len(table.domain[var]) == 2 for var in endo_vars), \
+            "Only binary variables are supported"
+        if len(endo_vars) == 0:
+            v = exovar
+        else:
+            v = endo_vars[0]
+
+
+        # States for each branch
+        if v == exovar:
+            table_left = 0
+            table_right = 1
+            tl = np.array(table.domain[exovar])[np.where(np.array(table.values) == table_left)[0]]
+            tr = np.array(table.domain[exovar])[np.where(np.array(table.values) == table_right)[0]]
+            return BTreeNode.build(v, table.domain[v], left_child=table_left, right_child=table_right, left_states=tl,
+                                   right_states=tr, consecutive=False)
+        else:
+            tl = [table.domain[v][0]]
+            tr = [table.domain[v][1]]
+            table_left = table.restrict(**{v: tl})
+            table_right = table.restrict(**{v: tr})
+
+            # Build recursively the subtrees
+            tree_left = BTreeStore._build_from_equation(table_left, exovar)
+            tree_right = BTreeStore._build_from_equation(table_right, exovar)
+
+            return BTreeNode.build(v, table.domain[v], left_child=tree_left, right_child=tree_right, left_states=tl)
 
     @staticmethod
     def _best_split_point(table):

@@ -1,5 +1,6 @@
 from bcause.factors import MultinomialFactor
-from bcause.factors.values.btreestore import BTreeNode, BTreeStore, BTreeNodeConsecutive
+from bcause.factors.values.btreestore import BTreeNode, BTreeStore, BTreeNodeConsecutive, BTreeNodeNonConsecutive
+from bcause.util.treesutil import build_default_tree, treeNode
 
 domain = dict(A=["a1", "a2"], B=["b1", "b2", "b3" ,"b4"])
 values = [[0.2, .2, 0.5, 0.1], [0.2, 0.2, 0.6 ,0.0]]
@@ -27,6 +28,8 @@ f.store.builder(domain=domain, data=values)
 # P(B|A) as a binary tree
 f = MultinomialFactor(domain, values, left_vars=["B"], vtype="btree")
 
+
+
 f.store
 type(f.store)
 
@@ -48,6 +51,7 @@ n2 = BTreeNode.build(variable, var_domain, 0.2, 0.4, right_states=["u2", "u3"])
 n3 = BTreeNode.build(variable, var_domain, 0.4, 0.3, end_left_exclusive=1)
 
 
+
 # a non terminal node
 nested_nodes = BTreeNode.build("X", ["x1", "x2"], 0.33, n1)
 
@@ -61,6 +65,9 @@ data = [[0.2, .2, 0.5, 0.1], [0.2, 0.2, 0.6, 0.0]]
 
 bt = BTreeStore(domain, data)
 print(bt.data.summary())
+
+from bcause.factors.values.btreeops import BTreeStoreOperations as btops
+tt = btops.restrict_btreenode(nested_nodes, {"X":"x2"})
 
 
 
@@ -84,7 +91,7 @@ print(bt.data.summary())
 var_domain = ["u1", "u2", "u3"]
 
 
-n = BTreeNodeNonConsecutive(variable = "U", var_domain=var_domain, left_child=0.5, right_child=0.25, left_states=["u2"])
+n = BTreeNode.build(variable = "U", var_domain=var_domain, left_child=0.5, right_child=0.25, left_states=["u2"], consecutive=False)
 assert set(n.left_states) == set(["u2"])
 assert set(n.right_states) == set(["u1","u3"])
 assert n.is_on_left("u2") == True
@@ -100,7 +107,16 @@ Después de implementar esta función probar a crear un árbol con más niveles
 
 
 '''
+variable = "U"
+var_domain = ["u1", "u2", "u3"]
 
+# different ways of building a node
+n1 = BTreeNode.build(variable, var_domain, 0.2, 0.4, left_states=["u1"], consecutive=False)
+n2 = BTreeNode.build(variable, var_domain, 0.2, 0.4, right_states=["u2", "u3"], consecutive=False)
+n3 = BTreeNode.build(variable, None, 0.4, 0.3, left_states=["u1"],right_states=["u2", "u3"], consecutive=False)
+# a non terminal node
+nested_nodes = BTreeNode.build("X", ["x1", "x2"], 0.33, n1, consecutive=False)
+nested_nodes_2 = BTreeNode.build("Y",["y1","y2"], left_child=0.1, right_child=nested_nodes, left_states=["y2"], consecutive=False)
 
 '''
 3) Implementar BTreeStore._build_from_equation(table, exovar)
@@ -113,23 +129,62 @@ Después de implementar esta función probar a crear un árbol con más niveles
     - Después de implementar esto, intentar ver si se ahorra espacio.
 '''
 
+from bcause.models.cmodel import StructuralCausalModel
+m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
+
+table = m.factors["S"]
+exovar = "U"
+
+SCM_tree = BTreeStore._build_from_equation(table, exovar)
+print(SCM_tree.summary())
 
 '''
 4) Adaptar las operaciones en BTreeStoreOperations para que funcionen con nodos de tipo BTreeNodeNonConsecutive.
 
     - En las operaciones binarias se mantiene el tipo de nodo del primer operando.
-    - En las operaciones binarias no se puede dar el caso de que se opere con dos tipos distintos
+    - En las operaciones no binarias no se puede dar el caso de que se opere con dos tipos distintos
 
 '''
 
+import pandas as pd
 
+# Import the model used in WUPES' paper.
+m2 = StructuralCausalModel.read("/Users/antoniogonzalezalves/Desktop/model_wupes.bif")
+data = pd.read_csv("/Users/antoniogonzalezalves/Desktop/data_wupes.csv")
+
+exovar = "U"
+bt_T = BTreeStore._build_from_equation(m2.factors["T"],exovar)
+bt_S = BTreeStore._build_from_equation(m2.factors["S"],exovar)
+
+print(bt_T.summary())
+print(bt_S.summary())
+
+from bcause.factors.values.btreeops import BTreeStoreOperations as btops
+
+domain = dict(A=["a1", "a2"], B=["b1", "b2", "b3", "b4"])
+new_var_order = ["B", "A"]
+# complete vars
+new_dom = dict([(v, domain[v]) for v in new_var_order])
+data = [[0.2, .2, 0.5, 0.1], [0.2, 0.2, 0.6, 0.0]]
+
+bt = BTreeStore(domain, data)
+bt2 = BTreeStore(domain, data)
+# Test multiplication
+test = btops.multiply(bt, bt2)
+
+
+
+print(test)
+
+
+combine_tree = bt_T * bt_S
 '''
 5) En cualquier árbol que se construya, se debe cumplir la condición de que si todos
 los valores que están por debajo de un nodo son iguales, el árbol se poda (o no se sigue construyendo).
 '''
 
 
-'''
+'''–
 6) Estudiar cómo habría que ordenar las operaciones para calcular P_{t+1}(U) en EMCC, 
 considerando que se utilizan árboles.
 
