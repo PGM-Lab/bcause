@@ -28,7 +28,7 @@ num_runs = 100
 run_step = 5
 resfolder = "./papers/gradient_journal/results/synthetic/simple/"
 REWRITE = True
-RUN_IN_PARALLEL = False
+RUN_IN_PARALLEL = True
 
 # Multi parameters
 USE_FULL_PARAMETERS = True
