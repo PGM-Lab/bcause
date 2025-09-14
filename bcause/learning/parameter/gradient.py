@@ -103,21 +103,18 @@ class GradientLikelihood(IterativeParameterLearning):
 
         return N_bmVbmY, P_bmVbmYu
 
-    def _filter_data(self, data: Any, bmv: Dict, bmy: Dict) -> Any:
-        # Perform the comparison operations
-        filter_bmv = (data[list(bmv.keys())] == list(bmv.values()))
-        filter_bmy = (data[list(bmy.keys())] == list(bmy.values()))
+    def _filter_data(self, data: pd.DataFrame, bmv: Dict, bmy: Dict) -> pd.DataFrame:
+        # start with "all rows selected"
+        mask = pd.Series(True, index=data.index)
 
-        # Check if the results are empty. For the latter, this check is only for the case when bmy is non-empty (i.e., V has some endogenous parent)
-        if filter_bmv.empty or (bmy and filter_bmy.empty):
-            # Handle the empty case (e.g., return an empty DataFrame)
-            return pd.DataFrame()
+        if bmv:
+            # align by column names and compare row-wise
+            mask &= data[list(bmv.keys())].eq(pd.Series(bmv)).all(axis=1)
 
-        # Apply the 'all' operation and filter the data
-        return data[
-            filter_bmv.all(axis=1) &
-            filter_bmy.all(axis=1)
-        ]
+        if bmy:
+            mask &= data[list(bmy.keys())].eq(pd.Series(bmy)).all(axis=1)
+
+        return data.loc[mask]
 
 
     def _compute_P(self, bmv: Dict, bmy: Dict, m: Any, U: str, bmV: List[str], bmY: List[str]) -> Dict:
