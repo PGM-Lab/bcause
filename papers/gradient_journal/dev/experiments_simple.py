@@ -230,7 +230,7 @@ if __name__ == "__main__":
         # e.g. modelpath = "./papers/gradient_journal/models/synthetic/s123/random_mc2_n5_mid3_d1000_05_mr098_r10_8.uai"
 
         # TODO: the line below is just for debug, comment for production
-        modelpath = "./papers/gradient_journal/models/synthetic/simple/simple_nparents2_nzr02_zdr05_2.uai"
+        # modelpath = "./papers/gradient_journal/models/synthetic/simple/simple_nparents2_nzr02_zdr05_2.uai"
 
         model_name = os.path.basename(modelpath) # e.g. model_name = 'random_mc2_n5_mid3_d1000_05_mr098_r10_8.uai'
         log.info(f'Processing {model_name} ({i} out of {n-1}) ...')
