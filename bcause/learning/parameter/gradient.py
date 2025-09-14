@@ -123,7 +123,7 @@ class GradientLikelihood(IterativeParameterLearning):
     def _compute_P(self, bmv: Dict, bmy: Dict, m: Any, U: str, bmV: List[str], bmY: List[str]) -> Dict:
         # compute \prod_{V \in \bmV} P(v|Pa(V))
         P = {}
-        for u in m.get_domains(U)[U]:
+        for u in m.get_domains({U})[U]:
             prod_P_v_pav = 1 # As the product of P(v|Pa(V)) \in {0, 1}, so we initiate the value to 1.
                              # If we find any P(v|Pa(V)) = 0, we stop the computation as it must be that \prod_{V \in \bmV} P(v|Pa(V)) = 0   
             for V in bmV:
