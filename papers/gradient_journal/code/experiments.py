@@ -17,7 +17,7 @@ import argparse
 #os.chdir("../../../")
 
 
-sys.path.insert(0, ".")
+sys.path.insert(0, "../../../")
 
 
 
@@ -64,9 +64,10 @@ modelpaths = [variables["filepath"][0]]
 
 
 
+
 # Single parameters
 run_step = 1
-PARALLEL_FLAG = False
+PARALLEL_FLAG = True
 
 # Multi parameters
 USE_FULL_PARAMETERS = True
@@ -231,11 +232,13 @@ def generate_parameter_combinations(modelpath):
 
 
 if __name__ == "__main__":
+
+
     # Display the number of available worker processes
     log = get_clogger(__name__, fmt=log_format, filename=logfile)
     available_workers = cpu_count()
     log.info(f"Number of available workers: {available_workers}")
-    modelpaths = glob.glob(os.path.join('./papers/gradient_journal/models/synthetic/s123/', '*.uai'))
+    #modelpaths = glob.glob(os.path.join('./papers/gradient_journal/models/synthetic/s123/', '*.uai'))
     n = len(modelpaths)
     for i, modelpath in enumerate(modelpaths):
         # e.g. modelpath = "./papers/gradient_journal/models/synthetic/s123/random_mc2_n5_mid3_d1000_05_mr098_r10_8.uai"
@@ -248,7 +251,7 @@ if __name__ == "__main__":
             parameter_combinations = generate_parameter_combinations(modelpath)
             if not PARALLEL_FLAG:
                 log.info(parameter_combinations[0])
-                process_parameters_wrapper(parameter_combinations[0])  
+                process_parameters_wrapper(parameter_combinations[0])
             else:
                 # Parallel approach
                 with Pool() as pool:

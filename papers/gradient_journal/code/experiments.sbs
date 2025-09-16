@@ -4,11 +4,15 @@
 
 
 for file in ../models/synthetic/s123/*.uai ; do
-    srun -n 1 -N 1 -c 1 -t 2000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -n 200 -o ../results/synthetic/s123/ $file 2> /dev/null &
+    srun -n 1 -N 1 -c 1 -t 2000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -n 200 -o ../results/synthetic/s123/ ../results/synthetic/s123/ $file 2> /dev/null &
 done
 
 
 wait
+
+
+
+/mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -n 2 -o ../results/synthetic/s123/ ../models/synthetic/s123/random_mc2_n9_mid3_d1000_05_mr098_r10_91.uai
 
 
 ## usage: sbatch experiments.sbs
