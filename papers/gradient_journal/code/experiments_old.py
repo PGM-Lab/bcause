@@ -11,10 +11,9 @@ import logging
 import sys
 
 import pandas as pd
-import argparse
 
 # Change working directory
-#os.chdir("../../../")
+os.chdir("../../../")
 
 
 sys.path.insert(0, ".")
@@ -31,42 +30,12 @@ from bcause.util.watch import Watch
 
 ### Set parameters ###
 
-#input parameters
-
-# -n 200 -rw -o ./papers/gradient_journal/results/synthetic/s123/ ./papers/gradient_journal/models/synthetic/s123/random_mc2_n5_mid3_d1000_05_mr098_r10_8.uai
-
-# CL arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('-n', '--numruns', help="Number of runs.", default=10)
-parser.add_argument('-o', '--output', help="Results folder.", default=".")
-parser.add_argument('-rw', '--rewrite', default=False, action=argparse.BooleanOptionalAction)
-parser.add_argument('filepath', metavar='N', type=str, nargs='+', help='UAI model.')
-
-
-args = parser.parse_args()
-variables = vars(args)
-num_runs = int(variables["numruns"])
-resfolder = variables["output"]
-rewrite = variables["rewrite"]
-modelpaths = [variables["filepath"][0]]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Single parameters
-run_step = 1
-PARALLEL_FLAG = False
+num_runs = 100
+run_step = 5
+resfolder = "./papers/gradient_journal/results/synthetic/s123/"
+rewrite = True
+PARALLEL_FLAG = True
 
 # Multi parameters
 USE_FULL_PARAMETERS = True
@@ -199,7 +168,6 @@ def process_parameters(params, log):
         if not resfilepath.parent.exists():
             resfilepath.parent.mkdir(parents=True, exist_ok=True)    
         results.to_csv(resfilepath)
-        log.info(f"Saving results to {resfilepath}")
 
         t0 = Watch.get_time()
 
