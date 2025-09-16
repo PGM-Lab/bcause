@@ -67,7 +67,7 @@ modelpaths = [variables["filepath"][0]]
 
 # Single parameters
 run_step = 1
-PARALLEL_FLAG = True
+PARALLEL_FLAG = False
 
 # Multi parameters
 USE_FULL_PARAMETERS = True

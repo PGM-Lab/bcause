@@ -2,10 +2,11 @@
 #SBATCH --time=3-00:00:00
 #SBATCH -o /mnt/beegfs/rcabanas/dev/bcause/papers/gradient_journal/logs/%x.%j.out
 
-pwd
-ls ../models/synthetic/s123/*.uai
+#pwd
+#ls ../models/synthetic/s123/*.uai
 
 for file in ../models/synthetic/s123/*.uai ; do
+    echo $file
     srun -n 1 -N 1 -c 1 -t 2000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -n 200 -o ../results/synthetic/s123/ $file 2> /dev/null &
 done
 
