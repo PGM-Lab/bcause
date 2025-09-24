@@ -5,7 +5,9 @@ from typing import Hashable, List, OrderedDict, Dict, Union, Iterable
 
 import numpy as np
 from pandas.core.computation.expr import intersection
+from torch.distributions.constraints import multinomial
 
+# from bcause.factors.multinomial import btree_equation
 from bcause.factors.values.store import DiscreteStore
 
 
@@ -108,6 +110,10 @@ class BTreeNodeConsecutive(BTreeNode):
     def is_on_left(self, state):
         return self._var_domain.index(state) < self._end_left_exclusive
 
+    def to_BtreeNodeNonConsecutive(self):
+        return BTreeNodeNonConsecutive(self.variable, self.left_child, self.right_child,
+                                      set(self.left_states), set(self.right_states), self.var_domain)
+
     def summary(self, n=0):
         s = f"<BTNode({self.variable})[...{self.left_states[-1]}|{self.right_states[0]}...]"
         s += "\n"
@@ -166,14 +172,22 @@ class BTreeNodeNonConsecutive(BTreeNode):
 
 class BTreeStore(DiscreteStore):
 
-    def __init__(self, domain: Dict, data: Union[Iterable, int, float, dict]=None):
+    def __init__(self, domain: Dict, data: Union[Iterable, int, float, dict]=None, is_equation=False, exovar=None):
+        from bcause.factors.values import NumpyStore
         #defualt data
         if data is None:
             data = np.zeros(np.prod([len(d) for d in domain.values()]))
 
         if len(domain)>0 and not isinstance(data, BTreeNode):
-            from bcause.factors.values import NumpyStore
-            data = self._build_from_table(NumpyStore(domain, data))
+            if not is_equation:
+                data = self._build_from_table(NumpyStore(domain, data))
+
+            else:
+                if exovar is None:
+                    raise ValueError("In case of equations the exogenous variable must be provided")
+                from bcause.factors.multinomial import btree_equation
+                data = self._build_from_equation(NumpyStore(domain,data), exovar)
+                #data = btree_equation(domain=domain, values=btree, vtype='btree')
 
         def builder(**kwargs):
             return BTreeStore(**kwargs)
@@ -205,7 +219,7 @@ class BTreeStore(DiscreteStore):
         #endo_vars = [v for v in table.variables if v != exovar]
 
         # Select first the left variables and then the right-vars
-        vars = table.left_vars + table.right_vars
+        vars = table.variables
         endo_vars = [v for v in vars if v != exovar]
 
         assert all(len(table.domain[var]) == 2 for var in endo_vars), \
@@ -215,13 +229,12 @@ class BTreeStore(DiscreteStore):
         else:
             v = endo_vars[0]
 
-
         # States for each branch
         if v == exovar:
             table_left = 0
             table_right = 1
-            tl = np.array(table.domain[exovar])[np.where(np.array(table.values) == table_left)[0]]
-            tr = np.array(table.domain[exovar])[np.where(np.array(table.values) == table_right)[0]]
+            tl = np.array(table.domain[exovar])[np.where(np.array(table.data) == table_left)[0]]
+            tr = np.array(table.domain[exovar])[np.where(np.array(table.data) == table_right)[0]]
             return BTreeNode.build(v, table.domain[v], left_child=table_left, right_child=table_right, left_states=tl,
                                    right_states=tr, consecutive=False)
         else:
@@ -268,6 +281,38 @@ class BTreeStore(DiscreteStore):
         return best_var, best_left_states, best_right_states, best_left_table, best_right_table
 
     @staticmethod
+    def var_to_nonconsecutive(data, var):
+
+        if not isinstance(data, BTreeNode):
+            return data
+
+        new_left = BTreeStore.var_to_nonconsecutive(data.left_child,var)
+        new_right = BTreeStore.var_to_nonconsecutive(data.right_child,var)
+
+        if data.variable == var and isinstance(data, BTreeNodeConsecutive):
+            data = data.to_BtreeNodeNonConsecutive()
+            return BTreeNode.build(
+                variable=data.variable,
+                var_domain=list(data.var_domain),
+                left_child=new_left,
+                right_child=new_right,
+                left_states=data.left_states,
+                right_states=data.right_states,
+                consecutive=False
+            )
+
+        return BTreeNode.build(
+            variable=data.variable,
+            var_domain=list(data.var_domain),
+            left_child=new_left,
+            right_child=new_right,
+            left_states=data.left_states,
+            right_states=data.right_states,
+            consecutive=isinstance(data, BTreeNodeConsecutive)
+        )
+
+
+    @staticmethod
     def _check_consistency(data, domain):
         return True
 
@@ -280,7 +325,8 @@ class BTreeStore(DiscreteStore):
     def get_value(self, **observation):
         raise NotImplementedError("method not implemented")
 
-
+    def set_data(self, data):
+        self._data = data
 
 if __name__ == "__main__":
 

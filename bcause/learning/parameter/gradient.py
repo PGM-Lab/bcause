@@ -25,7 +25,7 @@ from typing import Dict, List, Tuple, Any
 
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial   # TODO: mulitnomial -> multinomial
+from bcause.factors.multinomial import random_multinomial   # TODO: mulitnomial -> multinomial
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.domainutils import assingment_space, state_space # TODO: assingment_space -> assignment_space

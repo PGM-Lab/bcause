@@ -2,7 +2,7 @@ from typing import Union, Iterable
 
 import networkx as nx
 
-from bcause.factors.mulitnomial import random_multinomial, uniform_multinomial
+from bcause.factors.multinomial import random_multinomial, uniform_multinomial
 from bcause.models.pgmodel import DiscreteDAGModel
 from bcause.util.domainutils import subdomain
 from bcause.util.graphutils import dag2str

@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.stats import dirichlet, uniform,lognorm, beta
 
 import bcause.util.domainutils as dutils
-from bcause.factors.mulitnomial import MultinomialFactor, canonical_multinomial, random_multinomial
+from bcause.factors.multinomial import MultinomialFactor, canonical_multinomial, random_multinomial
 from bcause.inference.causal.multi import CausalMultiInference
 from bcause.inference.probabilistic.datainference import LaplaceInference
 from bcause.inference.probabilistic.elimination import VariableElimination

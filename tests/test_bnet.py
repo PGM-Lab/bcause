@@ -2,7 +2,7 @@ import networkx as nx
 import pytest
 
 from bcause.models import BayesianNetwork
-from bcause.factors.mulitnomial import random_multinomial
+from bcause.factors.multinomial import random_multinomial
 from bcause.util.arrayutils import powerset
 
 import numpy as np

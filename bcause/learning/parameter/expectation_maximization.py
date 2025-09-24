@@ -6,7 +6,7 @@ from requests.packages import target
 from sympy.logic.boolalg import Boolean
 
 from bcause.factors import MultinomialFactor, DeterministicFactor
-from bcause.factors.mulitnomial import uniform_multinomial
+from bcause.factors.multinomial import uniform_multinomial
 from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel

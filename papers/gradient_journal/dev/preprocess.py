@@ -6,7 +6,7 @@ import networkx as nx
 import bcause.util.domainutils as dutils
 import pandas as pd
 from bcause.factors import DeterministicFactor
-from bcause.factors.mulitnomial import MultinomialFactor, canonical_multinomial, random_multinomial
+from bcause.factors.multinomial import MultinomialFactor, canonical_multinomial, random_multinomial
 from bcause.inference.probabilistic.datainference import LaplaceInference
 from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.inference.causal.elimination import CausalVariableElimination

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 import bcause.util.domainutils as dutils
 from bcause.factors import DeterministicFactor
-from bcause.factors.mulitnomial import MultinomialFactor
+from bcause.factors.multinomial import MultinomialFactor
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.plotutils import plot_3d, get_linear_colors
 

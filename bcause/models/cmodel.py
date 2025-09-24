@@ -17,7 +17,7 @@ from pandas.core.computation.ops import isnumeric
 import bcause.models.info as info
 
 from bcause.factors import DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial, MultinomialFactor, random_deterministic, uniform_multinomial, \
+from bcause.factors.multinomial import random_multinomial, MultinomialFactor, random_deterministic, uniform_multinomial, \
     canonical_for_model
 from bcause.models import BayesianNetwork
 from bcause.models.pgmodel import DiscreteDAGModel

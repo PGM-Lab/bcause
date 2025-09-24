@@ -19,7 +19,7 @@ from sympy.stats.rv import probability
 
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor
-from bcause.factors.mulitnomial import random_multinomial   # TODO: mulitnomial -> multinomial
+from bcause.factors.multinomial import random_multinomial   # TODO: mulitnomial -> multinomial
 from bcause.inference.causal.multi import CausalMultiInference
 from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.learning.parameter import IterativeParameterLearning

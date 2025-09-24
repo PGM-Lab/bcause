@@ -291,7 +291,15 @@ def canonical_for_model(model, domains, x):
     dom = dutils.subdomain(domains, *endoVars)
     return canonical_multinomial(dom, exovar, right_endoVars).reorder(*endoVars)
 
+def btree_equation(domain: Dict, values, left_vars:list=None, right_vars:list=None, vtype='btree'):
+    if (isinstance(values, Iterable) and not isinstance(values, dict)) or np.isscalar(values):
+        shape = [len(d) for d in domain.values()]
+        if np.ndim(values) == 0:
+            values = [values] * int(np.prod(shape))
+        if np.ndim(values) == 1: values = np.reshape(values, shape)
+    data = store_dict[vtype](data=values, domain=domain).data
 
+    return MultinomialFactor(domain=domain, values=data, left_vars=left_vars, right_vars=right_vars, vtype=vtype)
 
 
 if __name__ == "__main__":

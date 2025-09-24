@@ -5,7 +5,7 @@ import networkx as nx
 
 import bcause.util.domainutils as dutils
 from bcause.factors import DeterministicFactor
-from bcause.factors.mulitnomial import MultinomialFactor
+from bcause.factors.multinomial import MultinomialFactor
 from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.inference.causal.elimination import CausalVariableElimination
 from bcause.models.cmodel import StructuralCausalModel

@@ -1,7 +1,7 @@
 import networkx as nx
 
 from bcause import BayesianNetwork, MultinomialFactor
-from bcause.factors.mulitnomial import uniform_multinomial
+from bcause.factors.multinomial import uniform_multinomial
 from bcause.inference.probabilistic.datainference import LaplaceInference
 from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.learning.parameter import MaximumLikelihoodEstimation

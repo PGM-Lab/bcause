@@ -6,7 +6,7 @@ import time
 from functools import reduce
 from typing import Callable, Union
 
-from bcause.factors.mulitnomial import MultinomialFactor
+from bcause.factors.multinomial import MultinomialFactor
 from bcause.inference.ordering import min_weight_heuristic, Heuristic, heuristic_functions
 from bcause.inference.probabilistic.probabilistic import ProbabilisticInference
 from bcause.models.pgmodel import DiscreteDAGModel

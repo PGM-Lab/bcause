@@ -1,6 +1,6 @@
 import networkx as nx
 
-from bcause.factors.mulitnomial import canonical_for_model, uniform_multinomial
+from bcause.factors.multinomial import canonical_for_model, uniform_multinomial
 from bcause.models.cmodel import StructuralCausalModel
 
 endo_dag = nx.DiGraph([("X", "Y")])
