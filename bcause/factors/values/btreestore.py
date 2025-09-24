@@ -70,8 +70,15 @@ class BTreeNode(ABC):
 
         else:
 
-            ls = set(left_states) if left_states is not None else set()
-            rs = set(right_states) if right_states is not None else set()
+
+            ls = left_states  if left_states is not None else set()
+            rs = right_states  if right_states is not None else set()
+
+            if not isinstance(ls, set): ls = set(ls)
+            if not isinstance(rs, set): rs = set(rs)
+
+#            ls = set(left_states) if left_states is not None else set()
+#            rs = set(right_states) if right_states is not None else set()
 
             if var_domain is None:
                 var_domain = list(ls.union(rs))

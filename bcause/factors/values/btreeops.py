@@ -103,8 +103,8 @@ class BTreeStoreOperations(OperationSet):
                                       var_domain = list(new_var_domain),
                                       left_child=new_left,
                                       right_child=new_right,
-                                      left_states=list(SlX) if isinstance(data, BTreeNodeConsecutive) else set(SlX),
-                                      right_states=list(SrX) if isinstance(data, BTreeNodeConsecutive) else set(SrX),
+                                      left_states=list(SlX) if isinstance(data, BTreeNodeConsecutive) else SlX,
+                                      right_states=list(SrX) if isinstance(data, BTreeNodeConsecutive) else SrX,
                                       consecutive=isinstance(data, BTreeNodeConsecutive))
 
         return out
