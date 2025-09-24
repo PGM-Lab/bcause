@@ -88,7 +88,7 @@ for i in range(10000):
     T5 = BTreeStoreOperations.divide(phi_1, T4)
     t5_time += time.time() - t0
 
-
+    #print(T5.data.summary())
 
     #T6 = BTreeStoreOperations.marginalize(BTreeStoreOperations.multiply(T5, U_tree), ["H", "T", "S"])
     # Step T6
@@ -97,12 +97,13 @@ for i in range(10000):
     subtrees = [
         BTreeStoreOperations.restrict(T5,dict(H="0", T="0", S="0")),
         BTreeStoreOperations.restrict(T5,dict(H="0", T="0", S="1")),
-        BTreeStoreOperations.restrict(T5,dict(H="0", T="1", S="1")),
+#        BTreeStoreOperations.restrict(T5,dict(H="0", T="1", S="1")),
         BTreeStoreOperations.restrict(T5,dict(H="0", T="1", S="0")),
         BTreeStoreOperations.restrict(T5,dict(H="1", T="0", S="0")),
         BTreeStoreOperations.restrict(T5,dict(H="1", T="0", S="1")),
-        BTreeStoreOperations.restrict(T5,dict(H="1", T="1", S="1")),
-        BTreeStoreOperations.restrict(T5,dict(H="1", T="1", S="0"))]
+#        BTreeStoreOperations.restrict(T5,dict(H="1", T="1", S="1")),
+#        BTreeStoreOperations.restrict(T5,dict(H="1", T="1", S="0"))
+]
 
     from functools import reduce
 
@@ -113,7 +114,7 @@ for i in range(10000):
     #print(T6_.data.summary())
 
 
-    #T6_ = BTreeStoreOperations.marginalize(T5, ["H", "T", "S"])
+    #T6 = BTreeStoreOperations.marginalize(T5, ["H", "T", "S"])
     t6_time += time.time() - t0
 
     # Final update

@@ -134,12 +134,16 @@ class BTreeStoreOperations(OperationSet):
     @staticmethod
     def combine_btreenode(d1, d2, operation):
 
+
         if "multiply" in operation.__qualname__:
             if d1==0 or d2==0:
                 return 0
         elif "addition" in operation.__qualname__:
             if d1 == 0: return d2
             if d2 == 0: return d1
+        elif "divide" in operation.__qualname__:
+            if d1 == 0 : return 0
+            if d2 == 0: return 0
 
         if not isinstance(d1, BTreeNode):
             if not isinstance(d2, BTreeNode):
