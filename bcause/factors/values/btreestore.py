@@ -277,6 +277,7 @@ class BTreeStore(DiscreteStore):
                 if info_max < info:
                     best_var, best_left_states, best_right_states = v, tl, tr
                     best_left_table, best_right_table = left_table, right_table
+                    info_max = info
 
         return best_var, best_left_states, best_right_states, best_left_table, best_right_table
 

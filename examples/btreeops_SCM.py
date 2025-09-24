@@ -19,8 +19,8 @@ import pandas as pd
 from bcause.util.datautils import to_counts
 import time
 
-m = StructuralCausalModel.read("/Users/antoniogonzalezalves/PycharmProjects/bcause/models/model_wupes.bif")
-data = pd.read_csv("/Users/antoniogonzalezalves/PycharmProjects/bcause/models/data_wupes.csv")
+m = StructuralCausalModel.read("./models/model_wupes.bif")
+data = pd.read_csv("./models/data_wupes.csv")
 
 # Data to Multifactor
 empirical_prob = to_counts(domains=dict(H=[0, 1], T=[0, 1], S=[0, 1]), data=data,normalize=True)
@@ -51,7 +51,15 @@ empirical_tree = BTreeStore(domain=endo_domain, data=reshape_value(endo_domain,e
 
 # Exogenous into Tree
 dom_U = m.factors["U"].domain
-U_tree = BTreeStore(domain=dom_U, data=reshape_value(dom_U,m.factors["U"].values), is_equation=False)
+u_values = m.factors["U"].values
+u_values = [0.1,0.1,0.6,0.2,0,0,0,0,0]
+U_tree = BTreeStore(domain=dom_U, data=reshape_value(dom_U,u_values), is_equation=False)
+
+
+print(U_tree.data.summary())
+
+U_tree.data.right_child
+
 U_tree.set_data(BTreeStore.var_to_nonconsecutive(U_tree.data, "U"))
 
 # Equivalente a T1 en el pdf
@@ -80,9 +88,32 @@ for i in range(10000):
     T5 = BTreeStoreOperations.divide(phi_1, T4)
     t5_time += time.time() - t0
 
+
+
+    #T6 = BTreeStoreOperations.marginalize(BTreeStoreOperations.multiply(T5, U_tree), ["H", "T", "S"])
     # Step T6
     t0 = time.time()
-    T6 = BTreeStoreOperations.marginalize(T5, ["H", "T", "S"])
+
+    subtrees = [
+        BTreeStoreOperations.restrict(T5,dict(H="0", T="0", S="0")),
+        BTreeStoreOperations.restrict(T5,dict(H="0", T="0", S="1")),
+        BTreeStoreOperations.restrict(T5,dict(H="0", T="1", S="1")),
+        BTreeStoreOperations.restrict(T5,dict(H="0", T="1", S="0")),
+        BTreeStoreOperations.restrict(T5,dict(H="1", T="0", S="0")),
+        BTreeStoreOperations.restrict(T5,dict(H="1", T="0", S="1")),
+        BTreeStoreOperations.restrict(T5,dict(H="1", T="1", S="1")),
+        BTreeStoreOperations.restrict(T5,dict(H="1", T="1", S="0"))]
+
+    from functools import reduce
+
+    T6 = reduce(lambda a,b : BTreeStoreOperations.addition(a,b), subtrees)
+
+
+    #print(T6.data.summary())
+    #print(T6_.data.summary())
+
+
+    #T6_ = BTreeStoreOperations.marginalize(T5, ["H", "T", "S"])
     t6_time += time.time() - t0
 
     # Final update

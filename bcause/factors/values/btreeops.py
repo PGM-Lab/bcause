@@ -137,6 +137,9 @@ class BTreeStoreOperations(OperationSet):
         if "multiply" in operation.__qualname__:
             if d1==0 or d2==0:
                 return 0
+        elif "addition" in operation.__qualname__:
+            if d1 == 0: return d2
+            if d2 == 0: return d1
 
         if not isinstance(d1, BTreeNode):
             if not isinstance(d2, BTreeNode):
@@ -291,6 +294,8 @@ class BTreeStoreOperations(OperationSet):
 
             else:
                 new_right = np.sum([BTreeStoreOperations.restrict_btreenode(d2, {d2.variable: s}) for s in d1.right_states])
+
+
                 out = BTreeNode.build(variable=d1.variable,
                                         var_domain=d1.var_domain,
                                         left_child=d1.left_child,
@@ -298,4 +303,8 @@ class BTreeStoreOperations(OperationSet):
                                         left_states=d1.left_states,
                                         right_states=d1.right_states,
                                         consecutive=isinstance(d1, BTreeNodeConsecutive))
+
+
+
+
         return out

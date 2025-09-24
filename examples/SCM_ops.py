@@ -17,8 +17,8 @@ import pandas as pd
 from bcause.util.datautils import to_counts
 import time
 
-m = StructuralCausalModel.read("/Users/antoniogonzalezalves/PycharmProjects/bcause/models/model_wupes.bif")
-data = pd.read_csv("/Users/antoniogonzalezalves/PycharmProjects/bcause/models/data_wupes.csv")
+m = StructuralCausalModel.read("./models/model_wupes.bif")
+data = pd.read_csv("./models/data_wupes.csv")
 
 log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 
