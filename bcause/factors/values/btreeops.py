@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from PIL.ImageChops import multiply
 from sympy.codegen.cnodes import restrict
 import numpy as np
+from functools import reduce
 
 from bcause.factors.values.operations import OperationSet
 
@@ -297,7 +298,8 @@ class BTreeStoreOperations(OperationSet):
                                         consecutive=isinstance(d1, BTreeNodeConsecutive))
 
             else:
-                new_right = np.sum([BTreeStoreOperations.restrict_btreenode(d2, {d2.variable: s}) for s in d1.right_states])
+                #new_right = np.sum([BTreeStoreOperations.restrict_btreenode(d2, {d2.variable: s}) for s in d1.right_states])
+                new_right = BTreeStoreOperations.restrict_btreenode(d2, {d2.variable: list(d1.right_states)}) if len(d1.right_states)>1 else BTreeStoreOperations.restrict_btreenode(d2, {d2.variable: list(d1.right_states)[0]})
 
 
                 out = BTreeNode.build(variable=d1.variable,
@@ -308,7 +310,21 @@ class BTreeStoreOperations(OperationSet):
                                         right_states=d1.right_states,
                                         consecutive=isinstance(d1, BTreeNodeConsecutive))
 
-
-
-
         return out
+
+    @staticmethod
+    def marginalize_endogenous(data, exovar):
+        def rec(n):
+            if not isinstance(n, BTreeNode):
+                pass
+            elif n.variable != exovar:
+                rec(n.left_child)
+                rec(n.right_child)
+            else:
+                subtrees.append(n)
+            return subtrees
+        subtrees = []
+        subtrees = rec(data)
+        return reduce(lambda a,b : BTreeStoreOperations.combine_btreenode(a,b,lambda x, y: x + y), subtrees)
+
+

@@ -19,6 +19,8 @@ import pandas as pd
 from bcause.util.datautils import to_counts
 import time
 
+from dev_ig.WUPES.Test_Structural import U_value
+
 m = StructuralCausalModel.read("./models/model_wupes.bif")
 data = pd.read_csv("./models/data_wupes.csv")
 
@@ -89,15 +91,15 @@ for i in range(10000):
     t5_time += time.time() - t0
 
     #print(T5.data.summary())
-
-    #T6 = BTreeStoreOperations.marginalize(BTreeStoreOperations.multiply(T5, U_tree), ["H", "T", "S"])
+    T6 = BTreeStore(data=BTreeStoreOperations.marginalize_endogenous(T5.data,exovar=exovar),domain=U_value)
+    # T6_ = BTreeStoreOperations.marginalize(BTreeStoreOperations.multiply(T5, U_tree), ["H", "T", "S"])
     # Step T6
     t0 = time.time()
 
     subtrees = [
         BTreeStoreOperations.restrict(T5,dict(H="0", T="0", S="0")),
         BTreeStoreOperations.restrict(T5,dict(H="0", T="0", S="1")),
-#        BTreeStoreOperations.restrict(T5,dict(H="0", T="1", S="1")),
+        BTreeStoreOperations.restrict(T5,dict(H="0", T="1", S="1")),
         BTreeStoreOperations.restrict(T5,dict(H="0", T="1", S="0")),
         BTreeStoreOperations.restrict(T5,dict(H="1", T="0", S="0")),
         BTreeStoreOperations.restrict(T5,dict(H="1", T="0", S="1")),
@@ -129,3 +131,5 @@ print("T4 time taken: ", t4_time)
 print("T5 time taken: ", t5_time)
 print("T6 time taken: ", t6_time)
 print("Final step time taken: ", final_step_time)
+
+
