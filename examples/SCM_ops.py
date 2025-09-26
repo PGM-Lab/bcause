@@ -45,3 +45,4 @@ for i in range(10000):
     U_values.append(U_value.values)
 end_time = time.time()
 print("Time taken 1st model:", end_time - start_time)
+
