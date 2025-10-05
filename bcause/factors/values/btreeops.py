@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from typing import TYPE_CHECKING
-
-from PIL.ImageChops import multiply
-from sympy.codegen.cnodes import restrict
 import numpy as np
 from functools import reduce
+import time
+import operator
 
 from bcause.factors.values.operations import OperationSet
 
@@ -134,7 +133,6 @@ class BTreeStoreOperations(OperationSet):
         return out
     @staticmethod
     def combine_btreenode(d1, d2, operation):
-
 
         if "multiply" in operation.__qualname__:
             if d1==0 or d2==0:
@@ -300,7 +298,8 @@ class BTreeStoreOperations(OperationSet):
             else:
                 #new_right = np.sum([BTreeStoreOperations.restrict_btreenode(d2, {d2.variable: s}) for s in d1.right_states])
                 new_right = BTreeStoreOperations.restrict_btreenode(d2, {d2.variable: list(d1.right_states)}) if len(d1.right_states)>1 else BTreeStoreOperations.restrict_btreenode(d2, {d2.variable: list(d1.right_states)[0]})
-
+                if d1.right_child != 1:
+                    new_right = BTreeStoreOperations.combine_btreenode(new_right, d1.right_child, operator.mul)
 
                 out = BTreeNode.build(variable=d1.variable,
                                         var_domain=d1.var_domain,
@@ -313,18 +312,122 @@ class BTreeStoreOperations(OperationSet):
         return out
 
     @staticmethod
+    def marginalize_endogenous_old(data,exovar):
+
+        def rec(n,subtree=None):
+            if subtree is None:
+                subtree = []
+            if isinstance(n, BTreeNode):
+                if n.variable !=exovar:
+                    rec(n.left_child,subtree)
+                    rec(n.right_child,subtree)
+                else:
+                    subtree.append(n)
+            return subtree
+
+        subtree = rec(data)
+        return subtree
+
+    @staticmethod
     def marginalize_endogenous(data, exovar):
-        def rec(n):
+        left, right, not_paired = [], [], []
+
+        def dfs(n, bucket=None):
             if not isinstance(n, BTreeNode):
-                pass
-            elif n.variable != exovar:
-                rec(n.left_child)
-                rec(n.right_child)
+                return
+
+            # At the first split, start collecting into the two buckets
+            if bucket is None:
+                if (
+                    isinstance(n.left_child, BTreeNodeNonConsecutive) and
+                    isinstance(n.right_child, BTreeNodeNonConsecutive)
+                ):
+                    dfs(n.left_child, left)
+                    dfs(n.right_child, right)
+                    return
+
+                elif isinstance(n.left_child, BTreeNodeNonConsecutive):
+                    dfs(n.left_child, not_paired)
+                    dfs(n.right_child, None)
+                    return
+                elif isinstance(n.right_child, BTreeNodeNonConsecutive):
+                    dfs(n.right_child, not_paired)
+                    dfs(n.left_child, None)
+                    return
+
+            # If we're already in a bucket, collect matches
+            if bucket is not None and n.variable == exovar:
+                bucket.append(n)
+
+            # Keep traversing (bucket stays the same once set)
+            dfs(n.left_child, bucket)
+            dfs(n.right_child, bucket)
+
+        dfs(data)
+        return [left, right, not_paired]
+
+    @staticmethod
+    def sum_complementary_states(subtrees):
+        def combine(x,y):
+            if y.right_states == x.left_states:
+                return BTreeNode.build(variable=x.variable,
+                                      var_domain=x.var_domain,
+                                      left_child=y.right_child,
+                                       right_child=x.right_child,
+                                       left_states=y.right_states,
+                                       right_states=x.right_states,
+                                       consecutive=isinstance(x, BTreeNodeConsecutive))
+
+            elif y.right_states.issubset(x.left_states):
+                new_zero_states = x.left_states - y.right_states
+                return BTreeNode.build(variable=x.variable,
+                                      var_domain=x.var_domain,
+                                      left_child=BTreeNode.build(variable=x.variable,
+                                                                var_domain=x.left_states,
+                                                                left_child=0,
+                                                                right_child=y.right_child,
+                                                                left_states=new_zero_states,
+                                                                right_states=y.right_states,
+                                                                consecutive=isinstance(x, BTreeNodeConsecutive)),
+                                       right_child=x.right_child,
+                                       left_states=x.left_states,
+                                       right_states=x.right_states,
+                                       consecutive=isinstance(x, BTreeNodeConsecutive))
             else:
-                subtrees.append(n)
-            return subtrees
-        subtrees = []
-        subtrees = rec(data)
-        return reduce(lambda a,b : BTreeStoreOperations.combine_btreenode(a,b,lambda x, y: x + y), subtrees)
+                print(x.right_states)
+                print(y.right_states)
+                raise ValueError("States are not complementary")
+        comb = [combine(x,y) for x,y in zip(subtrees[0],subtrees[1])]
+        return comb + subtrees[2]
 
+    @staticmethod
+    def multiply_subtrees(subtrees, U_tree,exo_mult):
+        if exo_mult:
+            return [BTreeStoreOperations.correct_tree(BTreeStoreOperations.multiply_exogenous(a, U_tree)) for a in subtrees]
+        else:
+            return [ BTreeStoreOperations.correct_tree(BTreeStoreOperations.combine_btreenode(a,U_tree,lambda x, y: x * y)) for a in subtrees]
 
+    @staticmethod
+    def addition_exo(subtrees, U_tree,exo_combine=False):
+        subtrees_complemented = BTreeStoreOperations.sum_complementary_states(subtrees)
+        mult = BTreeStoreOperations.multiply_subtrees(subtrees_complemented, U_tree,exo_combine)
+        return reduce(lambda a, b: BTreeStoreOperations.combine_btreenode(a, b, lambda x, y: x + y), mult)
+
+    @staticmethod
+    def correct_tree(data):
+        if not isinstance(data, BTreeNode):
+            return data
+
+        new_left = BTreeStoreOperations.correct_tree(data.left_child)
+        new_right = BTreeStoreOperations.correct_tree(data.right_child)
+
+        if new_left == 0 and new_right == 0:
+            return 0
+
+        return BTreeNode.build(variable=data.variable,
+                                var_domain=data.var_domain,
+                                left_child=new_left,
+                                right_child=new_right,
+                                left_states=data.left_states,
+                                right_states=data.right_states,
+                                consecutive=isinstance(data, BTreeNodeConsecutive))
