@@ -21,7 +21,7 @@ def SCM_operations(data,m,max_iter=100):
     U_value = m.factors[exovar]
 
     # Precomputed
-    phi_2 = reduce(lambda x, y: x * y, [m.factors[v] for v in m.endogenous if v != "H"])
+    phi_2 = reduce(lambda x, y: x * y, [m.factors[v] for v in m.endogenous if v != "X"])
     phi_1 = empirical_prob*phi_2
     U_values = [U_value.values]
 
