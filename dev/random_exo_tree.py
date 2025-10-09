@@ -26,8 +26,6 @@ def _build_random_marginal_tree(v, states, total_prob=1, threshold=0, min_prob= 
     total_prob_left = p * total_prob
     total_prob_right = (1-p) * total_prob
 
-    assert abs(total_prob_left + total_prob_right - total_prob) < 0.0001
-
     # build both children
     tree_left = _build_random_marginal_tree(v, states=left_states, total_prob=total_prob_left, threshold=threshold, min_prob=min_prob)
     tree_right = _build_random_marginal_tree(v, states=right_states, total_prob=total_prob_right, threshold=threshold, min_prob=min_prob)
