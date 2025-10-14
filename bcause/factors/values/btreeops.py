@@ -6,6 +6,7 @@ import numpy as np
 from functools import reduce
 import time
 import operator
+import random
 
 from bcause.factors.values.operations import OperationSet
 
@@ -210,24 +211,30 @@ class BTreeStoreOperations(OperationSet):
         return store.builder(domain=new_dom, data=new_data)
 
     @staticmethod
-    def SE_operation(op1: 'BTreeStore', op2: 'BTreeStore') -> 'BTreeStore':
+    def multiply_SE(op1: 'BTreeStore', op2: 'BTreeStore', method) -> 'BTreeStore':
 
         if op1.__class__.__name__ != op2.__class__.__name__:
             raise ValueError("Combination with non-compatible data structure")
 
         new_domain = OrderedDict({**op1.domain, **op2.domain})
-        new_data = BTreeStoreOperations.multiply_SE(op1.data, op2.data)
+        if method == "SE_only":
+            new_data = BTreeStoreOperations._mult_SE(op1.data, op2.data)
+        elif method == "exogenous":
+            new_data = BTreeStoreOperations._mult_exogenous(op1.data, op2.data)
+        else:
+            raise ValueError("Method not recognized")
+
         return op1.builder(domain=new_domain, data=new_data)
 
     @staticmethod
-    def multiply_SE(d1, d2):
+    def _mult_SE(d1, d2):
         if not isinstance(d1, BTreeNode):
             if not isinstance(d2, BTreeNode):
                 out = d1*d2
             else:
                 new_var = d2.variable
-                new_ch_left = BTreeStoreOperations.multiply_SE(d1, d2.left_child)
-                new_ch_right = BTreeStoreOperations.multiply_SE(d1, d2.right_child)
+                new_ch_left = BTreeStoreOperations._mult_SE(d1, d2.left_child)
+                new_ch_right = BTreeStoreOperations._mult_SE(d1, d2.right_child)
                 out = BTreeNode.build(variable=new_var,
                                       var_domain=d2.var_domain,
                                       left_child=new_ch_left,
@@ -242,8 +249,8 @@ class BTreeStoreOperations(OperationSet):
                     new_lb = d2.left_states
                     new_rb = d2.right_states
 
-                    new_ch_left = BTreeStoreOperations.multiply_SE(d1, d2.left_child)
-                    new_ch_right = BTreeStoreOperations.multiply_SE(d1, d2.right_child)
+                    new_ch_left = BTreeStoreOperations._mult_SE(d1, d2.left_child)
+                    new_ch_right = BTreeStoreOperations._mult_SE(d1, d2.right_child)
                     out = BTreeNode.build(variable=new_var,
                                           var_domain=d2.var_domain,
                                           left_child=new_ch_left,
@@ -268,8 +275,8 @@ class BTreeStoreOperations(OperationSet):
                 restrict_d2_left = BTreeStoreOperations.restrict_btreenode(d2, {new_var: obs1})
                 restrict_d2_right = BTreeStoreOperations.restrict_btreenode(d2, {new_var: obs2})
 
-                new_ch_left = BTreeStoreOperations.multiply_SE(d1.left_child, restrict_d2_left)
-                new_ch_right = BTreeStoreOperations.multiply_SE(d1.right_child, restrict_d2_right)
+                new_ch_left = BTreeStoreOperations._mult_SE(d1.left_child, restrict_d2_left)
+                new_ch_right = BTreeStoreOperations._mult_SE(d1.right_child, restrict_d2_right)
                 out = BTreeNode.build(variable=new_var,
                                       var_domain=d1.var_domain,
                                       left_child=new_ch_left,
@@ -280,13 +287,13 @@ class BTreeStoreOperations(OperationSet):
         return out
 
     @staticmethod
-    def multiply_exogenous(d1,d2):
+    def _mult_exogenous(d1, d2):
         if not isinstance(d1, BTreeNode):
             out = d1
         else:
             if d1.variable != d2.variable:
-                left = BTreeStoreOperations.multiply_exogenous(d1.left_child,d2)
-                right = BTreeStoreOperations.multiply_exogenous(d1.right_child,d2)
+                left = BTreeStoreOperations._mult_exogenous(d1.left_child, d2)
+                right = BTreeStoreOperations._mult_exogenous(d1.right_child, d2)
                 out = BTreeNode.build(variable=d1.variable,
                                         var_domain=d1.var_domain,
                                         left_child=left,
@@ -312,7 +319,7 @@ class BTreeStoreOperations(OperationSet):
         return out
 
     @staticmethod
-    def marginalize_endogenous_old(data,exovar):
+    def marginalize_endogenous_non_complementary(data,exovar):
 
         def rec(n,subtree=None):
             if subtree is None:
@@ -403,15 +410,18 @@ class BTreeStoreOperations(OperationSet):
     @staticmethod
     def multiply_subtrees(subtrees, U_tree,exo_mult):
         if exo_mult:
-            return [BTreeStoreOperations.correct_tree(BTreeStoreOperations.multiply_exogenous(a, U_tree)) for a in subtrees]
+            return [BTreeStoreOperations.correct_tree(BTreeStoreOperations._mult_exogenous(a, U_tree)) for a in subtrees]
         else:
             return [ BTreeStoreOperations.correct_tree(BTreeStoreOperations.combine_btreenode(a,U_tree,lambda x, y: x * y)) for a in subtrees]
 
     @staticmethod
-    def addition_exo(subtrees, U_tree,exo_combine=False):
+    def addition_exo(subtrees, U_tree, combine_steps = False,exo_mult=False):
         subtrees_complemented = BTreeStoreOperations.sum_complementary_states(subtrees)
-        mult = BTreeStoreOperations.multiply_subtrees(subtrees_complemented, U_tree,exo_combine)
-        return reduce(lambda a, b: BTreeStoreOperations.combine_btreenode(a, b, lambda x, y: x + y), mult)
+        if combine_steps:
+            mult = BTreeStoreOperations.multiply_subtrees(subtrees_complemented, U_tree,exo_mult)
+            return reduce(lambda a, b: BTreeStoreOperations.combine_btreenode(a, b, lambda x, y: x + y), mult)
+        else:
+            return reduce(lambda a, b: BTreeStoreOperations.combine_btreenode(a, b, lambda x, y: x + y), subtrees_complemented)
 
     @staticmethod
     def correct_tree(data):
@@ -431,3 +441,33 @@ class BTreeStoreOperations(OperationSet):
                                 left_states=data.left_states,
                                 right_states=data.right_states,
                                 consecutive=isinstance(data, BTreeNodeConsecutive))
+
+
+    @staticmethod
+    def build_random_marginal_tree(v, states, total_prob=1, threshold=0, min_prob=1e-5):
+
+        # number of probability values
+        n = len(states)
+
+        # check if it is a leave or it should be pruned
+        if n == 1 or total_prob <= threshold:
+            return total_prob / n
+
+        # select a random partition of the states
+        s = random.choice(range(1, len(states)))
+        left_states = states[:s]
+        right_states = states[s:]
+
+        # randomly distribute the probability mass
+        p = (random.random() * (1 - min_prob)) + min_prob
+        total_prob_left = p * total_prob
+        total_prob_right = (1 - p) * total_prob
+
+        # build both children
+        tree_left = BTreeStoreOperations.build_random_marginal_tree(v, states=left_states, total_prob=total_prob_left, threshold=threshold,
+                                                min_prob=min_prob)
+        tree_right = BTreeStoreOperations.build_random_marginal_tree(v, states=right_states, total_prob=total_prob_right,
+                                                 threshold=threshold, min_prob=min_prob)
+
+        # build the tree
+        return BTreeNode.build(v, states, left_child=tree_left, right_child=tree_right, left_states=left_states)

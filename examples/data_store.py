@@ -44,9 +44,9 @@ dom_test = m2.factors["U"].domain
 bt_test = BTreeStore(domain=dom_test, data=reshape_value(dom_test,m2.factors["U"].values), is_equation=False)
 bt_test.set_data(BTreeStore.var_to_nonconsecutive(bt_test.data, "U"))
 
-T1 = BTreeStoreOperations.SE_operation(bt_T,bt_S)
+T1 = BTreeStoreOperations.multiply_SE(bt_T, bt_S)
 test_mult = BTreeStoreOperations.multiply(T1,bt_test)
-ttt_test = BTreeStore(data=BTreeStoreOperations.multiply_exogenous(T1.data, bt_test.data), domain= T1.domain)
+ttt_test = BTreeStore(data=BTreeStoreOperations._mult_exogenous(T1.data, bt_test.data), domain= T1.domain)
 T2 = BTreeStoreOperations.multiply(empirical_tree,T1)
 T3 = BTreeStoreOperations.multiply(bt_test,T2)
 aa= bt_test.restrict(U=["u0","u1","u2"])

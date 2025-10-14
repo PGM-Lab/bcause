@@ -205,7 +205,7 @@ class BTreeStore(DiscreteStore):
         super(self.__class__, self).__init__(domain=domain, data=data)
 
     @staticmethod
-    def _build_from_table(table):
+    def _build_from_table(table, threshold=0):
 
         if table.all_equal():
             return table.values_list[0]
