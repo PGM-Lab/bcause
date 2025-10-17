@@ -65,7 +65,7 @@ if __name__ == "__main__":
     iterations = range(1,101,step)
     graph_codes = ["g2"]
     df = create_benchmark_results_df(path)
-    selected_seeds = get_seeds(seeds[0:10],df)
+    selected_seeds = get_seeds(seeds[10:20],df)
     first = True
     for graph_code in graph_codes:
         models_data_dict = create_model_data_dict(graph_code, path, selected_seeds)
@@ -120,7 +120,7 @@ if __name__ == "__main__":
                             # Add the dataframe with the results to df using concat
                             df = pd.concat([df, pd.DataFrame([[model_name, models_data_dict[model_name], algo, em_time_total, iteration,threshold]], columns=df.columns)], ignore_index=True)
                             # Save the dataframe to a csv file
-                            df.to_csv(os.path.join(path, 'benchmark_results_1.csv'), index=False)
+                            df.to_csv(os.path.join(path, 'benchmark_results_3.csv'), index=False)
 
 
                 else:
@@ -144,4 +144,4 @@ if __name__ == "__main__":
                         # Add the dataframe with the results to df using concat
                         df = pd.concat([df, pd.DataFrame([[model_name, models_data_dict[model_name], algo, em_time_total, iteration,np.nan]], columns=df.columns)], ignore_index=True)
                         # Save the dataframe to a csv file
-                        df.to_csv(os.path.join(path, 'benchmark_results_1.csv'), index=False)
+                        df.to_csv(os.path.join(path, 'benchmark_results_3.csv'), index=False)
