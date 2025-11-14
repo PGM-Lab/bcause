@@ -12,61 +12,11 @@ from bcause.models.cmodel import StructuralCausalModel
 
 
 # different ways of building a node
-# Import the model used in WUPES' paper.
-m2 = StructuralCausalModel.read("/Users/antoniogonzalezalves/Desktop/model_wupes.bif")
-data = pd.read_csv("/Users/antoniogonzalezalves/Desktop/data_wupes.csv")
-
-exovar = "U"
-
-def reshape_value(domain, unshaped_values):
-    dom = domain
-    shape = [len(d) for d in dom.values()]
-    val = np.reshape(unshaped_values, shape)
-    return val
-
-dom_W = m2.factors["W"].domain
-bt_W = BTreeStore(domain=dom_W, data=reshape_value(dom_W,m2.factors["W"].values), exovar=exovar, is_equation=False)
-
-dom_T = m2.factors["T"].domain
-bt_T = BTreeStore(domain=dom_T, data=reshape_value(dom_T,m2.factors["T"].values), exovar=exovar, is_equation=True)
-
-dom_S = m2.factors["S"].domain
-bt_S = BTreeStore(domain=dom_S, data=reshape_value(dom_S,m2.factors["S"].values), exovar=exovar, is_equation=True)
-
-endo_domain = dict(H=[0, 1], T=[0, 1], S=[0, 1])
-from bcause.util.datautils import to_counts
-empirical_prob = to_counts(domains=endo_domain, data=data,normalize=True)
-endo_domain = dict(H=["0", "1"], T=["0", "1"], S=["0", "1"])
-empirical_tree = BTreeStore(domain=endo_domain, data=reshape_value(endo_domain,empirical_prob.values), is_equation=False)
-# restricted_tree = BTreeStoreOperations.restrict(bt_T, {"U":["u0","u4"]})
-
-dom_test = m2.factors["U"].domain
-bt_test = BTreeStore(domain=dom_test, data=reshape_value(dom_test,m2.factors["U"].values), is_equation=False)
-bt_test.set_data(BTreeStore.var_to_nonconsecutive(bt_test.data, "U"))
-
-T1 = BTreeStoreOperations.multiply_SE(bt_T, bt_S)
-test_mult = BTreeStoreOperations.multiply(T1,bt_test)
-ttt_test = BTreeStore(data=BTreeStoreOperations._mult_exogenous(T1.data, bt_test.data), domain= T1.domain)
-T2 = BTreeStoreOperations.multiply(empirical_tree,T1)
-T3 = BTreeStoreOperations.multiply(bt_test,T2)
-aa= bt_test.restrict(U=["u0","u1","u2"])
-T4 = BTreeStoreOperations.marginalize(test_mult, ["U"])
-
-T5 = BTreeStoreOperations.divide(T2, T4)
-
-T6 = BTreeStoreOperations.marginalize(T5, ["H","T","S"])
-
-T7 = BTreeStoreOperations.multiply(T6, bt_test)
-
-marginalized_exogenous = BTreeStoreOperations.marginalize(T2, ["U"])
-aa = BTreeStoreOperations.marginalize(T3, ["H","T","S"])
-# print(test_tree.data.summary())
 
 domain = dict(A=["a1", "a2"], B=["b1", "b2", "b3" ,"b4"])
 values = [[0.2, .2, 0.5, 0.1], [0.2, 0.2, 0.6 ,0.0]]
 # P(B|A) as a numpy table
 f = MultinomialFactor(domain, values, left_vars=["B"])
-
 
 # Operaciones
 
@@ -88,14 +38,10 @@ f.store.builder(domain=domain, data=values)
 # P(B|A) as a binary tree
 f = MultinomialFactor(domain, values, left_vars=["B"], vtype="btree")
 
-
-
 f.store
 type(f.store)
 
 print(f.store.data.summary())
-
-
 
 
 
@@ -128,6 +74,18 @@ data = [[0.2, .2, 0.5, 0.1], [0.2, 0.2, 0.6, 0.0]]
 bt = BTreeStore(domain, data)
 print(bt.data.summary())
 
+domain = dict(H=[0, 1], T=[0, 1], U=["u0", "u1", "u2", "u3", "u4","u5", "u6", "u7", "u8"])
+data1 = [0,0,0,1,1,1,1,1,1, 1,1,1,0,0,0,0,0,0 ,0,0,0,0,0,0,1,1,1, 1,1,1,1,1,1,0,0,0]
+
+def reshape_value(domain, unshaped_values):
+    dom = domain
+    shape = [len(d) for d in dom.values()]
+    val = np.reshape(unshaped_values, shape)
+    return val
+
+data1 = reshape_value(domain, data1)
+
+bt = BTreeStore(domain, data1)
 
 '''
 0) Entender el código anterior

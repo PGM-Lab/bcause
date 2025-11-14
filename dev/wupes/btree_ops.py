@@ -60,7 +60,7 @@ def compute_tree_operation(data,m,exovar,max_iter=100, non_zero_values = False, 
         bt_factors[var] = BTreeStore(domain=dom, data=reshape_value(dom, m.factors[var].values), exovar=exovar, is_equation=True)
 
     # Perform SE operations
-    phi_2 = reduce(BTreeStoreOperations.multiply_SE, bt_factors.values())
+    phi_2 = reduce(lambda x,y: BTreeStoreOperations.multiply_SE(x, y, method = "SE_only"), bt_factors.values())
     phi_1 = BTreeStoreOperations.multiply(phi_2, empirical_tree)
 
     Watch().start()
@@ -144,7 +144,7 @@ def initialize_tree(data,m,exovar, non_zero_values = False):
 
 def execute_tree(empirical_tree, U_tree, bt_factors, exovar, max_iter=100, combine_steps=False):
     # Perform SE operations
-    phi_2 = reduce(BTreeStoreOperations.multiply_SE, bt_factors.values())
+    phi_2 = reduce(lambda x,y: BTreeStoreOperations.multiply_SE(x, y, method = "SE_only"), bt_factors.values())
     phi_1 = BTreeStoreOperations.multiply(phi_2, empirical_tree)
 
     Watch().start()
@@ -193,8 +193,8 @@ if __name__ == "__main__":
     g5_data_path = "./models/WUPES/g5_data_22.csv"
     g6_data_path = "./models/WUPES/g6_data_0.csv"
     g6_model_path = "./models/WUPES/g6_model_0.bif"
-    m = StructuralCausalModel.read(g4_model_path)
-    data = pd.read_csv(g4_data_path).astype(str)
+    m = StructuralCausalModel.read(g2_model_path)
+    data = pd.read_csv(g2_data_path).astype(str)
 
     max_iter = 100
     exovar = [x for x in m.exogenous if x != "V"][0]

@@ -280,6 +280,7 @@ class ExpectationMaximizationTrees(ExpectationMaximization):
             exovar =  list(set(f.variables) & set(self._model.exogenous))[0]
             self._model.factors[v] = BTreeStore(domain=f.domain, data=self._reshape_value(f.domain, f.values),exovar=exovar, is_equation=True)
 
+        # self._model.factors["U"] = MultinomialFactor(domain=self._model.factors["U"].domain, values= [0.0648, 0.2646, 0.0417, 0.0502, 0.0158, 0.2251, 0.0842, 0.0877, 0.1605])
         # change exo factors to BTreeStore
         for v in self._model.exogenous:
             # f = self._model.factors[v]
@@ -296,6 +297,7 @@ class ExpectationMaximizationTrees(ExpectationMaximization):
 
         #Product for each factor_table with factor_data marginalize by the corresponding variables
         phi_2 = {v: BTreeStoreOperations.multiply(phi_1[v],factor_data.marginalize(*set(factor_data.variables).difference(phi_1[v].variables))) for v in self.trainable_vars}
+
 
          # Store phi_1 and phi_2
         self.phi_1 = phi_1
@@ -314,10 +316,10 @@ class ExpectationMaximizationTrees(ExpectationMaximization):
             denominator = BTreeStoreOperations.marginalize(denominator_product, [v])
             fraction = BTreeStoreOperations.divide(self.phi_2[v], denominator)
             if self._combine_steps:
-                subtrees = BTreeStoreOperations.marginalize_endogenous(fraction.data, exovar=v)
+                subtrees = BTreeStoreOperations.marginalize_endogenous(fraction.data)
                 new_probs[v] = BTreeStore(data=BTreeStoreOperations.addition_exo(subtrees, self._model.factors[v].data,combine_steps=True, exo_mult=True), domain=self._model.factors[v].domain)
             else:
-                subtrees = BTreeStoreOperations.marginalize_endogenous(fraction.data, exovar=v)
+                subtrees = BTreeStoreOperations.marginalize_endogenous(fraction.data) #exovar= v
                 marginalize = BTreeStore(data=BTreeStoreOperations.addition_exo(subtrees,self._model.factors[v].data,combine_steps=False), domain=self._model.factors[v].domain)
                 new_probs[v] = BTreeStoreOperations.multiply(marginalize, self._model.factors[v])
 
@@ -372,8 +374,10 @@ if __name__ == "__main__":
     g5_data_path = "./models/WUPES/g5_data_22.csv"
     g4_model_path = "./models/WUPES/g4_model_64.bif"
     g4_data_path = "./models/WUPES/g4_data_64.csv"
-    m2 = StructuralCausalModel.read(g4_model_path)
-    data2 = pd.read_csv(g5_data_path).astype(str)[m2.endogenous]
+    wupes_model = "/Users/antoniogonzalezalves/Desktop/model_wupes.bif"
+    wupes_data = "/Users/antoniogonzalezalves/Desktop/data_wupes.csv"
+    m2 = StructuralCausalModel.read(wupes_model)
+    data2 = pd.read_csv(wupes_data).astype(str)[m2.endogenous]
 
     # print(f"Running EM for {g5_model_path} for 100 iterations")
     # print("---")
@@ -402,12 +406,12 @@ if __name__ == "__main__":
     em2.run(data2, max_iter=100)
     print(f"List time: {time.time() - list_time}")
 
-    # print("---")
-    # print("Running as BTree")
-    # randomUtil.seed(1234)
-    # Btree_time = time.time()
-    # em3 = ExpectationMaximizationTrees(m2.randomize_factors(m2.exogenous, allow_zero=False), ignore_convergence=True, combine_steps=False)
-    # em3.run(data2, max_iter=100)
-    # print(f"BTree time: {time.time() - Btree_time}")
+    print("---")
+    print("Running as BTree")
+    randomUtil.seed(1234)
+    Btree_time = time.time()
+    em3 = ExpectationMaximizationTrees(m2.randomize_factors(m2.exogenous, allow_zero=False), ignore_convergence=True, combine_steps=False)
+    em3.run(data2, max_iter=100)
+    print(f"BTree time: {time.time() - Btree_time}")
 
 

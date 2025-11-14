@@ -284,7 +284,7 @@ class BTreeStoreOperations(OperationSet):
                                       left_states=d1.left_states,
                                       right_states=d1.right_states,
                                       consecutive=isinstance(d1, BTreeNodeConsecutive))
-        return out
+            return out
 
     @staticmethod
     def _mult_exogenous(d1, d2):
@@ -335,43 +335,67 @@ class BTreeStoreOperations(OperationSet):
         subtree = rec(data)
         return subtree
 
+    # @staticmethod
+    # def marginalize_endogenous(data, exovar):
+    #     left, right, not_paired = [], [], []
+    #
+    #     def dfs(n, bucket=None):
+    #         if not isinstance(n, BTreeNode):
+    #             return
+    #
+    #         # At the first split, start collecting into the two buckets
+    #         if bucket is None:
+    #             if (
+    #                 isinstance(n.left_child, BTreeNodeNonConsecutive) and
+    #                 isinstance(n.right_child, BTreeNodeNonConsecutive)
+    #             ):
+    #                 dfs(n.left_child, left)
+    #                 dfs(n.right_child, right)
+    #                 return
+    #
+    #             elif isinstance(n.left_child, BTreeNodeNonConsecutive):
+    #                 dfs(n.left_child, not_paired)
+    #                 dfs(n.right_child, None)
+    #                 return
+    #             elif isinstance(n.right_child, BTreeNodeNonConsecutive):
+    #                 dfs(n.right_child, not_paired)
+    #                 dfs(n.left_child, None)
+    #                 return
+    #
+    #         # If we're already in a bucket, collect matches
+    #         if bucket is not None and n.variable == exovar:
+    #             bucket.append(n)
+    #
+    #         # Keep traversing (bucket stays the same once set)
+    #         dfs(n.left_child, bucket)
+    #         dfs(n.right_child, bucket)
+    #
+    #     dfs(data)
+    #     return [left, right, not_paired]
+
+    #Classify the complementary subtrees
     @staticmethod
-    def marginalize_endogenous(data, exovar):
-        left, right, not_paired = [], [], []
+    def marginalize_endogenous(n, complemented_subtrees=None):
+        if complemented_subtrees is None:
+            complemented_subtrees = [[], [], []]
+        if not isinstance(n, BTreeNode):
+            return complemented_subtrees
+        elif(
+                isinstance(n.left_child, BTreeNodeNonConsecutive) and
+                isinstance(n.right_child, BTreeNodeNonConsecutive)
+            ):
+            complemented_subtrees[0].append(n.left_child)
+            complemented_subtrees[1].append(n.right_child)
+        elif isinstance(n.left_child, BTreeNodeNonConsecutive):
+            complemented_subtrees[2].append(n.left_child)
+        elif isinstance(n.right_child, BTreeNodeNonConsecutive):
+            complemented_subtrees[2].append(n.right_child)
 
-        def dfs(n, bucket=None):
-            if not isinstance(n, BTreeNode):
-                return
+        # Continue traversing until we find exovar
+        BTreeStoreOperations.marginalize_endogenous(n.left_child, complemented_subtrees)
+        BTreeStoreOperations.marginalize_endogenous(n.right_child, complemented_subtrees)
+        return complemented_subtrees
 
-            # At the first split, start collecting into the two buckets
-            if bucket is None:
-                if (
-                    isinstance(n.left_child, BTreeNodeNonConsecutive) and
-                    isinstance(n.right_child, BTreeNodeNonConsecutive)
-                ):
-                    dfs(n.left_child, left)
-                    dfs(n.right_child, right)
-                    return
-
-                elif isinstance(n.left_child, BTreeNodeNonConsecutive):
-                    dfs(n.left_child, not_paired)
-                    dfs(n.right_child, None)
-                    return
-                elif isinstance(n.right_child, BTreeNodeNonConsecutive):
-                    dfs(n.right_child, not_paired)
-                    dfs(n.left_child, None)
-                    return
-
-            # If we're already in a bucket, collect matches
-            if bucket is not None and n.variable == exovar:
-                bucket.append(n)
-
-            # Keep traversing (bucket stays the same once set)
-            dfs(n.left_child, bucket)
-            dfs(n.right_child, bucket)
-
-        dfs(data)
-        return [left, right, not_paired]
 
     @staticmethod
     def sum_complementary_states(subtrees):
