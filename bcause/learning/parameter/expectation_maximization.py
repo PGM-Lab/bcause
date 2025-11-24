@@ -291,7 +291,9 @@ class ExpectationMaximizationTrees(ExpectationMaximization):
             self._model.factors[v].set_data(BTreeStore.var_to_nonconsecutive(self._model.factors[v].data, v))
 
         # multiply the factors of the model for each ccomponent. E.g. P(V1|Y,U) * P(V2|V1,U)
-        endo_component = {v: self._model.get_endo_ccomponent(v) for v in self.trainable_vars}
+        endo_component_unsorted = {v: self._model.get_endo_ccomponent(v) for v in self.trainable_vars}
+        # get right order for multiplication
+        endo_component = {v: list(nx.topological_sort(self._model.graph.subgraph(endo_component_unsorted[v])))  for v in self.trainable_vars}
         phi_1 =  {v: reduce(lambda x, y: BTreeStoreOperations.multiply_SE(x, y, method = "SE_only"), [self._model.factors[f] for f in endo_component[v]])
                          for v in self.trainable_vars}
 

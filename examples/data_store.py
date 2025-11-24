@@ -75,7 +75,7 @@ bt = BTreeStore(domain, data)
 print(bt.data.summary())
 
 domain = dict(H=[0, 1], T=[0, 1], U=["u0", "u1", "u2", "u3", "u4","u5", "u6", "u7", "u8"])
-data1 = [0,0,0,1,1,1,1,1,1, 1,1,1,0,0,0,0,0,0 ,0,0,0,0,0,0,1,1,1, 1,1,1,1,1,1,0,0,0]
+data1 = [0,0,1,0,0,1,0,0,1, 1,1,0,1,1,0,1,1,0 ,0,1,1,0,1,1,0,1,1, 1,0,0,1,0,0,1,0,0]
 
 def reshape_value(domain, unshaped_values):
     dom = domain
