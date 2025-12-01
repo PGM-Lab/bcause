@@ -245,11 +245,11 @@ class StructuralCausalModel(DiscreteCausalDAGModel):
         new_endogenous = [names_mapping[x] if x in names_mapping else x for x in self.endogenous]
         return StructuralCausalModel(dag=new_dag, factors=new_factors, endogenous=new_endogenous, cast_multinomial=self._cast_multinomial)
 
-    def randomize_factors(self, variables, in_place = False, allow_zero = True):
+    def randomize_factors(self, variables, in_place = False, allow_zero = True, vtype=None):
         m = self if in_place else self.copy()
         for x in variables:
             dom = dutils.var_parents_domain(m.domains, m.graph, x)
-            f = random_multinomial(dom, [v for v in dom.keys() if x != v], allow_zero=allow_zero)
+            f = random_multinomial(dom, [v for v in dom.keys() if x != v], allow_zero=allow_zero, vtype=vtype)
             m.set_factor(x, f)
         return m
 

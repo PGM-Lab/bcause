@@ -396,7 +396,7 @@ if __name__ == "__main__":
 
 
     as_list = False
-    random_fact = m2.randomize_factors(m2.exogenous, allow_zero=False)
+    random_fact = m2.randomize_factors(m2.exogenous, allow_zero=False,vtype="list")
     if as_list:
         for v in random_fact.variables:
             random_fact[v] = factor_as_list(random_fact[v])
