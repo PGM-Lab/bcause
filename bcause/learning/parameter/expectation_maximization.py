@@ -1,11 +1,11 @@
 from abc import abstractmethod
 from functools import reduce
 
+
 import pandas as pd
 import numpy as np
+import networkx as nx
 import time
-
-from torch.ao.nn.quantized.functional import threshold
 
 from bcause.factors import MultinomialFactor, DeterministicFactor
 from bcause.factors.multinomial import uniform_multinomial
@@ -334,8 +334,6 @@ if __name__ == "__main__":
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 
     # logging.getLogger( __name__ ).basicConfig(level=logging.getLogger( __name__ ).DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
-
-    import networkx as nx
 
     def factor_as_list(factor: MultinomialFactor):
         return MultinomialFactor(domain=factor.domain, values=factor.values, left_vars=factor.left_vars,
