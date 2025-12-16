@@ -125,11 +125,13 @@ if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
 
-    m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
+    # m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
     # m_semi = m.merge_exogenous("V","U")
     #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
-    data = pd.read_csv("./models/literature/pearl_small.csv")
+    # data = pd.read_csv("./models/literature/pearl_small.csv")
     #data = pd.read_csv("./models/modelTest_SM.csv")
+    m = StructuralCausalModel.read("./models/g2_model_18.bif")
+    data = pd.read_csv("./models/g2_data_18.csv")
 
 
     import time
@@ -138,11 +140,12 @@ if __name__ == "__main__":
     start_time = time.time()
 
     gs = GibbsSampling(m)
-    gs.run(data, max_iter=10)
-    gs.run(data, max_iter=10, init=False)
-    gs.run(data, max_iter=10, init=False)
+    # gs.initialize(data[m.endogenous])
+    gs.run(data[m.endogenous], max_iter=10000)
+    # gs.run(data, max_iter=10, init=False)
+    # gs.run(data, max_iter=10, init=False)
 
-    print(len(gs.model_evolution))
+    # print(len(gs.model_evolution))
 
 
     # End the timer
@@ -162,11 +165,11 @@ if __name__ == "__main__":
     # print the model evolution
     for model_i in gs.model_evolution:
          inf = CausalMultiInference([model_i])
-         q = inf.prob_sufficiency("T","S", true_false_cause=(1,0), true_false_effect=(1,0))[0]
+         q = inf.prob_sufficiency("Y1","Y2", true_false_cause=(1,0), true_false_effect=(1,0))[0]
          Q.append(q)
 
 
-    plt.hist(Q[10:], density=True)
+    plt.hist(Q[100:], density=True)
     plt.xlim(0, 1)
     plt.show()
 
@@ -174,11 +177,11 @@ if __name__ == "__main__":
     #     V_store = np.vstack([V_store,model_i.get_factors(*model_i.exogenous)[1].values])
     #     #print(model_i.get_factors(*model_i.exogenous))
     #
-    fig = plt.figure(figsize=(10, 7))
-    # Creating plot
-    bp = plt.boxplot(U_store)
-    plt.ylim(-0.05, 1.05)
-    plt.yticks(np.arange(-0.1, 1.1, 0.1))
-    plt.grid(axis='y')
+    # fig = plt.figure(figsize=(10, 7))
+    # # Creating plot
+    # bp = plt.boxplot(U_store)
+    # plt.ylim(-0.05, 1.05)
+    # plt.yticks(np.arange(-0.1, 1.1, 0.1))
+    # plt.grid(axis='y')
     # show plot
-    plt.show()
+    # plt.show()
