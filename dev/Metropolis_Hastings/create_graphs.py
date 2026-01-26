@@ -17,7 +17,7 @@ pd.set_option('display.max_columns', None)
 sns.set_theme(style="whitegrid", font_scale=1.5)
 
 # Read the final results
-df = pd.read_csv(os.path.join(download_path, "Final_Comparison_With_Exact_Probabilities_main.csv"))
+df = pd.read_csv(os.path.join(download_path, "Results_MH.csv"))
 
 # Helper to parse string intervals
 def parse_interval(s):
