@@ -14,7 +14,7 @@ import numpy as np
 from numpy.array_api import astype
 from scipy.optimize import minimize
 from scipy.stats import dirichlet
-import itertools
+from bcause.util import randomUtil
 import random
 from typing import Dict, List, Tuple, Any
 
@@ -155,6 +155,7 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
             domain_size = len(exo_f.domain[U])
             counts_u = np.bincount(self._int_exo_samples[U], minlength=domain_size)
             beta = np.array(self._alpha[U]) + counts_u
+
             theta = dirichlet.rvs(beta)[0]
 
         f =  MultinomialFactor({U: m.domains[U]}, theta)
@@ -226,17 +227,23 @@ if __name__ == "__main__":
     #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
     # data = pd.read_csv("./models/literature/pearl_small.csv")
     #data = pd.read_csv("./models/modelTest_SM.csv")
-    m = StructuralCausalModel.read("./models/g2_model_18.bif")
-    data = pd.read_csv("./models/g2_data_18.csv")
+    # m = StructuralCausalModel.read("./models/g2_model_18.bif")
+    # data = pd.read_csv("./models/g2_data_18.csv")
 
+    directory_path = "/Users/antoniogonzalezalves/Documents/s23/"
+    download_path = "/Users/antoniogonzalezalves/Documents/BenchMarkMH/"
 
+    m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr08_zdr10_12.uai")
+    data = pd.read_csv(directory_path + "simple_nparents2_nzr08_zdr10_12.csv",index_col=0).add_prefix('V')
 
     import time
 
+    randomUtil.seed(12)
+    cosa = m.randomize_factors(m.exogenous,allow_zero=False)
     # Start the timer
     start_time = time.time()
     # Initialize the Metropolis_Hastings sampling transition function "random" or "uniform"
-    mhs = MetropolisHastingsSampling(m)
+    mhs = MetropolisHastingsSampling(cosa,seed=12)
     # mhs.initialize(data[m.endogenous])
     mhs.run(data[m.endogenous], max_iter=10000)
 
@@ -246,6 +253,16 @@ if __name__ == "__main__":
     # Calculate elapsed time
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {elapsed_time:.4f} seconds")
+
+    inf_mh_1 = CausalMultiInference(mhs.model_evolution)
+    res_val = inf_mh_1.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
+                                      true_false_effect=(1, 0))
+    inf_mh_2 = CausalMultiInference(mhs.model_evolution[100:])
+    res_val2 = inf_mh_2.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
+                                        true_false_effect=(1, 0))
+    inf_mh_3 = CausalMultiInference(mhs.model_evolution[int(10000/5):])
+    res_val3 = inf_mh_3.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
+                                        true_false_effect=(1, 0))
 
     import matplotlib.pyplot as plt
 

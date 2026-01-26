@@ -130,16 +130,25 @@ if __name__ == "__main__":
     #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
     # data = pd.read_csv("./models/literature/pearl_small.csv")
     #data = pd.read_csv("./models/modelTest_SM.csv")
-    m = StructuralCausalModel.read("./models/g2_model_18.bif")
-    data = pd.read_csv("./models/g2_data_18.csv")
+    # m = StructuralCausalModel.read("./models/g2_model_18.bif")
+    # data = pd.read_csv("./models/g2_data_18.csv")
 
+    directory_path = "/Users/antoniogonzalezalves/Documents/s23/"
+    download_path = "/Users/antoniogonzalezalves/Documents/BenchMarkMH/"
+
+    m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr08_zdr10_12.uai")
+    data = pd.read_csv(directory_path + "simple_nparents2_nzr08_zdr10_12.csv",index_col=0).add_prefix('V')
 
     import time
+    from bcause.util import randomUtil
+
+    randomUtil.seed(12)
+    cosa = m.randomize_factors(m.exogenous,allow_zero=False)
 
     # Start the timer
     start_time = time.time()
 
-    gs = GibbsSampling(m)
+    gs = GibbsSampling(cosa)
     # gs.initialize(data[m.endogenous])
     gs.run(data[m.endogenous], max_iter=10000)
     # gs.run(data, max_iter=10, init=False)
