@@ -136,8 +136,8 @@ dmypy.json
 #custom
 *_ignored*
 *_ig*
-/results
+#/results
 /.vs
 TestResults
-/papers/gradient_journal/results/synthetic/s123
+#/papers/gradient_journal/results/synthetic/s123
 /jan

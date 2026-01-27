@@ -1,0 +1,2 @@
+,modelname,method,cause,effect,tol,num_runs_param,max_iter_param,seed,tlearn,tinfer,remove_outliers,datasize,pns_low_exact,pns_upp_exact,pns_low,pns_upp,rrmse,rmse,nruns
+0,random_mc2_n6_mid3_d1000_05_mr098_r10_44,EMCC,V3,V5,,100,50,1,16064.905166625977,189.29624557495117,True,1000,0.0558153164,0.3842657125,0.16959591343153047,0.26951224690245573,1.143637508650876,0.11426806668421913,5
