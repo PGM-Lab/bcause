@@ -75,8 +75,8 @@ if USE_FULL_PARAMETERS:
     seed_values = [1] # after our discussion, we keep only one value for the moment
     remove_outliers_values = [True, False]
     method_values = ["EMCC", "GDCC", "GSCC"]
-    max_iter_values_emcc = [25, 50, 100, 150, 200]  # Relevant for EMCC
-    tol_values_gdcc = [1e-3, 1e-5, 1e-7, 1e-9]     # Relevant for GDCC
+    max_iter_values_emcc = [50, 100, 150]  # Relevant for EMCC
+    tol_values_gdcc = [1e-5, 1e-7, 1e-9]     # Relevant for GDCC
 else: # subset of full parameters used for debugg
     seed_values = [1]
     remove_outliers_values = [True, False]
