@@ -3,6 +3,8 @@ import math
 import os
 from pathlib import Path
 import argparse
+
+import networkx as nx
 import pandas as pd
 import sys
 
@@ -18,18 +20,11 @@ from bcause.util.watch import Watch
 
 '''
 
-
--m EMCC_5 -n 3 -s 1234 -rw -ro  ./papers/gradient_journal/models/synthetic/s123/random_mc2_n5_mid3_d1000_05_mr098_r10_2.uai
-
-
-
--m DCCC -rw -n 10 ./models/synthetic/s23/simple_nparents1_nzr02_zdr05_ysize3_3.uai
-
-simple_nparents1_nzr10_zdr05_ysize3_38
+# model with 
+# -m EMCC_5 -n 3 -s 1234 -rw -ro  ./papers/gradient_journal/models/synthetic/s123/random_mc2_n5_mid3_d1000_05_mr098_r10_2.uai
+-m EMCC_5 -n 10 -s 1234 -rw -ro ./papers/gradient_journal/models/synthetic/s123/random_mc2_n5_mid3_d1000_05_mr098_r10_4.uai
 
 
--m GSCC -rw -n 100  ./models/synthetic/s2/simple_nparents2_nzr08_zdr05_10.uai
--m GSCC -rw -n 100 ./models/synthetic/s23/simple_nparents1_nzr02_zdr05_ysize3_3.uai
 
 '''
 
@@ -97,9 +92,12 @@ info_query = pd.read_csv(modelpath_ccve)
 pns_exact = (info_query.pns_l.values[0], info_query.pns_u.values[0])
 cause, effect = [f"V{i}" for i in list(info_query[["cause", "effect"]].values.flatten())]
 modelname = os.path.basename(modelpath).split(".")[0]
-log.info(f"PNS exact: {pns_exact}")
+log.info(f"PNS({cause},{effect}) exact: {pns_exact}")
 
 
+if not nx.has_path(model.graph, cause, effect):
+    log.error("Model does not have any cause-effect path.")
+    sys.exit(1)
 
 
 
@@ -116,7 +114,7 @@ if not os.path.exists(resfolder):
 resfilepath = Path(resfolder, f"{label}.csv")
 if (not rewrite) and os.path.exists(resfilepath):
     log.error("File exists, not rewriting.")
-    exit(1)
+    sys.exit(1)
     #raise ValueError("File exists, not rewriting.")
 
 
@@ -156,7 +154,7 @@ for _ in inf.compile_incremental(1): # The learning is done here at each iterati
 
     nruns = len(inf.models)
 
-    msg = f"[{p[0]:.4f},{p[1]:.4f}]\t {nruns} runs\t rrmse={err:.5f}\t T_learn={tlearn:.0f} ms. \t T_infer={tinfer:.0f} ms."
+    msg = f"[{p[0]:.4f},{p[1]:.4f}]\t {nruns} runs\t rmse={err2:.5f}\t T_learn={tlearn:.0f} ms. \t T_infer={tinfer:.0f} ms."
     log.info(msg)
 
     # Save the results
