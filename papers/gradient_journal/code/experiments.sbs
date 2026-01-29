@@ -1,22 +1,21 @@
 #!/bin/bash
-#SBATCH --time=7-00:00:00
-#SBATCH -o /mnt/beegfs/rcabanas/dev/bcause/papers/gradient_journal/logs/%x.%j.out
+#SBATCH --time=3-00:00:00
+#SBATCH -o /mnt/beegfs/rcabanas/dev/counterfactual-zeros/logs/%x.%j.out
 
-#pwd
-#ls ../models/synthetic/s123/*.uai
 
-for file in ../models/synthetic/s123/*.uai ; do
-    echo $file
-    srun -n 1 -N 1 -c 1 -t 10000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -n 200 -o ../results/synthetic/s123/ $file 2> /dev/null &
+for file in ../../models/synthetic/s23/*ts$nparents*.uai ; do
+    #srun -n 1 -N 1 -c 1 -t 2000  /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -m DCCC -n 100 -o ../results/synthetic/s23/ $file 2> /dev/null &
+    #srun -n 1 -N 1 -c 1 -t 2000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -m EMCC-50 -n 100 -o ../results/synthetic/s23/ $file 2> /dev/null &
+    #srun -n 1 -N 1 -c 1 -t 2000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -m EMCC-100 -n 100 -o ../results/synthetic/s23/ $file 2> /dev/null &
+    #srun -n 1 -N 1 -c 1 -t 2000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -m EMCC-150 -n 100 -o ../results/synthetic/s23/ $file 2> /dev/null &
+    srun -n 1 -N 1 -c 1 -t 2000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -m GSCC-0 -n 500 -o ../results/synthetic/s23/ $file 2> /dev/null &
+    srun -n 1 -N 1 -c 1 -t 2000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -m GSCC-100 -n 500 -o ../results/synthetic/s23/ $file 2> /dev/null &
+
 done
 
 
 wait
 
 
-
-#/mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -n 2 -o ../results/synthetic/s123/ ../models/synthetic/s123/random_mc2_n9_mid3_d1000_05_mr098_r10_91.uai
-
-
-## usage: sbatch experiments.sbs
+## usage: sbatch  --export=nparents=2 experiments.sbs
 
