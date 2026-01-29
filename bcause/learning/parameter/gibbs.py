@@ -68,7 +68,7 @@ class GibbsSampling(IterativeParameterLearning):
             # Get cpt, merge with data events and sample U
             cpt = self._get_conditional_probability_table(model_adjusted)
             cpt_count = cpt.merge(self._frequency_tables[U], on=model_adjusted.right_vars, how='left').fillna(0)
-            samples_u = np.concatenate(cpt_count.apply(lambda row: np.random.choice(model_adjusted.left_domain[U],
+            samples_u = np.concatenate(cpt_count[cpt_count['count'] > 0].apply(lambda row: np.random.choice(model_adjusted.left_domain[U],
                                                                                   size=int(row['count']), p=row['Probabilities']),axis=1).to_list())
             # Get posterior
             # counts_u = np.bincount(samples_u, minlength=len(model_adjusted.left_domain[U]))
