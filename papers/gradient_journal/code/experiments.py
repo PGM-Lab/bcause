@@ -83,9 +83,6 @@ data = data.rename(columns={c: "V" + c for c in data.columns})
 
 # Load the information about the query and the model
 modelpath_ccve = modelpath.replace(".uai", "_uai_ccve.csv")
-if not os.path.exists(modelpath_ccve):
-    log.error("File exists, not rewriting.")
-    exit(1)
 
 info_query = pd.read_csv(modelpath_ccve)
 
