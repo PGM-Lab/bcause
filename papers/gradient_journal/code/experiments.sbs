@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --job-name=cfzeros
 #SBATCH --time=7-00:00:00
 #SBATCH --output=/mnt/beegfs/rcabanas/dev/counterfactual-zeros/logs/%x.%j.out
 
