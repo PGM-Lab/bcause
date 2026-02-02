@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --time=7-00:00:00
-#SBATCH --output=/mnt/beegfs/rcabanas/dev/counterfactual-zeros/logs/%x.%j.out
+#SBATCH --time=10-00:00:00
+#SBATCH -o /mnt/beegfs/rcabanas/dev/bcause/papers/gradient_journal/logs/%x.%j.out
 
-#SBATCH --ntasks=200
+#SBATCH --ntasks=100
 #SBATCH --cpus-per-task=1
 
 
 for file in ../models/synthetic/s123/*.uai ; do
-    srun  -n 1  -c 1 -t 5000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -m $method -n 200 -s 0 -rw -ro ../results/synthetic/s123/ $file 2> /dev/null &
-    srun  -n 1  -c 1 -t 5000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -m $method -n 200 -s 0 -rw ../results/synthetic/s123/ $file 2> /dev/null &
+    srun  -n 1  -c 1 -t 5000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -m $method -n 200 -s 0 -rw -ro -o ../results/synthetic/s123/ $file 2> /dev/null &
+    srun  -n 1  -c 1 -t 5000 /mnt/beegfs/rcabanas/singularity/singpy.sif python -u experiments.py -m $method -n 200 -s 0 -rw -o ../results/synthetic/s123/ $file 2> /dev/null &
 done
 
 
