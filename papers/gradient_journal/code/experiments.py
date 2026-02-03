@@ -24,7 +24,7 @@ from bcause.util.watch import Watch
 # -m EMCC_5 -n 3 -s 1234 -rw -ro  ./papers/gradient_journal/models/synthetic/s123/random_mc2_n5_mid3_d1000_05_mr098_r10_2.uai
 -m EMCC_5 -n 10 -s 1234 -rw -ro ./papers/gradient_journal/models/synthetic/s123/random_mc2_n5_mid3_d1000_05_mr098_r10_4.uai
 
-
+-m GDCC_1e-02 -n 3 -s 1234 -rw -ro  ./papers/gradient_journal/models/synthetic/s123/random_mc2_n5_mid3_d1000_05_mr098_r10_4.uai
 
 '''
 
@@ -70,6 +70,9 @@ log.propagate = 0
 #log
 log.setLevel("INFO")
 
+
+log.info(f"Arguments: {args}")
+
 log.info(f"Loading model from {modelpath}")
 
 # load the model
@@ -110,7 +113,7 @@ if not os.path.exists(resfolder):
 
 resfilepath = Path(resfolder, f"{label}.csv")
 if (not rewrite) and os.path.exists(resfilepath):
-    log.error("File exists, not rewriting.")
+    log.error(f"File exists, not rewriting: {resfilepath}")
     sys.exit(1)
     #raise ValueError("File exists, not rewriting.")
 
