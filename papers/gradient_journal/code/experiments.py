@@ -8,9 +8,7 @@ import networkx as nx
 import pandas as pd
 import sys
 
-from bcause.inference.probabilistic.elimination import VariableElimination
-from bcause.models.cmodel import StructuralCausalModel
-from bcause.util.mathutils import rrmse, rmse
+
 
 #sys.path.insert(0, "../../../")
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +19,9 @@ print("BCause root:", bcause_root)
 print("Exists:", os.path.exists(os.path.join(bcause_root, "bcause")))
 print(sys.path)
 
+from bcause.inference.probabilistic.elimination import VariableElimination
+from bcause.models.cmodel import StructuralCausalModel
+from bcause.util.mathutils import rrmse, rmse
 
 from bcause.inference.causal.multi import EMCC, GibbsCausal, GDCC
 from bcause.util.runningutils import get_logger
