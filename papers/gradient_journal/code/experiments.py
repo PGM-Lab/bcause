@@ -12,7 +12,11 @@ from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.mathutils import rrmse, rmse
 
-sys.path.insert(0, "../../../")
+#sys.path.insert(0, "../../../")
+current_dir = os.path.dirname(os.path.abspath(__file__))
+bcause_root = os.path.abspath(os.path.join(current_dir, "../../../"))
+sys.path.insert(0, bcause_root)
+
 
 from bcause.inference.causal.multi import EMCC, GibbsCausal, GDCC
 from bcause.util.runningutils import get_logger
