@@ -138,8 +138,7 @@ tlearn = 0
 t0 = 0
 Watch.start()
 
-print(model)
-print(data)
+
 # Learning loop
 for _ in inf.compile_incremental(1): # The learning is done here at each iteration
 
