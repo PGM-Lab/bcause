@@ -15,11 +15,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 bcause_root = os.path.abspath(os.path.join(current_dir, "../../../"))
 sys.path.insert(0, bcause_root)
 
-print("BCause root:", bcause_root)
-print("Exists:", os.path.exists(os.path.join(bcause_root, "bcause")))
-print(sys.path)
 
-from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.mathutils import rrmse, rmse
 
@@ -61,11 +57,6 @@ num_runs = int(variables["numruns"])
 seed = int(variables["seed"])
 rewrite = variables["rewrite"]
 remove_outliers = variables["removeoutliers"]
-
-
-
-
-
 
 
 #constant
