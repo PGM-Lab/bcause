@@ -12,7 +12,7 @@ from bcause.inference.probabilistic.elimination import VariableElimination
 from bcause.models.cmodel import StructuralCausalModel
 from bcause.util.mathutils import rrmse, rmse
 
-sys.path.insert(0, "../../")
+sys.path.insert(0, "../../../")
 
 from bcause.inference.causal.multi import EMCC, GibbsCausal, GDCC
 from bcause.util.runningutils import get_logger
