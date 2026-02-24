@@ -51,7 +51,8 @@ class BayesianNetwork(DiscreteDAGModel):
     def buid_random(dag, domains):
         return BayesianNetwork.__buid(dag, domains, random_multinomial)
 
-
+    def prob_sufficiency(self, cause, effect, true_false_cause, true_false_effect):
+        pass
 
 
 if __name__ == "__main__":

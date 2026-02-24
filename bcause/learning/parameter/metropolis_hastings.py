@@ -36,6 +36,11 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
      This class implements a method for running a single optimization of the exogenous variables in a SCM.
      '''
 
+    @property
+    def acceptance_rate(self) -> Dict[str, float]:
+        return {U: (self.accepted_proposals[U] / self.total_proposals[U]) if self.total_proposals[U] > 0 else 0.0
+                for U in self._trainable_vars}
+
     def __init__(self, prior_model: StructuralCausalModel, trainable_vars: list = None, alpha: dict = None):
         self._prior_model = prior_model.fix_numeric_domains()
         self._trainable_vars = trainable_vars
@@ -48,9 +53,15 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         self._int_exo_samples = {}
         self._prob_tables = {}
 
+
     def initialize(self, data: pd.DataFrame, **kwargs):
         self._model = self.prior_model.copy()
         self._process_data(data.copy())
+
+        # Code for tracking acceptance rate
+        self.acceptance_history = {U: [] for U in self._trainable_vars}
+        self.total_proposals = {U: 0 for U in self._trainable_vars}
+        self.accepted_proposals = {U: 0 for U in self._trainable_vars}
 
         for U in self._trainable_vars:
             domain = self._model.factors[U].domain[U]
@@ -107,11 +118,11 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         return np.random.choice(list(sampling_set), p=probs/np.sum(probs))
 
 
-    def uniform_choice(self,set):
+    def uniform_choice(self,sampling_set):
         """
-        Perturbate the row based on the uniform distribution.
+        Perturb the row based on the uniform distribution.
         """
-        return random.choice(list(set))
+        return random.choice(list(sampling_set))
 
     def _updated_factor(self, U) -> MultinomialFactor:
         m = self._model
@@ -119,7 +130,7 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         u_old = self._int_exo_samples[U]
         sampling_set = self._int_sampling_set[U]
 
-        if self._is_prior == True:
+        if self._is_prior:
             if self._alpha is None:
                 self._set_non_informative_alpha()
             theta = dirichlet.rvs(self._alpha[U])[0]
@@ -151,6 +162,15 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
             ratio = np.minimum(new_prob/old_prob, 1)
             flag = (ratio >= np.random.rand(len(data))).astype(int)
             self._int_exo_samples[U] = np.where(flag == 1, u_new, u_old)
+
+            # Acceptance rate
+            n_proposal = len(data)
+            n_accepted = flag.sum()
+            self.accepted_proposals[U] += n_accepted
+            self.total_proposals[U] += n_proposal
+
+            current_rate = n_accepted / n_proposal if n_proposal > 0 else 0
+            self.acceptance_history[U].append(current_rate)
 
             domain_size = len(exo_f.domain[U])
             counts_u = np.bincount(self._int_exo_samples[U], minlength=domain_size)
@@ -233,19 +253,15 @@ if __name__ == "__main__":
     directory_path = "/Users/antoniogonzalezalves/Documents/s23/"
     download_path = "/Users/antoniogonzalezalves/Documents/BenchMarkMH/"
 
-    m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr08_zdr10_12.uai")
-    data = pd.read_csv(directory_path + "simple_nparents2_nzr08_zdr10_12.csv",index_col=0).add_prefix('V')
+    m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr08_zdr10_3.uai")
+    data = pd.read_csv(directory_path + "simple_nparents2_nzr08_zdr10_3.csv",index_col=0).add_prefix('V')
 
     import time
-
-    randomUtil.seed(12)
-    cosa = m.randomize_factors(m.exogenous,allow_zero=False)
     # Start the timer
     start_time = time.time()
-    # Initialize the Metropolis_Hastings sampling transition function "random" or "uniform"
-    mhs = MetropolisHastingsSampling(cosa,seed=12)
+    mhs = MetropolisHastingsSampling(m)
     # mhs.initialize(data[m.endogenous])
-    mhs.run(data[m.endogenous], max_iter=10000)
+    mhs.run(data[m.endogenous], max_iter=2000)
 
     # End the timer
     end_time = time.time()
@@ -254,30 +270,15 @@ if __name__ == "__main__":
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {elapsed_time:.4f} seconds")
 
+    print("Acceptance Rates:", mhs.acceptance_rate)
+
     inf_mh_1 = CausalMultiInference(mhs.model_evolution)
-    res_val = inf_mh_1.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
+    res_val = inf_mh_1.prob_necessity("V2", "V0", true_false_cause=(1, 0),
                                       true_false_effect=(1, 0))
-    inf_mh_2 = CausalMultiInference(mhs.model_evolution[100:])
-    res_val2 = inf_mh_2.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
-                                        true_false_effect=(1, 0))
-    inf_mh_3 = CausalMultiInference(mhs.model_evolution[int(10000/5):])
-    res_val3 = inf_mh_3.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
-                                        true_false_effect=(1, 0))
+    # inf_mh_2 = CausalMultiInference(mhs.model_evolution[100:])
+    # res_val2 = inf_mh_2.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
+    #                                     true_false_effect=(1, 0))
+    # inf_mh_3 = CausalMultiInference(mhs.model_evolution[int(10000/5):])
+    # res_val3 = inf_mh_3.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
+    #                                     true_false_effect=(1, 0))
 
-    import matplotlib.pyplot as plt
-
-    U_store = np.empty((0,64))
-    V_store = np.empty([0,2])
-
-    Q = []
-
-    # print the model evolution
-    for model_i in mhs.model_evolution[100:]:
-         inf = CausalMultiInference([model_i])
-         q = inf.prob_sufficiency("Y1","Y2", true_false_cause=(1,0), true_false_effect=(1,0))[0]
-         Q.append(q)
-
-
-    plt.hist(Q, density=True)
-    plt.xlim(0, 1)
-    plt.show()

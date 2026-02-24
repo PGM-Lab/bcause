@@ -9,8 +9,9 @@ from bcause.factors import MultinomialFactor
 from bcause.util import randomUtil
 from bcause.inference.causal.multi import CausalMultiInference
 from bcause.learning.parameter.gibbs import GibbsSampling
-# from bcause.learning.parameter.metropolis_hastings import MetropolisHastingsSampling
-from dev_ig.Metropolis_Hastings.Metropolisv2 import MetropolisHastingsSampling
+from bcause.learning.parameter.metropolis_hastings import MetropolisHastingsSampling
+from dev_ig.Metropolis_Hastings.liftedMCMC import MetropolisHastingsSampling as MHv3
+
 import warnings
 import os
 import re
@@ -21,7 +22,7 @@ warnings.filterwarnings("ignore")
 
 # Define models and data paths
 directory_path = "/Users/antoniogonzalezalves/Documents/s23/"
-download_path = "/Users/antoniogonzalezalves/Documents/BenchMarkMH/"
+download_path = "/Users/antoniogonzalezalves/Documents/prueba_mh/"
 
 
 def extract_file_info(filename):
@@ -127,7 +128,7 @@ dataframe_models_pre = pd.DataFrame(sets)
 # filter out models with nparents > 2
 sets = [s for s in sets if s['nparents'] is not None and s['cardinality_children'] <= 2]
 sets = [s for s in sets if s['index'] not in [2,7,9,23,24,27,28,41,48]]
-# sets = [s for s in sets if s['index'] > 47]
+sets = [s for s in sets if s['index'] < 3]
 
 dataframe_models = pd.DataFrame(sets)
 
@@ -146,8 +147,12 @@ dataframe_results_mh = pd.DataFrame(columns=[
     "Model_Index", "nparents", "nzr", "zdr", "cardinality",
     "Iteration", "cause", "effect", "query", "Metropolis_Hastings", "Time"
 ])
+dataframe_results_mh_alt = pd.DataFrame(columns=[
+    "Model_Index", "nparents", "nzr", "zdr", "cardinality",
+    "Iteration", "cause", "effect", "query", "Metropolis_Hastings_ALT", "Time"
+])
 
-N=10000
+N=5000
 # N=5
 for n,i in enumerate(sets):
     print(
@@ -310,19 +315,72 @@ for n,i in enumerate(sets):
     mh_precomp_export = mh_precomp_export.drop(columns=["low","tinfer","tlearn","upp"])
     dataframe_results_mh.to_csv(download_file_mh, index=False)
 
+    # Metropolis_Hastings
+    model_mh_alt = StructuralCausalModel.read(i["model"])
+    randomUtil.seed(n)
+    mh_alt = MHv3(model_mh_alt.randomize_factors(model_mh_alt.exogenous, allow_zero=False))
+    # --- Time Initialization  ---
+    start_time_mh_alt_init = time.time()
+    mh_alt.initialize(data_int[model_mh_alt.endogenous])
+    end_time_mh_alt_init = time.time()
+    time_mh_alt_learn_total = end_time_mh_alt_init - start_time_mh_alt_init
+    # ---------------------------------------------------
+    for iter in range(N + 1):
+        start_time_mh_alt_step = time.time()
+        mh_alt.step()
+        end_time_mh_alt_step = time.time()
+        time_mh_alt_learn_total += (end_time_mh_alt_step - start_time_mh_alt_step)
+
+        if (iter % 1000 == 0) and (iter > 0):
+            print(f"    Model {n + 1} - MH_ALT: Iter {iter}, Time {time_mh_alt_learn_total:.2f}s")
+            inf_mh_alt = CausalMultiInference(mh_alt.model_evolution[int(iter / 5):])
+
+            for instance in query.itertuples(index=False):
+                res_val = None
+                if instance.query == "PS":
+                    res_val = inf_mh_alt.prob_sufficiency(instance.cause, instance.effect, true_false_cause=(1, 0),
+                                                      true_false_effect=(1, 0))
+                elif instance.query == "PN":
+                    res_val = inf_mh_alt.prob_necessity(instance.cause, instance.effect, true_false_cause=(1, 0),
+                                                    true_false_effect=(1, 0))
+
+                if res_val is not None:
+                    row = model_meta.copy()
+                    row.update({
+                        "Iteration": iter,
+                        "cause": instance.cause,
+                        "effect": instance.effect,
+                        "query": instance.query,
+                        "Metropolis_Hastings": res_val,
+                        "Time": time_mh_alt_learn_total
+                    })
+                    dataframe_results_mh_alt = pd.concat([dataframe_results_mh_alt, pd.DataFrame([row])], ignore_index=True)
+
+    # Download csv results for MH
+    download_file_mh_alt = os.path.join(download_path, f"Metropolis_Hastings_alt_results.csv")
+    mh_alt_precomp_export = dataframe_results_mh_alt.merge(query, left_on=["cause", "effect", "query"],
+                                                   right_on=["cause", "effect", "query"], how="left")
+    mh_alt_precomp_export["exact_result"] = [list(x) for x in zip(mh_alt_precomp_export['low'], mh_alt_precomp_export['upp'])]
+    mh_alt_precomp_export = mh_alt_precomp_export.drop(columns=["low", "tinfer", "tlearn", "upp"])
+    dataframe_results_mh_alt.to_csv(download_file_mh_alt, index=False)
+
 gb_precomp_export = pd.read_csv(os.path.join(download_path, f"Gibbs_Sampling_results.csv"))
 mh_precomp_export = pd.read_csv(os.path.join(download_path, f"Metropolis_Hastings_results.csv"))
+mh_alt_precomp_export = pd.read_csv(os.path.join(download_path, f"Metropolis_Hastings_alt_results.csv"))
 
 # merge all results
 merge_keys = ["Model_Index", "nparents", "nzr", "zdr", "cardinality", "Iteration", "cause", "effect", "query"]
 
 final_results = gb_precomp_export.merge(mh_precomp_export, on=merge_keys, how="outer",suffixes=("_gibbs", "_mh"))
+final_results = final_results.merge(mh_alt_precomp_export, on=merge_keys, how="outer", suffixes=("", "_mh_alt"))
 
 # Clean up exact result columns if they are duplicated
 if "exact_result_gibbs" in final_results.columns:
     final_results.rename(columns={"exact_result_gibbs": "exact_result"}, inplace=True)
 if "exact_result_mh" in final_results.columns:
     final_results.drop(columns=["exact_result_mh"], inplace=True)
+if "exact_result_mh_alt" in final_results.columns:
+    final_results.drop(columns=["exact_result_mh_alt"], inplace=True)
 
 final_results.to_csv(os.path.join(download_path, "Final_Comparison_Results.csv"), index=False)
 

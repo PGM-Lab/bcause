@@ -7,7 +7,7 @@ import ast
 import os
 
 # Define paths
-download_path = "/Users/antoniogonzalezalves/Documents/BenchmarkMH/"
+download_path = "/Users/antoniogonzalezalves/Downloads/"
 pd.set_option('display.max_columns', None)
 
 # ---------------------------------------------------------
@@ -17,7 +17,7 @@ pd.set_option('display.max_columns', None)
 sns.set_theme(style="whitegrid", font_scale=1.5)
 
 # Read the final results
-df = pd.read_csv(os.path.join(download_path, "Results_MH.csv"))
+df = pd.read_csv(os.path.join(download_path, "Merged_Comparison_Metropolis_ALT_Cleaned.csv"))
 
 # Helper to parse string intervals
 def parse_interval(s):
@@ -31,7 +31,7 @@ def parse_interval(s):
         return [np.nan, np.nan]
 
 # 1. Define Algorithms
-possible_algos = ['Gibbs_Sampling', 'Metropolis_Hastings', 'EM_Precomp']
+possible_algos = ['Gibbs_Sampling', 'Metropolis_Hastings', 'metropolis_hastings_ALT']
 algorithms = [algo for algo in possible_algos if algo in df.columns]
 exact_col = 'Exact_Probability'
 
@@ -74,7 +74,9 @@ for algo in algorithms:
     df[algo + '_Coverage'] = df.apply(calc_cov, axis=1)
 
 # 4. Filters
-df = df[~((df["Gibbs_Sampling_Coverage"] == 0) & (df["Metropolis_Hastings_Coverage"] == 0))]
+# df = df[~((df["Gibbs_Sampling_Coverage"] == 0) & (df["Metropolis_Hastings_Coverage"] == 0))]
+# filer by nparents = 2
+df = df[df['nparents'] == 2]
 
 # Delete point estimation
 df['Exact_Probability_list'] = df['Exact_Probability'].apply(ast.literal_eval)
@@ -86,7 +88,7 @@ print(df[["Model_Index","nparents","nzr","zdr","cardinality"]].drop_duplicates()
 # PLOTTING WITH SEABORN
 # ---------------------------------------------------------
 
-colors = {'EM_Precomp': 'blue', 'Gibbs_Sampling': 'orange', 'Metropolis_Hastings': 'green'}
+colors = {'metropolis_hastings_ALT': 'blue', 'Gibbs_Sampling': 'orange', 'Metropolis_Hastings': 'green'}
 
 # --- Data Preparation (Melting) ---
 
@@ -104,8 +106,7 @@ df_cov['Algorithm'] = df_cov['Algorithm'].str.replace('_Coverage', '')
 time_mapping = {}
 if 'Time_gibbs' in df.columns: time_mapping['Time_gibbs'] = 'Gibbs_Sampling'
 if 'Time_mh' in df.columns: time_mapping['Time_mh'] = 'Metropolis_Hastings'
-if 'Time' in df.columns: time_mapping['Time'] = 'EM_Precomp'
-
+if 'Time' in df.columns: time_mapping['Time'] = 'metropolis_hastings_ALT'
 df_time = pd.DataFrame()
 if time_mapping:
     temp_df = df[['Iteration'] + list(time_mapping.keys())].rename(columns=time_mapping)
