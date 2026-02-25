@@ -272,9 +272,14 @@ if __name__ == "__main__":
 
     print("Acceptance Rates:", mhs.acceptance_rate)
 
-    inf_mh_1 = CausalMultiInference(mhs.model_evolution)
+    inf_mh_1 = CausalMultiInference(mhs.model_evolution, outliers_removal=False)
     res_val = inf_mh_1.prob_necessity("V2", "V0", true_false_cause=(1, 0),
                                       true_false_effect=(1, 0))
+    print("Result with outliers removal:", res_val)
+    inf_mh_2 = CausalMultiInference(mhs.model_evolution, outliers_removal=True)
+    res_val = inf_mh_2.prob_necessity("V2", "V0", true_false_cause=(1, 0),
+                                      true_false_effect=(1, 0))
+    print("Result with outliers removal:", res_val)
     # inf_mh_2 = CausalMultiInference(mhs.model_evolution[100:])
     # res_val2 = inf_mh_2.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
     #                                     true_false_effect=(1, 0))
