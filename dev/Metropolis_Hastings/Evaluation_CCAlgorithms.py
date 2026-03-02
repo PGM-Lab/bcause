@@ -10,7 +10,6 @@ from bcause.util import randomUtil
 from bcause.inference.causal.multi import CausalMultiInference
 from bcause.learning.parameter.gibbs import GibbsSampling
 from bcause.learning.parameter.metropolis_hastings import MetropolisHastingsSampling
-from dev_ig.Metropolis_Hastings.liftedMCMC import MetropolisHastingsSampling as MHv3
 
 import warnings
 import os
