@@ -16,7 +16,7 @@ pd.set_option('display.max_columns', None)
 sns.set_theme(style="whitegrid", font_scale=1.5)
 
 # Read the final results
-df = pd.read_csv(os.path.join(download_path, "Final_Merged_All_Methods.csv"))
+df = pd.read_csv(os.path.join(download_path, "Final_Merged_All_Methods_2.csv"))
 
 
 # Helper to parse string intervals
@@ -35,8 +35,8 @@ def parse_interval(s):
 possible_algos = [
     'Gibbs_Sampling', 'Metropolis_Hastings',
     'Metropolis_Hastings_Exclude_Outliers',
-'Metropolis_Hastings_Swandsen_Wang'
-]
+    'Metropolis_Hastings_Zanella',
+     'Metropolis_Hastings_Zanella_wo_outliers']
 # 'Metropolis_Hastings_Swandsen_Wang', 'Metropolis_Hastings_AlwaysTrue', Metropolis_Hastings_Parallel_Tempering
 # 'Metropolis_Hastings_Zanella'
 algorithms = [algo for algo in possible_algos if algo in df.columns]

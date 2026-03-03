@@ -18,8 +18,6 @@ import itertools
 import random
 from typing import Dict, List, Tuple, Any
 
-from sympy.stats.rv import probability
-
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor
 from bcause.factors.mulitnomial import random_multinomial   # TODO: mulitnomial -> multinomial
@@ -36,7 +34,6 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
      This class implements a method for running a single optimization of the exogenous variables in a SCM.
      '''
 
-    # ---> ADDED ACCEPTANCE RATE PROPERTY <---
     @property
     def acceptance_rate(self) -> Dict[str, float]:
         return {U: (self.accepted_proposals[U] / self.total_proposals[U]) if self.total_proposals[U] > 0 else 0.0
@@ -58,21 +55,31 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         self._model = self.prior_model.copy()
         self._process_data(data.copy())
 
-        # ---> ADDED TRACKING VARIABLES <---
         self.acceptance_history = {U: [] for U in self._trainable_vars}
         self.total_proposals = {U: 0 for U in self._trainable_vars}
         self.accepted_proposals = {U: 0 for U in self._trainable_vars}
+
+        # --- NEW: PARALLEL TEMPERING SETUP ---
+        self.n_chains = 4
+        # Temperatures: 1.0 is the Cold Chain (Target). The others are Hot.
+        self.temperatures = np.array([1.0, 2.0, 5.0, 10.0])
+        self.iter_count = 0
+        self._prob_tables = {}
+        # -------------------------------------
 
         for U in self._trainable_vars:
             domain = self._model.factors[U].domain[U]
             self._val2idx[U] = {val: i for i, val in enumerate(domain)}
             self._idx2val[U] = {i: val for i, val in enumerate(domain)}
-            # Create the sampling sets for each unique combination of endogenous variables from data.
             self._int_sampling_set[U] = self._hash_map_sampling(U)
 
-            # Initialize Probability Tables (as numpy arrays)
-            self._prob_tables[U] = np.array(self._model.factors[U].values, dtype=float)
-            self._int_exo_samples[U] = self._get_initial_exogenous(U)
+            # Initialize Probability Tables for ALL chains: shape (n_chains, domain_size)
+            base_theta = np.array(self._model.factors[U].values, dtype=float)
+            self._prob_tables[U] = np.tile(base_theta, (self.n_chains, 1))
+
+            # Initialize exogenous samples for ALL chains: shape (n_chains, N)
+            init_samples = self._get_initial_exogenous(U)
+            self._int_exo_samples[U] = np.tile(init_samples, (self.n_chains, 1))
 
     def _stop_learning(self) -> bool:
         pass
@@ -114,7 +121,7 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         This function controls the Initial U sampling
         Now: it chooses randomly from the sampling set
         """
-        probs = [self._prob_tables[U][u] for u in list(sampling_set)]
+        probs = [self._prob_tables[U][0][u] for u in list(sampling_set)]
         return np.random.choice(list(sampling_set), p=probs/np.sum(probs))
 
 
@@ -136,67 +143,80 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
             theta = dirichlet.rvs(self._alpha[U])[0]
             self._is_prior = False
 
+
         else:
+            self.iter_count += 1
             exo_f = self._model.factors[U]
-            theta_current = np.array(exo_f.values)
+            domain_size = len(exo_f.domain[U])
             keys = data["key"].values
-            u_new = u_old.copy()
+            u_old = self._int_exo_samples[U]  # shape: (n_chains, N_rows)
+            theta = self._prob_tables[U]  # shape: (n_chains, domain_size)
+            # ==========================================
+            # STEP 1: INDEPENDENT MH STEP FOR ALL CHAINS
+            # ==========================================
+            u_prop = np.zeros_like(u_old)
+            # Propose independently to maintain diversity across chains
+            for c in range(self.n_chains):
+                u_prop[c] = [
+                    random.choice([x for x in sampling_set[k] if x != v])
+                    if len(sampling_set[k]) > 1
+                    else next(iter(sampling_set[k]))  # Safely grabs the only element from a set
+                    for k, v in zip(keys, u_old[c])
+                ]
+            # Calculate probabilities for all chains simultaneously
+            old_prob = np.array([theta[c, u_old[c]] for c in range(self.n_chains)])
+            new_prob = np.array([theta[c, u_prop[c]] for c in range(self.n_chains)])
 
-            # 1. Find all unique observed data combinations
-            unique_keys = np.unique(keys)
+            # The PT Magic: Flatten the acceptance ratio using (1/T)
+            T = self.temperatures[:, None]  # shape (n_chains, 1) for broadcasting
+            ratio = np.minimum((new_prob / old_prob) ** (1.0 / T), 1.0)
+            accept = (np.random.rand(self.n_chains, len(data)) <= ratio)
+            self._int_exo_samples[U] = np.where(accept, u_prop, u_old)
 
-            # ---> ADDED TRACKERS FOR THIS STEP <---
-            n_proposal = 0
-            n_accepted = 0
+            n_proposal = len(data)
+            n_accepted = accept[0].sum()
 
-            # 2. Iterate over the "Groups" of identical data
-            for k in unique_keys:
-                # ---> FIXED HARDCODED (0,0,0) BUG HERE <---
-                idx_k = np.where(keys == k)[0]
-                u_k = u_old[idx_k]
-                S = sampling_set[k]
-
-                if len(S) <= 1:
-                    continue  # No valid moves for this data type
-
-                # 3. Find the "Clusters" (Rows with same key AND same current state)
-                unique_u = np.unique(u_k)
-                for v in unique_u:
-                    cluster_idx = np.array(idx_k)[u_k == v]
-                    N_c = len(cluster_idx)  # Size of the cluster
-
-                    # Propose a new state uniformly for the ENTIRE cluster
-                    A = [x for x in S if x != v]
-                    v_prop = random.choice(A)
-
-                    # 4. Calculate the Cluster Acceptance Ratio
-                    log_ratio = N_c * (np.log(theta_current[v_prop] + 1e-10) - np.log(theta_current[v] + 1e-10))
-
-                    # We track proposals by the number of individual rows making a move
-                    n_proposal += N_c
-
-                    # 5. Accept or Reject the WHOLE cluster
-                    if np.log(np.random.rand()) < min(log_ratio, 0.0):
-                        u_new[cluster_idx] = v_prop
-                        n_accepted += N_c
-
-            # Update the global samples
-            self._int_exo_samples[U] = u_new
-
-            # ---> UPDATE ACCEPTANCE HISTORY <---
             self.accepted_proposals[U] += n_accepted
             self.total_proposals[U] += n_proposal
 
             current_rate = n_accepted / n_proposal if n_proposal > 0 else 0
             self.acceptance_history[U].append(current_rate)
 
-            # 6. Standard Dirichlet Update
-            domain_size = len(exo_f.domain[U])
-            counts_u = np.bincount(self._int_exo_samples[U], minlength=domain_size)
-            beta = np.array(self._alpha[U]) + counts_u
-            theta = dirichlet.rvs(beta)[0]
+            # ==========================================
+            # STEP 2: REPLICA EXCHANGE (THE SWAP)
+            # ==========================================
 
-        f =  MultinomialFactor({U: m.domains[U]}, theta)
+            # Attempt a swap every 10 iterations to let the chains explore first
+            if self.iter_count % 20 == 0:
+                # Pick a random chain and the one directly "hotter" than it
+                c = np.random.randint(0, self.n_chains - 1)
+                c_next = c + 1
+                # Calculate the Unnormalized Log-Likelihood (Energy) of both chains
+                # L = sum(log(theta[U_i]))
+                L_c = np.sum(np.log(theta[c, self._int_exo_samples[U][c]] + 1e-10))
+                L_next = np.sum(np.log(theta[c_next, self._int_exo_samples[U][c_next]] + 1e-10))
+
+                # Swap acceptance probability
+                # If the Hot chain found a better state, this pushes it down to the Cold chain
+                delta_beta = (1.0 / self.temperatures[c]) - (1.0 / self.temperatures[c_next])
+                swap_alpha = np.exp(min((L_next - L_c) * delta_beta, 0.0))  # min() prevents overflow
+
+                if np.random.rand() < swap_alpha:
+                    # SWAP configurations AND parameters between the two chains!
+                    self._int_exo_samples[U][[c, c_next]] = self._int_exo_samples[U][[c_next, c]]
+                    self._prob_tables[U][[c, c_next]] = self._prob_tables[U][[c_next, c]]
+
+            # ==========================================
+            # STEP 3: DIRICHLET UPDATE
+            # ==========================================
+
+            for c in range(self.n_chains):
+                counts_u = np.bincount(self._int_exo_samples[U][c], minlength=domain_size)
+                # Temper the counts so the hot chains don't get stuck in sharp Dirichlet peaks
+                beta = np.array(self._alpha[U]) + (counts_u / self.temperatures[c])
+                self._prob_tables[U][c] = dirichlet.rvs(beta)[0]
+
+        f = MultinomialFactor({U: self._model.domains[U]}, self._prob_tables[U][0])
         return f
 
     def _process_data(self, data: pd.DataFrame):
@@ -228,6 +248,9 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
             context_data["key"] = list(zip(*[context_data[c] for c in context_cols]))
             self._data[v] = context_data
 
+        # save the dataset
+        # self._data = data
+
     def _get_involved_factors(self):
         endo_factors = {
             trainable_var: { successor:
@@ -252,23 +275,28 @@ if __name__ == "__main__":
 
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
 
-    # m = StructuralCausalModel.read("./models/g2_model_18.bif")
-    # data = pd.read_csv("./models/g2_data_18.csv")
+    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
+
+    # Nota: probar también con modelos semi-markovianos
+
+    # m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
+    #m2 = m.merge_exogenous("V","U")
+    #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
+    # data = pd.read_csv("./models/literature/pearl_small.csv")
+    #data = pd.read_csv("./models/modelTest_SM.csv")
     directory_path = "/Users/antoniogonzalezalves/Documents/s23/"
     download_path = "/Users/antoniogonzalezalves/Documents/BenchMarkMH/"
 
-    # Replace these paths with yours as needed
     m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr08_zdr10_3.uai")
     data = pd.read_csv(directory_path + "simple_nparents2_nzr08_zdr10_3.csv",index_col=0).add_prefix('V')
 
     import time
-
     # Start the timer
     start_time = time.time()
-    # Initialize the Metropolis_Hastings sampling transition function "random" or "uniform"
     mhs = MetropolisHastingsSampling(m)
-    mhs.run(data[m.endogenous], max_iter=10000)
+    # mhs.initialize(data[m.endogenous])
+    mhs.run(data[m.endogenous], max_iter=2000)
 
     # End the timer
     end_time = time.time()
@@ -277,22 +305,12 @@ if __name__ == "__main__":
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {elapsed_time:.4f} seconds")
 
-    # Check the property we just added
-    print("Final Acceptance Rates:", mhs.acceptance_rate)
+    print("Acceptance Rates:", mhs.acceptance_rate)
 
-    import matplotlib.pyplot as plt
-
-    U_store = np.empty((0,64))
-    V_store = np.empty([0,2])
-
-    Q = []
-
-    # print the model evolution
-    for model_i in mhs.model_evolution[100:]:
-         inf = CausalMultiInference([model_i])
-         q = inf.prob_sufficiency("V1","V2", true_false_cause=(1,0), true_false_effect=(1,0))[0]
-         Q.append(q)
-
-    plt.hist(Q, density=True)
-    plt.xlim(0, 1)
-    plt.show()
+    inf_mh_1 = CausalMultiInference(mhs.model_evolution, outliers_removal=False)
+    res_val = inf_mh_1.prob_necessity("V2", "V0", true_false_cause=(1, 0),
+                                      true_false_effect=(1, 0))
+    print("Result with outliers removal:", res_val)
+    inf_mh_2 = CausalMultiInference(mhs.model_evolution, outliers_removal=True)
+    res_val = inf_mh_2.prob_necessity("V2", "V0", true_false_cause=(1, 0),
+                                      true_false_effect=(1, 0))

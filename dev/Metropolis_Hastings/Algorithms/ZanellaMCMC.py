@@ -275,8 +275,8 @@ if __name__ == "__main__":
     download_path = "/Users/antoniogonzalezalves/Documents/BenchMarkMH/"
 
     # Replace these paths with yours as needed
-    m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr08_zdr10_3.uai")
-    data = pd.read_csv(directory_path + "simple_nparents2_nzr08_zdr10_3.csv",index_col=0).add_prefix('V')
+    m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr04_zdr05_1.uai")
+    data = pd.read_csv(directory_path + "simple_nparents2_nzr04_zdr05_1.csv",index_col=0).add_prefix('V')
 
 
 
@@ -306,13 +306,16 @@ if __name__ == "__main__":
 
     Q = []
 
+    inf = CausalMultiInference(mhs.model_evolution[200:], outliers_removal=True)
+    print(inf.prob_sufficiency("V1","V0", true_false_cause=(1,0), true_false_effect=(1,0))[0])
+
     # print the model evolution
-    for model_i in mhs.model_evolution[100:]:
-         inf = CausalMultiInference([model_i])
-         q = inf.prob_sufficiency("V1","V2", true_false_cause=(1,0), true_false_effect=(1,0))[0]
-         Q.append(q)
+    # for model_i in mhs.model_evolution[100:]:
+    #      inf = CausalMultiInference([model_i])
+    #      q = inf.prob_sufficiency("V0","V1", true_false_cause=(1,0), true_false_effect=(1,0))[0]
+    #      Q.append(q)
 
 
-    plt.hist(Q, density=True)
-    plt.xlim(0, 1)
-    plt.show()
+    # plt.hist(Q, density=True)
+    # plt.xlim(0, 1)
+    # plt.show()

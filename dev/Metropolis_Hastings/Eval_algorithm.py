@@ -286,24 +286,29 @@ if __name__ == '__main__':
         if nparents is not None
            and cardinality <= 2
            and model_id not in excluded_indices
-           and model_id < 3
+           and nparents ==2
+           and model_id <= 15
            and all(k in val['files'] for k in ['model', 'data', 'query'])
     }
 
     # Run the tests
 
     from dev_ig.Metropolis_Hastings.ParallelTemperingMCMC import MetropolisHastingsSampling as ParallelMH
-    from dev_ig.Metropolis_Hastings.ZanellaMCMC import MetropolisHastingsSampling as ZanellaMH
+    from dev.Metropolis_Hastings.Algorithms.ZanellaMCMC import MetropolisHastingsSampling as ZanellaMH
     from dev_ig.Metropolis_Hastings.SwandsenWangMCMC import MetropolisHastingsSampling as SwandsenWangMH
     from dev_ig.Metropolis_Hastings.MCMCAlwaysTrue import MetropolisHastingsSampling as MHAlwaysTrue
 
-    df_mh_always = evaluate_sampler_parallel(MHAlwaysTrue, "Metropolis_Hastings_AlwaysTrue", file_map, N_ITERATIONS,
-                                             DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
+    # df_mh_always = evaluate_sampler_parallel(MHAlwaysTrue, "Metropolis_Hastings_AlwaysTrue", file_map, N_ITERATIONS,
+    #                                          DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
     df_exclude_outliers = evaluate_sampler_parallel(MetropolisHastingsSampling, "Metropolis_Hastings_Exclude_Outliers", file_map, N_ITERATIONS,
                                                     DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True, outliers_removal=True)
     df_mh_parallel = evaluate_sampler_parallel(ParallelMH, "Metropolis_Hastings_Parallel_Tempering", file_map, N_ITERATIONS,
                                              DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
-    df_zanella = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella", file_map, N_ITERATIONS,
+    df_mh_parallel_wo_outliers = evaluate_sampler_parallel(ParallelMH, "Metropolis_Hastings_Parallel_Tempering_wo_outliers", file_map, N_ITERATIONS,
+                                             DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True, outliers_removal=True)
+    df_mh_zanella = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella", file_map, N_ITERATIONS,
                                              DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
-    df_swandsen = evaluate_sampler_parallel(SwandsenWangMH, "Metropolis_Hastings_Swandsen_Wang", file_map, N_ITERATIONS,
-                                             DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
+    df_zanella_wo_outliers = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella_wo_outliers", file_map, N_ITERATIONS,
+                                             DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True,outliers_removal=True)
+    # df_swandsen = evaluate_sampler_parallel(SwandsenWangMH, "Metropolis_Hastings_Swandsen_Wang", file_map, N_ITERATIONS,
+    #                                          DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
