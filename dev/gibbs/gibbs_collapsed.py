@@ -1,4 +1,4 @@
-import itertools
+import random
 import logging
 import sys
 
@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import dirichlet
-import random
+from sympy.physics.units import length
 
 import bcause.util.domainutils as dutils
 from bcause.factors.mulitnomial import MultinomialFactor, canonical_multinomial, random_multinomial
@@ -74,52 +74,17 @@ m.set_factor("V",pv)
 
 
 
+
+
 ############### Sampling algorithm ##############
 
-# Uniform perturbation
-def uniform_proposal(num_states):
-    return np.full((num_states, num_states), 1 / num_states)
-
-# Random asymmetric proposal for matrix Q(U' | U)
-def generate_random_proposal(alpha):
-    return np.array([dirichlet.rvs(alpha)[0] for _ in range(4)])
-
-def perturbation_proposal(u, CondMatrix):
-    delta = np.random.choice([0, 1, 2, 3], p = CondMatrix[u])
-    return (u + delta) % 4
-
-# Asymmetric proposal adding noise
-def add_noise_to_Q(Q, noise_scale=0.1):
-    noisy_Q = Q + np.random.normal(0, noise_scale, Q.shape)  # Add Gaussian noise
-    noisy_Q = np.clip(noisy_Q, 0, None)  # Clip negative values to zero
-    #noisy_Q /= noisy_Q.sum(axis=1, keepdims=True)  # Normalize rows to sum to 1
-    for i in range(noisy_Q.shape[0]):  # Iterate over each row
-        row_sum = np.sum(noisy_Q[i, :])  # Sum of the i-th row
-        if row_sum > 0:  # Avoid division by zero
-            noisy_Q[i, :] /= row_sum  # Normalize the i-th row
-        else:
-            noisy_Q[i, :] = 1 / noisy_Q.shape[1]
-    noisy_Q = np.nan_to_num(noisy_Q, nan=0, posinf=0, neginf=0)
-    return noisy_Q
-
-# No importa, es por si luego queremos ajustar el ruido en función de la aceptación
-def adjust_noise_scale(noise_scale, acceptance_rate, target_range=(0.2, 0.3), adjustment_factor=0.1):
-    target_min, target_max = target_range
-
-    if acceptance_rate < target_min:
-        # Increase acceptance by reducing noise scale
-        noise_scale *= (1 - adjustment_factor)
-    elif acceptance_rate > target_max:
-        # Decrease acceptance by increasing noise scale
-        noise_scale *= (1 + adjustment_factor)
-
-    return max(noise_scale, 1e-5)
-
-max_iter = 10000
+max_iter = 50000
 
 model = m.copy()
 cardU = len(model.domains["U"])
 domU = dict(U=model.domains["U"])
+
+
 
 Q = []
 theta_samples = []
@@ -130,9 +95,10 @@ alpha = np.ones(cardU)
 theta = dirichlet.rvs(alpha)[0]
 pu = MultinomialFactor(domU, theta)
 model.set_factor("U", pu)
+#max_iter = 5
 
-noise_scale = 0.15 # Only applies to perturbation w/ noise
 
+# Sample an initial valid configuration
 ps = model.get_factors("S")[0]
 
 def sample_valid_u(data):
@@ -146,47 +112,29 @@ def sample_valid_u(data):
 
 samples_u = np.array(sample_valid_u(data))
 
-# Trata los valores individualmente
+
+fs = model.factors["S"]
+
 for i in range(max_iter):
-    n_accept = 0
-    # Uniform Proposal option
-    #ConditionalMatrix = uniform_proposal(len(domU["U"]))
+    for n in range(len(data)):
+        u_n = samples_u[n] #last u value in position n
+        t_n = data.loc[n, "T"]
+        s_n = data.loc[n, "S"]
 
-    # Add gaussian noise option
-    #ConditionalMatrix = add_noise_to_Q(ConditionalMatrix, noise_scale=noise_scale) \
-    #    if i != 0 else uniform_proposal(len(domU["U"]))
 
-    # Random proposal
-    ConditionalMatrix = generate_random_proposal([0.1,0.1,0.1,0.1])
+        samples_no_n = np.concatenate([samples_u[:n],samples_u[n+1:]])
 
-    pu = model.factors["U"]
+        # Calculate a weight for each possible u
+        weights = [fs.get_value(U=u, T=t_n, S=s_n) * (alpha[u] + sum(samples_no_n == u)) for u in domU["U"]]
 
-    for j in range(len(data)):
+        # Sample a new value for u in position n
+        sampling_probs =  weights / sum(weights)
+        samples_u[n] = np.random.choice(domU["U"], p = sampling_probs)
 
-        u_old = samples_u[j]
-        u_new = perturbation_proposal(u_old, ConditionalMatrix)
-        # while ps.get_value(S = data.loc[j,"S"], T = data.loc[j,"T"], U = u_new) == 0:
-        #     u_new = perturbation_proposal(u_old, ConditionalMatrix)
-        prob_new = (ps.get_value(S = data.loc[j,"S"], T = data.loc[j,"T"], U = u_new) *
-                    pu.get_value(U = u_new) * ConditionalMatrix[u_old,u_new])
-
-        prob_old = (ps.get_value(S = data.loc[j,"S"], T = data.loc[j,"T"], U = u_old)
-                    * pu.get_value(U = u_old) * ConditionalMatrix[u_new,u_old])
-
-        ratio = min(1, prob_new/prob_old )
-        accept = np.random.uniform(0,1)
-        #accept = 0
-
-        if accept < ratio:
-            n_accept += 1
-            samples_u[j] = u_new
-
-    # get the counts of U and update the parameters of the U
-    #counts_u = [samples_u.count(u) for u in model.domains["U"]]
-    counts_u = [np.count_nonzero(samples_u == u) for u in model.domains["U"]]
-
+    counts_u = [sum(samples_u==u) for u in model.domains["U"]]
     total_counts_u += [counts_u]
     beta = [int(a + c) for a, c in zip(alpha, counts_u)]
+    #alpha = beta
 
     # sample the theta and set it to the model
     theta = dirichlet.rvs(beta)[0]
@@ -198,14 +146,20 @@ for i in range(max_iter):
     inf._model = model
     Q.append(inf.prob_sufficiency("T", "S")[0])
 
+
+
+
     if i % 10 == 0:
         msg = f"{i}., current query = {Q[-1]}, , theta= {theta}, true interval = {qtrue}"
-        if i>200:
-            qapprox = [min(Q[200:]), max(Q[200:])]
+        if i>100:
+            qapprox = [min(Q[100:]), max(Q[100:])]
             msg += f"approx interval = {qapprox}"
         print(msg)
 
-    if i%100==0 and i>200:
+    if i%100==0 and i>100:
         plt.hist(Q[100:],density=True)
         plt.xlim(0, 1)
         plt.show()
+
+
+
