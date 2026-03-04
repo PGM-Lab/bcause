@@ -16,7 +16,7 @@ pd.set_option('display.max_columns', None)
 sns.set_theme(style="whitegrid", font_scale=1.5)
 
 # Read the final results
-df = pd.read_csv(os.path.join(download_path, "Final_Merged_All_Methods_2.csv"))
+df = pd.read_csv(os.path.join(download_path, "Final_Merged_All_Methods_3.csv"))
 
 
 # Helper to parse string intervals
@@ -36,7 +36,9 @@ possible_algos = [
     'Gibbs_Sampling', 'Metropolis_Hastings',
     'Metropolis_Hastings_Exclude_Outliers',
     'Metropolis_Hastings_Zanella',
-     'Metropolis_Hastings_Zanella_wo_outliers']
+     'Metropolis_Hastings_Zanella_wo_outliers',
+"Metropolis_Hastings_Parallel_Tempering",
+    'Metropolis_Hastings_Parallel_Tempering_wo_outliers']
 # 'Metropolis_Hastings_Swandsen_Wang', 'Metropolis_Hastings_AlwaysTrue', Metropolis_Hastings_Parallel_Tempering
 # 'Metropolis_Hastings_Zanella'
 algorithms = [algo for algo in possible_algos if algo in df.columns]
@@ -93,8 +95,10 @@ for algo in algorithms:
 # df = df[df['nparents'] == 3]
 
 # Delete point estimation
-df['Exact_Probability_list'] = df['Exact_Probability'].apply(ast.literal_eval)
-df = df[df['Exact_Probability_list'].str[0] != df['Exact_Probability_list'].str[1]]
+# df['Exact_Probability_list'] = df['Exact_Probability'].apply(ast.literal_eval)
+# df = df[df['Exact_Probability_list'].str[0] != df['Exact_Probability_list'].str[1]]
+# Delete 0-coverage
+# df = df[df['Metropolis_Hastings_Coverage'] > 0]
 
 print(df[["Model_Index", "nparents", "nzr", "zdr", "cardinality"]].drop_duplicates())
 
