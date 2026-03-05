@@ -35,9 +35,9 @@ def parse_interval(s):
 possible_algos = [
     'Gibbs_Sampling', 'Metropolis_Hastings',
     'Metropolis_Hastings_Exclude_Outliers',
-    'Metropolis_Hastings_Zanella',
+    # 'Metropolis_Hastings_Zanella',
      'Metropolis_Hastings_Zanella_wo_outliers',
-"Metropolis_Hastings_Parallel_Tempering",
+# "Metropolis_Hastings_Parallel_Tempering",
     'Metropolis_Hastings_Parallel_Tempering_wo_outliers']
 # 'Metropolis_Hastings_Swandsen_Wang', 'Metropolis_Hastings_AlwaysTrue', Metropolis_Hastings_Parallel_Tempering
 # 'Metropolis_Hastings_Zanella'

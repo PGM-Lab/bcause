@@ -8,7 +8,7 @@ from bcause.util import randomUtil
 from bcause.inference.causal.multi import CausalMultiInference
 
 # Import your samplers
-# from bcause.learning.parameter.gibbs import GibbsSampling
+from bcause.learning.parameter.gibbs import GibbsSampling
 from bcause.learning.parameter.metropolis_hastings import MetropolisHastingsSampling
 
 import warnings
@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore")
 # Define models and data paths
 DIRECTORY_PATH = "/Users/antoniogonzalezalves/Documents/s23/"
 DOWNLOAD_PATH = "/Users/antoniogonzalezalves/Documents/prueba_mh/"
-N_ITERATIONS = 10000
+N_ITERATIONS = 25000
 NUM_WORKERS = 6
 
 
@@ -287,7 +287,7 @@ if __name__ == '__main__':
            and cardinality <= 2
            and model_id not in excluded_indices
            and nparents ==2
-           and model_id <= 15
+           and model_id <= 3
            and all(k in val['files'] for k in ['model', 'data', 'query'])
     }
 
@@ -300,15 +300,19 @@ if __name__ == '__main__':
 
     # df_mh_always = evaluate_sampler_parallel(MHAlwaysTrue, "Metropolis_Hastings_AlwaysTrue", file_map, N_ITERATIONS,
     #                                          DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
-    df_exclude_outliers = evaluate_sampler_parallel(MetropolisHastingsSampling, "Metropolis_Hastings_Exclude_Outliers", file_map, N_ITERATIONS,
+    df_gibbs = evaluate_sampler_parallel(GibbsSampling, "Gibbs_Sampling_2", file_map, N_ITERATIONS,
+                                         DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=False)
+    df_metropolis_hastings = evaluate_sampler_parallel(MetropolisHastingsSampling, "Metropolis_Hastings_2", file_map, N_ITERATIONS,
+                                                    DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
+    df_exclude_outliers = evaluate_sampler_parallel(MetropolisHastingsSampling, "Metropolis_Hastings_Exclude_Outliers_2", file_map, N_ITERATIONS,
                                                     DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True, outliers_removal=True)
-    df_mh_parallel = evaluate_sampler_parallel(ParallelMH, "Metropolis_Hastings_Parallel_Tempering", file_map, N_ITERATIONS,
+    df_mh_parallel = evaluate_sampler_parallel(ParallelMH, "Metropolis_Hastings_Parallel_Tempering_2", file_map, N_ITERATIONS,
                                              DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
-    df_mh_parallel_wo_outliers = evaluate_sampler_parallel(ParallelMH, "Metropolis_Hastings_Parallel_Tempering_wo_outliers", file_map, N_ITERATIONS,
+    df_mh_parallel_wo_outliers = evaluate_sampler_parallel(ParallelMH, "Metropolis_Hastings_Parallel_Tempering_wo_outliers_2", file_map, N_ITERATIONS,
                                              DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True, outliers_removal=True)
-    df_mh_zanella = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella", file_map, N_ITERATIONS,
+    df_mh_zanella = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella_2", file_map, N_ITERATIONS,
                                              DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
-    df_zanella_wo_outliers = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella_wo_outliers", file_map, N_ITERATIONS,
+    df_zanella_wo_outliers = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella_wo_outliers_2", file_map, N_ITERATIONS,
                                              DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True,outliers_removal=True)
     # df_swandsen = evaluate_sampler_parallel(SwandsenWangMH, "Metropolis_Hastings_Swandsen_Wang", file_map, N_ITERATIONS,
     #                                          DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
