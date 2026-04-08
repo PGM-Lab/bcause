@@ -10,6 +10,7 @@ from bcause.inference.causal.multi import CausalMultiInference
 # Import your samplers
 from bcause.learning.parameter.gibbs import GibbsSampling
 from bcause.learning.parameter.metropolis_hastings import MetropolisHastingsSampling
+from bcause.learning.parameter.gibbs_collapsed import GibbsSamplingCollapsed
 
 import warnings
 import os
@@ -21,7 +22,7 @@ warnings.filterwarnings("ignore")
 # Define models and data paths
 DIRECTORY_PATH = "/Users/antoniogonzalezalves/Documents/s23/"
 DOWNLOAD_PATH = "/Users/antoniogonzalezalves/Documents/prueba_mh/"
-N_ITERATIONS = 25000
+N_ITERATIONS = 10000
 NUM_WORKERS = 6
 
 
@@ -93,11 +94,11 @@ def process_single_model_task(task_args):
             sampler_instance.step()
             total_time += (time.time() - start_time_step)
 
-            if (iter % 1000 == 0) and (iter > 0):
+            if (iter % 5000 == 0) and (iter > 0):
                 # NOTE: Be careful here with memory. Passing an ever-growing list
                 # (model_evolution) might cause memory issues at 10,000 iterations.
                 inf_engine = CausalMultiInference(
-                    sampler_instance.model_evolution[200:],
+                    sampler_instance.model_evolution[500:],
                     outliers_removal=outliers_removal
                 )
 
@@ -287,32 +288,37 @@ if __name__ == '__main__':
            and cardinality <= 2
            and model_id not in excluded_indices
            and nparents ==2
-           and model_id <= 3
+           and model_id <= 5
            and all(k in val['files'] for k in ['model', 'data', 'query'])
     }
 
     # Run the tests
 
-    from dev_ig.Metropolis_Hastings.ParallelTemperingMCMC import MetropolisHastingsSampling as ParallelMH
+    from dev.Metropolis_Hastings.Algorithms.ParallelTemperingMCMC import MetropolisHastingsSampling as ParallelMH
     from dev.Metropolis_Hastings.Algorithms.ZanellaMCMC import MetropolisHastingsSampling as ZanellaMH
     from dev_ig.Metropolis_Hastings.SwandsenWangMCMC import MetropolisHastingsSampling as SwandsenWangMH
     from dev_ig.Metropolis_Hastings.MCMCAlwaysTrue import MetropolisHastingsSampling as MHAlwaysTrue
+    from dev.Metropolis_Hastings.Algorithms.GumbleMaxMCMC import MetropolisHastingsSampling as GumbleMaxMH
 
     # df_mh_always = evaluate_sampler_parallel(MHAlwaysTrue, "Metropolis_Hastings_AlwaysTrue", file_map, N_ITERATIONS,
     #                                          DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
-    df_gibbs = evaluate_sampler_parallel(GibbsSampling, "Gibbs_Sampling_2", file_map, N_ITERATIONS,
-                                         DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=False)
-    df_metropolis_hastings = evaluate_sampler_parallel(MetropolisHastingsSampling, "Metropolis_Hastings_2", file_map, N_ITERATIONS,
-                                                    DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
-    df_exclude_outliers = evaluate_sampler_parallel(MetropolisHastingsSampling, "Metropolis_Hastings_Exclude_Outliers_2", file_map, N_ITERATIONS,
+    df_gibbs = evaluate_sampler_parallel(GibbsSampling, "Gibbs_Sampling_25k_5k", file_map, N_ITERATIONS,
+                                         DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=False, outliers_removal=True)
+    df_metropolis_hastings = evaluate_sampler_parallel(MetropolisHastingsSampling, "Metropolis_Hastings_25k_5k", file_map, N_ITERATIONS,
                                                     DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True, outliers_removal=True)
-    df_mh_parallel = evaluate_sampler_parallel(ParallelMH, "Metropolis_Hastings_Parallel_Tempering_2", file_map, N_ITERATIONS,
-                                             DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
-    df_mh_parallel_wo_outliers = evaluate_sampler_parallel(ParallelMH, "Metropolis_Hastings_Parallel_Tempering_wo_outliers_2", file_map, N_ITERATIONS,
-                                             DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True, outliers_removal=True)
-    df_mh_zanella = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella_2", file_map, N_ITERATIONS,
-                                             DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
-    df_zanella_wo_outliers = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella_wo_outliers_2", file_map, N_ITERATIONS,
-                                             DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True,outliers_removal=True)
+    # df_exclude_outliers = evaluate_sampler_parallel(MetropolisHastingsSampling, "Metropolis_Hastings_Exclude_Outliers_25k_5k", file_map, N_ITERATIONS,
+    #                                                 DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True, outliers_removal=True)
+    # df_mh_parallel = evaluate_sampler_parallel(ParallelMH, "Metropolis_Hastings_Parallel_Tempering_25k_5k", file_map, N_ITERATIONS,
+    #                                          DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
+    # df_mh_parallel_wo_outliers = evaluate_sampler_parallel(ParallelMH, "Metropolis_Hastings_Parallel_Tempering_wo_outliers_25k_5k", file_map, N_ITERATIONS,
+    #                                          DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True, outliers_removal=True)
+    # df_mh_zanella = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella_25k_5k", file_map, N_ITERATIONS,
+    #                                          DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
+    # df_zanella_wo_outliers = evaluate_sampler_parallel(ZanellaMH, "Metropolis_Hastings_Zanella_wo_outliers_25k_5k", file_map, N_ITERATIONS,
+    #                                          DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True,outliers_removal=True)
+    df_gibbs_collapsed = evaluate_sampler_parallel(GibbsSamplingCollapsed, "Gibbs_Sampling_Collapsed_25k_5k", file_map, N_ITERATIONS,
+                                             DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=False,outliers_removal=True)
     # df_swandsen = evaluate_sampler_parallel(SwandsenWangMH, "Metropolis_Hastings_Swandsen_Wang", file_map, N_ITERATIONS,
     #                                          DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True)
+    df_gumble_max = evaluate_sampler_parallel(GumbleMaxMH, "Gumble_max_25k_5k", file_map, N_ITERATIONS,
+                                             DOWNLOAD_PATH, NUM_WORKERS, track_acceptance=True,outliers_removal=True)

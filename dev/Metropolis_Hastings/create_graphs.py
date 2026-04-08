@@ -33,17 +33,16 @@ def parse_interval(s):
 
 # 1. Define Algorithms dynamically
 possible_algos = [
-    'Gibbs_Sampling', 'Metropolis_Hastings',
-    'Metropolis_Hastings_Exclude_Outliers',
-    # 'Metropolis_Hastings_Zanella',
-     'Metropolis_Hastings_Zanella_wo_outliers',
-# "Metropolis_Hastings_Parallel_Tempering",
-    'Metropolis_Hastings_Parallel_Tempering_wo_outliers']
+    "Gibbs_Sampling",
+    "Metropolis_Hastings",
+    'Metropolis_Hastings_Zanella_wo_outliers',
+    'Metropolis_Hastings_Parallel_Tempering_wo_outliers'
+]
 # 'Metropolis_Hastings_Swandsen_Wang', 'Metropolis_Hastings_AlwaysTrue', Metropolis_Hastings_Parallel_Tempering
 # 'Metropolis_Hastings_Zanella'
 algorithms = [algo for algo in possible_algos if algo in df.columns]
-exact_col = 'Exact_Probability'
-
+# exact_col = 'Exact_Probability'
+exact_col = 'exact_result'
 # 2. Parse Columns
 cols_to_parse = algorithms + [exact_col]
 for col in cols_to_parse:
@@ -226,6 +225,8 @@ if not df_time.empty:
     plt.tight_layout()
     plt.show()
 
+
+
 # ---------------------------------------------------------
 # PLOT 4: Boxplot
 # ---------------------------------------------------------
@@ -248,4 +249,65 @@ plt.ylabel('RMSE', fontsize=18, labelpad=15)
 plt.legend(title='Algorithm', title_fontsize=18, fontsize=16, loc='best')
 plt.grid(True, axis='y', alpha=0.3)
 plt.tight_layout()
+plt.show()
+# 4. Aggregate Mean RMSE and Mean Time per Iteration!
+plot_data = []
+for algo in algorithms:
+    rmse_col = f'{algo}_RMSE'
+
+    # Safely map the correct time column for the algorithm
+    time_col = f'Time_{algo}'
+    if time_col not in df.columns:
+        if algo == 'Gibbs_Sampling' and 'Time_gibbs' in df.columns:
+            time_col = 'Time_gibbs'
+        elif algo == 'Metropolis_Hastings' and 'Time_mh' in df.columns:
+            time_col = 'Time_mh'
+
+    if time_col in df.columns:
+        # Group by Iteration and calculate the MEAN for RMSE and Time
+        grouped = df.groupby('Iteration')[[rmse_col, time_col]].mean().reset_index()
+
+        # Standardize column names for plotting
+        grouped = grouped.rename(columns={rmse_col: 'RMSE', time_col: 'Time'})
+        grouped['Algorithm'] = algo
+
+        # Drop any NaN rows just in case
+        grouped = grouped.dropna(subset=['RMSE', 'Time'])
+
+        plot_data.append(grouped)
+
+# Combine everything into one clean DataFrame for Seaborn
+df_plot = pd.concat(plot_data, ignore_index=True)
+
+# Clean up Algorithm names to make the legend prettier and save space
+df_plot['Algorithm'] = df_plot['Algorithm'].str.replace('Metropolis_Hastings', 'MH')
+
+# ---------------------------------------------------------
+# PLOT: Average Time vs Average RMSE (Trajectory Plot)
+# ---------------------------------------------------------
+plt.figure(figsize=(12, 8))
+palette = sns.color_palette("tab10", len(algorithms))
+
+# Plot the 10 iterations as distinct points connected by lines
+sns.lineplot(
+    data=df_plot,
+    x='Time',
+    y='RMSE',
+    hue='Algorithm',
+    palette=palette,
+    linewidth=3.5,
+    marker='o',  # Add a dot for each of the 10 iterations
+    markersize=12,  # Make the dots large enough to see
+    dashes=False
+)
+
+# Customizing the visual aesthetic
+plt.title('Performance Trajectory: RMSE vs Computation Time', fontsize=24, fontweight='bold', pad=20)
+plt.xlabel('Average Time Consumed (s)', fontsize=18, labelpad=15)
+plt.ylabel('Average RMSE', fontsize=18, labelpad=15)
+
+plt.legend(title='Algorithm', title_fontsize=16, fontsize=14, loc='upper right')
+plt.grid(True, which="both", ls="-", alpha=0.3)
+plt.tight_layout()
+
 plt.show()

@@ -8,12 +8,13 @@ improvements:
  - Sampling only possible values?
 """
 
+from collections import defaultdict
 import pandas as pd
 import numpy as np
 from numpy.array_api import astype
 from scipy.optimize import minimize
 from scipy.stats import dirichlet
-import itertools
+from bcause.util import randomUtil
 import random
 from typing import Dict, List, Tuple, Any
 
@@ -21,7 +22,6 @@ from sympy.stats.rv import probability
 
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor
-from collections import defaultdict
 from bcause.factors.mulitnomial import random_multinomial   # TODO: mulitnomial -> multinomial
 from bcause.inference.causal.multi import CausalMultiInference
 from bcause.inference.probabilistic.elimination import VariableElimination
@@ -38,16 +38,14 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
 
     @property
     def acceptance_rate(self) -> Dict[str, float]:
-        # FIXED: Changed self.trainable_vars to self._trainable_vars
         return {U: (self.accepted_proposals[U] / self.total_proposals[U]) if self.total_proposals[U] > 0 else 0.0
                 for U in self._trainable_vars}
 
-    def __init__(self, prior_model: StructuralCausalModel, trainable_vars: list = None, alpha: dict = None, method: str = 'sqrt'):
+    def __init__(self, prior_model: StructuralCausalModel, trainable_vars: list = None, alpha: dict = None):
         self._prior_model = prior_model.fix_numeric_domains()
         self._trainable_vars = trainable_vars
         self._alpha = alpha
         self._is_prior = True
-        self._method = method
 
         self._val2idx = {}
         self._idx2val = {}
@@ -55,10 +53,12 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         self._int_exo_samples = {}
         self._prob_tables = {}
 
+
     def initialize(self, data: pd.DataFrame, **kwargs):
         self._model = self.prior_model.copy()
         self._process_data(data.copy())
 
+        # Code for tracking acceptance rate
         self.acceptance_history = {U: [] for U in self._trainable_vars}
         self.total_proposals = {U: 0 for U in self._trainable_vars}
         self.accepted_proposals = {U: 0 for U in self._trainable_vars}
@@ -118,118 +118,99 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         return np.random.choice(list(sampling_set), p=probs/np.sum(probs))
 
 
-    def uniform_choice(self,set):
+    def uniform_choice(self,sampling_set):
         """
-        Perturbate the row based on the uniform distribution.
+        Perturb the row based on the uniform distribution.
         """
-        return random.choice(list(set))
+        return random.choice(list(sampling_set))
 
     def _updated_factor(self, U) -> MultinomialFactor:
         m = self._model
         data = self._data[U]
         u_old = self._int_exo_samples[U]
         sampling_set = self._int_sampling_set[U]
-        method = self._method
 
-        if self._is_prior == True:
+        if self._is_prior:
             if self._alpha is None:
                 self._set_non_informative_alpha()
             theta = dirichlet.rvs(self._alpha[U])[0]
             self._is_prior = False
 
-
         else:
             exo_f = self._model.factors[U]
-            theta_current = np.array(exo_f.values)
+
+            # The current global parameters (theta)
+            theta = np.array(exo_f.values)
+
+            # Pre-allocate arrays for speed
+            n_rows = len(data)
+            u_new = np.zeros(n_rows, dtype=int)
+            ratios = np.zeros(n_rows, dtype=float)
+
+            # Extract keys to iterate
             keys = data["key"].values
-            n_samples = len(keys)
-            u_new = np.zeros(n_samples, dtype=int)
-            # ==========================================
-            # ROUTER: Send to the hyper-optimized block
-            # ==========================================
-            if method == 'sqrt':
-                # ------------------------------------------------
-                # THE 1D VECTOR BLOCK (Group by 'key' only)
-                # ------------------------------------------------
-                w = np.sqrt(theta_current) + 1e-10
-                unique_keys = defaultdict(list)
 
-                for i, k in enumerate(keys): unique_keys[k].append(i)
+            for idx in range(n_rows):
+                k = keys[idx]
+                v_old = u_old[idx]
+                C_k = sampling_set[k]  # The full compatible set
 
-                for k, indices in unique_keys.items():
-                    S = list(sampling_set[k])
-                    n_rows = len(indices)
-                    if len(S) > 1:
-                        weights_S = w[S]
-                        p_S = weights_S / weights_S.sum()
-                        u_new[indices] = np.random.choice(S, size=n_rows, p=p_S)
-                    else:
-                        u_new[indices] = S[0]
+                # If there is nowhere to move, stay put
+                if len(C_k) <= 1:
+                    u_new[idx] = v_old
+                    ratios[idx] = 1.0
+                    continue
 
-                # Simplified MH Acceptance (Z cancels out)
+                # 1. Isolate the valid menu (Self-avoiding walk)
+                # Ensure it's a list for consistent indexing
+                S_old = [x for x in C_k if x != v_old]
 
-                target_ratio = theta_current[u_new] / (theta_current[u_old] + 1e-10)
-                proposal_ratio = w[u_old] / (w[u_new] + 1e-10)
-                ratio = np.minimum(target_ratio * proposal_ratio, 1.0)
-                flag = (ratio >= np.random.rand(n_samples)).astype(int)
-                self._int_exo_samples[U] = np.where(flag == 1, u_new, u_old)
+                # 2. Extract theta for valid states
+                theta_S_old = theta[S_old]
 
-            elif method == 'barker':
-                # ------------------------------------------------
-                # THE 2D MATRIX BLOCK (Group by 'key, v')
-                # ------------------------------------------------
-                theta_j = theta_current.reshape(1, -1)
-                theta_i = theta_current.reshape(-1, 1)
-                W_matrix = theta_j / (theta_i + theta_j + 1e-10)
-                Q_forward = np.ones(n_samples, dtype=float)
-                Q_backward = np.ones(n_samples, dtype=float)
-                unique_pairs = defaultdict(list)
+                # 3. GUMBEL-MAX PROPOSAL
+                # Convert to log-space (add tiny epsilon to prevent log(0))
+                log_theta = np.log(theta_S_old + 1e-12)
+                gumbel_noise = np.random.gumbel(loc=0.0, scale=1.0, size=len(S_old))
+                scores = log_theta + gumbel_noise
 
-                for i, (k, v) in enumerate(zip(keys, u_old)): unique_pairs[(k, v)].append(i)
+                # Pick the winner
+                v_new = S_old[np.argmax(scores)]
+                u_new[idx] = v_new
 
-                for (k, v), indices in unique_pairs.items():
-                    S = list(sampling_set[k])
-                    n_rows = len(indices)
-                    if len(S) > 1:
-                        weights_fwd = W_matrix[v, S]
-                        Z_fwd = weights_fwd.sum()
-                        drawn_samples = np.random.choice(S, size=n_rows, p=(weights_fwd / Z_fwd))
-                        u_new[indices] = drawn_samples
-                        Q_forward[indices] = W_matrix[v, drawn_samples] / Z_fwd
-                        Z_bck = W_matrix[drawn_samples[:, None], S].sum(axis=1)
-                        Q_backward[indices] = W_matrix[drawn_samples, v] / Z_bck
+                # 4. ACCEPTANCE RATIO (Z_current / Z_proposed)
+                # Z_current is the sum of the valid menu for v_old
+                Z_current = np.sum(theta_S_old)
 
-                    else:
-                        u_new[indices] = S[0]
+                # Speed Trick: Z_total is Z_current + the old state.
+                # Z_proposed is just Z_total minus the new state!
+                Z_total = Z_current + theta[v_old]
+                Z_proposed = Z_total - theta[v_new]
 
-                # Standard MH Acceptance (Requires Q)
-                target_ratio = theta_current[u_new] / (theta_current[u_old] + 1e-10)
-                proposal_ratio = Q_backward / (Q_forward + 1e-10)
-                ratio = np.minimum(target_ratio * proposal_ratio, 1.0)
-                flag = (ratio >= np.random.rand(n_samples)).astype(int)
-                self._int_exo_samples[U] = np.where(flag == 1, u_new, u_old)
-            else:
+                # Calculate final ratio
+                ratios[idx] = Z_current / Z_proposed if Z_proposed > 0 else 1.0
 
-                raise ValueError(f"Unknown method: {zanella_method}")
+            # 5. Metropolis-Hastings Coin Flip
+            ratio = np.minimum(ratios, 1.0)
+            flag = (ratio >= np.random.rand(n_rows)).astype(int)
+            self._int_exo_samples[U] = np.where(flag == 1, u_new, u_old)
 
-            # ---> ADDED: TRACKING ACCEPTANCE RATE <---
-            n_proposal = n_samples
+            # --- Metrics & Updating ---
+            n_proposal = n_rows
             n_accepted = flag.sum()
-
             self.accepted_proposals[U] += n_accepted
             self.total_proposals[U] += n_proposal
 
             current_rate = n_accepted / n_proposal if n_proposal > 0 else 0
             self.acceptance_history[U].append(current_rate)
-            # -----------------------------------------
 
-            # 4. Standard Dirichlet Update
             domain_size = len(exo_f.domain[U])
             counts_u = np.bincount(self._int_exo_samples[U], minlength=domain_size)
             beta = np.array(self._alpha[U]) + counts_u
+
             theta = dirichlet.rvs(beta)[0]
 
-        f =  MultinomialFactor({U: m.domains[U]}, theta)
+        f = MultinomialFactor({U: m.domains[U]}, theta)
         return f
 
     def _process_data(self, data: pd.DataFrame):
@@ -298,24 +279,21 @@ if __name__ == "__main__":
     #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
     # data = pd.read_csv("./models/literature/pearl_small.csv")
     #data = pd.read_csv("./models/modelTest_SM.csv")
+    # m = StructuralCausalModel.read("./models/g2_model_18.bif")
+    # data = pd.read_csv("./models/g2_data_18.csv")
 
     directory_path = "/Users/antoniogonzalezalves/Documents/s23/"
     download_path = "/Users/antoniogonzalezalves/Documents/BenchMarkMH/"
 
-    # Replace these paths with yours as needed
-    m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr04_zdr05_1.uai")
-    data = pd.read_csv(directory_path + "simple_nparents2_nzr04_zdr05_1.csv",index_col=0).add_prefix('V')
-
-
+    m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr08_zdr10_3.uai")
+    data = pd.read_csv(directory_path + "simple_nparents2_nzr08_zdr10_3.csv",index_col=0).add_prefix('V')
 
     import time
-
     # Start the timer
     start_time = time.time()
-    # Initialize the Metropolis_Hastings sampling transition function "random" or "uniform"
     mhs = MetropolisHastingsSampling(m)
     # mhs.initialize(data[m.endogenous])
-    mhs.run(data[m.endogenous], max_iter=10000)
+    mhs.run(data[m.endogenous], max_iter=2000)
 
     # End the timer
     end_time = time.time()
@@ -324,26 +302,20 @@ if __name__ == "__main__":
     elapsed_time = end_time - start_time
     print(f"Elapsed time: {elapsed_time:.4f} seconds")
 
-    # ---> ADDED: Check the acceptance rate when finished! <---
-    print(f"Final Acceptance Rates: {mhs.acceptance_rate}")
+    print("Acceptance Rates:", mhs.acceptance_rate)
 
-    import matplotlib.pyplot as plt
+    inf_mh_1 = CausalMultiInference(mhs.model_evolution, outliers_removal=False)
+    res_val = inf_mh_1.prob_necessity("V2", "V0", true_false_cause=(1, 0),
+                                      true_false_effect=(1, 0))
+    print("Result with outliers removal:", res_val)
+    inf_mh_2 = CausalMultiInference(mhs.model_evolution, outliers_removal=True)
+    res_val = inf_mh_2.prob_necessity("V2", "V0", true_false_cause=(1, 0),
+                                      true_false_effect=(1, 0))
+    print("Result with outliers removal:", res_val)
+    # inf_mh_2 = CausalMultiInference(mhs.model_evolution[100:])
+    # res_val2 = inf_mh_2.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
+    #                                     true_false_effect=(1, 0))
+    # inf_mh_3 = CausalMultiInference(mhs.model_evolution[int(10000/5):])
+    # res_val3 = inf_mh_3.prob_sufficiency("V2", "V0", true_false_cause=(1, 0),
+    #                                     true_false_effect=(1, 0))
 
-    U_store = np.empty((0,64))
-    V_store = np.empty([0,2])
-
-    Q = []
-
-    inf = CausalMultiInference(mhs.model_evolution[200:], outliers_removal=True)
-    print(inf.prob_sufficiency("V1","V0", true_false_cause=(1,0), true_false_effect=(1,0))[0])
-
-    # print the model evolution
-    # for model_i in mhs.model_evolution[100:]:
-    #      inf = CausalMultiInference([model_i])
-    #      q = inf.prob_sufficiency("V0","V1", true_false_cause=(1,0), true_false_effect=(1,0))[0]
-    #      Q.append(q)
-
-
-    # plt.hist(Q, density=True)
-    # plt.xlim(0, 1)
-    # plt.show()
