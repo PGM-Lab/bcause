@@ -1,48 +1,21 @@
-"""
-Compute the PMF of exogenous variables given data for endogenous variable using
-Metropolis_Hastings
-
-improvements:
- - Accept a perturbation and a transition function as inputs for the method
- - Change dictionary approach to preloaded tables and SQL joins for conditional probability?
- - Sampling only possible values?
-"""
-
 import pandas as pd
 import numpy as np
-from numpy.array_api import astype
-from scipy.optimize import minimize
 from scipy.stats import dirichlet
-import itertools
-import random
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Set, Any
 
-from sympy.stats.rv import probability
-
-import bcause as bc
-from bcause.factors import MultinomialFactor, DeterministicFactor
-from collections import defaultdict
-from bcause.factors.mulitnomial import random_multinomial   # TODO: mulitnomial -> multinomial
-from bcause.inference.causal.multi import CausalMultiInference
-from bcause.inference.probabilistic.elimination import VariableElimination
+from bcause.factors import MultinomialFactor
 from bcause.learning.parameter import IterativeParameterLearning
 from bcause.models.cmodel import StructuralCausalModel
-from bcause.util.domainutils import assingment_space, state_space # TODO: assingment_space -> assignment_space
-from bcause.util.equtils import seq_to_pandas
-from bcause.util.graphutils import dcon_nodes
+
 
 class MetropolisHastingsSampling(IterativeParameterLearning):
-    '''
-     This class implements a method for running a single optimization of the exogenous variables in a SCM.
-     '''
+    """
+    This class implements a method for running a single optimization
+    of the exogenous variables in an SCM using Zanella/Barker MCMC.
+    """
 
-    @property
-    def acceptance_rate(self) -> Dict[str, float]:
-        # FIXED: Changed self.trainable_vars to self._trainable_vars
-        return {U: (self.accepted_proposals[U] / self.total_proposals[U]) if self.total_proposals[U] > 0 else 0.0
-                for U in self._trainable_vars}
-
-    def __init__(self, prior_model: StructuralCausalModel, trainable_vars: list = None, alpha: dict = None, method: str = 'sqrt'):
+    def __init__(self, prior_model: StructuralCausalModel, trainable_vars: list = None, alpha: dict = None,
+                 method: str = 'sqrt'):
         self._prior_model = prior_model.fix_numeric_domains()
         self._trainable_vars = trainable_vars
         self._alpha = alpha
@@ -52,11 +25,22 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
         self._val2idx = {}
         self._idx2val = {}
         self._int_sampling_set = {}
+        self._valid_masks = {}
         self._int_exo_samples = {}
         self._prob_tables = {}
+        self._data = {}
+        self._endo_factors = {}
+        self._endo_vars = {}
+
+    @property
+    def acceptance_rate(self) -> Dict[str, float]:
+        return {
+            U: (self.accepted_proposals[U] / self.total_proposals[U]) if self.total_proposals[U] > 0 else 0.0
+            for U in self._trainable_vars
+        }
 
     def initialize(self, data: pd.DataFrame, **kwargs):
-        self._model = self.prior_model.copy()
+        self._model = self._prior_model.copy()
         self._process_data(data.copy())
 
         self.acceptance_history = {U: [] for U in self._trainable_vars}
@@ -67,221 +51,174 @@ class MetropolisHastingsSampling(IterativeParameterLearning):
             domain = self._model.factors[U].domain[U]
             self._val2idx[U] = {val: i for i, val in enumerate(domain)}
             self._idx2val[U] = {i: val for i, val in enumerate(domain)}
-            # Create the sampling sets for each unique combination of endogenous variables from data.
-            self._int_sampling_set[U] = self._hash_map_sampling(U)
 
-            # Initialize Probability Tables (as numpy arrays)
+            # Crear mapeos y máscaras matriciales para vectorización
+            self._int_sampling_set[U] = self._hash_map_sampling(U)
+            self._valid_masks[U] = self._build_valid_mask(U)
+
+            # Inicializar tablas de probabilidad
             self._prob_tables[U] = np.array(self._model.factors[U].values, dtype=float)
             self._int_exo_samples[U] = self._get_initial_exogenous(U)
 
     def _stop_learning(self) -> bool:
-        pass
+        return False  # Implementar lógica de parada si es necesario
 
-    def _calculate_updated_factors(self, **kwargs) -> dict[MultinomialFactor]:
-        return {U: self._updated_factor(U) for U in self.trainable_vars}
-
-    def _hash_map_sampling(self,U):
-
-        def _create_sampling_set(row, U, endo_f, endo_vars):
-            # Get feasible values for the endo variables using R function
-            booleans = {k: np.array(endo_f[k].R(**row[v].to_dict()).values, dtype=int).astype(bool) for k, v in
-                        endo_vars.items()}
-            return set.intersection(*[set(np.array(endo_f[k].domain[U])[v]) for k, v in booleans.items()])
-
-        data = self._data[U]
-        endo_f = self._endo_factors[U]
-        endo_vars = self._endo_vars[U]
-        unique_data = data.drop_duplicates()
-        endo_cols = [col for col in data.columns if col != 'key']
-        val_map = self._val2idx[U]
-
-        sampling_set = unique_data[endo_cols].apply(lambda row: _create_sampling_set(row, U, endo_f, endo_vars), axis=1)
-        # int_sampling_series = sampling_set.map(lambda s: {val_map[v] for v in s})
-        int_sampling_series = sampling_set.map(lambda s: tuple({val_map[v] for v in s}))
-        return dict(zip(unique_data['key'], int_sampling_series))
-
-
-    def _get_initial_exogenous(self,U):
-        # Get the sampling set for the trainable variables
-        keys = self._data[U]["key"].values
-        sampling_map = self._int_sampling_set[U]
-
-        return np.array([self.choice_with_exo_weights(U, sampling_map[k]) for k in keys])
-
-
-    def choice_with_exo_weights(self, U, sampling_set):
-        """
-        This function controls the Initial U sampling
-        Now: it chooses randomly from the sampling set
-        """
-        probs = [self._prob_tables[U][u] for u in list(sampling_set)]
-        return np.random.choice(list(sampling_set), p=probs/np.sum(probs))
-
-
-    def uniform_choice(self,set):
-        """
-        Perturbate the row based on the uniform distribution.
-        """
-        return random.choice(list(set))
-
-    def _updated_factor(self, U) -> MultinomialFactor:
-        m = self._model
-        data = self._data[U]
-        u_old = self._int_exo_samples[U]
-        sampling_set = self._int_sampling_set[U]
-        method = self._method
-
-        if self._is_prior == True:
-            if self._alpha is None:
-                self._set_non_informative_alpha()
-            theta = dirichlet.rvs(self._alpha[U])[0]
-            self._is_prior = False
-
-
-        else:
-            exo_f = self._model.factors[U]
-            theta_current = np.array(exo_f.values)
-            keys = data["key"].values
-            n_samples = len(keys)
-            u_new = np.zeros(n_samples, dtype=int)
-            # ==========================================
-            # ROUTER: Send to the hyper-optimized block
-            # ==========================================
-            if method == 'sqrt':
-                # ------------------------------------------------
-                # THE 1D VECTOR BLOCK (Group by 'key' only)
-                # ------------------------------------------------
-                w = np.sqrt(theta_current) + 1e-10
-                unique_keys = defaultdict(list)
-
-                for i, k in enumerate(keys): unique_keys[k].append(i)
-
-                for k, indices in unique_keys.items():
-                    S = list(sampling_set[k])
-                    n_rows = len(indices)
-                    if len(S) > 1:
-                        weights_S = w[S]
-                        p_S = weights_S / weights_S.sum()
-                        u_new[indices] = np.random.choice(S, size=n_rows, p=p_S)
-                    else:
-                        u_new[indices] = S[0]
-
-                # Simplified MH Acceptance (Z cancels out)
-
-                target_ratio = theta_current[u_new] / (theta_current[u_old] + 1e-10)
-                proposal_ratio = w[u_old] / (w[u_new] + 1e-10)
-                ratio = np.minimum(target_ratio * proposal_ratio, 1.0)
-                flag = (ratio >= np.random.rand(n_samples)).astype(int)
-                self._int_exo_samples[U] = np.where(flag == 1, u_new, u_old)
-
-            elif method == 'barker':
-                # ------------------------------------------------
-                # THE 2D MATRIX BLOCK (Group by 'key, v')
-                # ------------------------------------------------
-                theta_j = theta_current.reshape(1, -1)
-                theta_i = theta_current.reshape(-1, 1)
-                W_matrix = theta_j / (theta_i + theta_j + 1e-10)
-                Q_forward = np.ones(n_samples, dtype=float)
-                Q_backward = np.ones(n_samples, dtype=float)
-                unique_pairs = defaultdict(list)
-
-                for i, (k, v) in enumerate(zip(keys, u_old)): unique_pairs[(k, v)].append(i)
-
-                for (k, v), indices in unique_pairs.items():
-                    S = list(sampling_set[k])
-                    n_rows = len(indices)
-                    if len(S) > 1:
-                        weights_fwd = W_matrix[v, S]
-                        Z_fwd = weights_fwd.sum()
-                        drawn_samples = np.random.choice(S, size=n_rows, p=(weights_fwd / Z_fwd))
-                        u_new[indices] = drawn_samples
-                        Q_forward[indices] = W_matrix[v, drawn_samples] / Z_fwd
-                        Z_bck = W_matrix[drawn_samples[:, None], S].sum(axis=1)
-                        Q_backward[indices] = W_matrix[drawn_samples, v] / Z_bck
-
-                    else:
-                        u_new[indices] = S[0]
-
-                # Standard MH Acceptance (Requires Q)
-                target_ratio = theta_current[u_new] / (theta_current[u_old] + 1e-10)
-                proposal_ratio = Q_backward / (Q_forward + 1e-10)
-                ratio = np.minimum(target_ratio * proposal_ratio, 1.0)
-                flag = (ratio >= np.random.rand(n_samples)).astype(int)
-                self._int_exo_samples[U] = np.where(flag == 1, u_new, u_old)
-            else:
-
-                raise ValueError(f"Unknown method: {zanella_method}")
-
-            # ---> ADDED: TRACKING ACCEPTANCE RATE <---
-            n_proposal = n_samples
-            n_accepted = flag.sum()
-
-            self.accepted_proposals[U] += n_accepted
-            self.total_proposals[U] += n_proposal
-
-            current_rate = n_accepted / n_proposal if n_proposal > 0 else 0
-            self.acceptance_history[U].append(current_rate)
-            # -----------------------------------------
-
-            # 4. Standard Dirichlet Update
-            domain_size = len(exo_f.domain[U])
-            counts_u = np.bincount(self._int_exo_samples[U], minlength=domain_size)
-            beta = np.array(self._alpha[U]) + counts_u
-            theta = dirichlet.rvs(beta)[0]
-
-        f =  MultinomialFactor({U: m.domains[U]}, theta)
-        return f
+    def _calculate_updated_factors(self, **kwargs) -> Dict[str, MultinomialFactor]:
+        return {U: self._updated_factor(U) for U in self._trainable_vars}
 
     def _process_data(self, data: pd.DataFrame):
-        # add missing variables
-        missing_vars = [v for v in self.prior_model.variables if v not in data.columns]
-        for v in missing_vars: data[v] = float("nan")
+        missing_vars = [v for v in self._prior_model.variables if v not in data.columns]
+        for v in missing_vars:
+            data[v] = float("nan")
 
-        # Set as trainable variables those with missing
-        self._trainable_vars = self.trainable_vars or list(data.columns[data.isna().any()])
-
-        print(f"trainable: {self.trainable_vars}")
+        self._trainable_vars = self._trainable_vars or list(data.columns[data.isna().any()])
+        print(f"Trainable variables: {self._trainable_vars}")
 
         for v in self._trainable_vars:
-            # check exogenous and completely missing
-            if not self.prior_model.is_exogenous(v):
+            if not self._prior_model.is_exogenous(v):
                 raise ValueError(f"Trainable variable {v} is not exogenous")
-
             if (~data[v].isna()).any():
                 raise ValueError(f"Trainable variable {v} is not completely missing")
 
-        # get the involve factors
         self._get_involved_factors()
 
-        # prepare the data
-        self._data = {}
         for v in self._trainable_vars:
             context_cols = list({x for sublist in self._endo_vars[v].values() for x in sublist})
             context_data = data[context_cols].copy()
             context_data["key"] = list(zip(*[context_data[c] for c in context_cols]))
             self._data[v] = context_data
 
-        # save the dataset
-        # self._data = data
-
     def _get_involved_factors(self):
-        endo_factors = {
-            trainable_var: { successor:
-                self._model.factors[successor]
+        self._endo_factors = {
+            trainable_var: {
+                successor: self._model.factors[successor]
                 for successor in self._model.graph.successors(trainable_var)
             }
             for trainable_var in self._trainable_vars
         }
-        self._endo_factors = endo_factors
 
         self._endo_vars = {
             U: {v: list(filter(lambda item: item != U, f.variables)) for v, f in self._endo_factors[U].items()}
             for U in self._trainable_vars
         }
 
+    def _hash_map_sampling(self, U: str) -> Dict[tuple, tuple]:
+        def _create_sampling_set(row, U, endo_f, endo_vars):
+            booleans = {
+                k: np.array(endo_f[k].R(**row[v].to_dict()).values, dtype=int).astype(bool)
+                for k, v in endo_vars.items()
+            }
+            return set.intersection(*[set(np.array(endo_f[k].domain[U])[v]) for k, v in booleans.items()])
 
-    def _set_non_informative_alpha(self):
-        self._alpha = {U: np.ones(len(self._model.domains[U])) for U in self._trainable_vars}
+        data = self._data[U]
+        unique_data = data.drop_duplicates(subset=[col for col in data.columns if col != 'key'])
+        val_map = self._val2idx[U]
+
+        endo_f = self._endo_factors[U]
+        endo_vars = self._endo_vars[U]
+        endo_cols = [col for col in data.columns if col != 'key']
+
+        sampling_set = unique_data[endo_cols].apply(lambda row: _create_sampling_set(row, U, endo_f, endo_vars), axis=1)
+        int_sampling_series = sampling_set.map(lambda s: tuple({val_map[v] for v in s}))
+        return dict(zip(unique_data['key'], int_sampling_series))
+
+    def _build_valid_mask(self, U: str) -> np.ndarray:
+        keys = self._data[U]["key"].values
+        domain_size = len(self._model.factors[U].domain[U])
+        mask = np.zeros((len(keys), domain_size), dtype=bool)
+        sampling_map = self._int_sampling_set[U]
+
+        for i, k in enumerate(keys):
+            mask[i, list(sampling_map[k])] = True
+
+        return mask
+
+    def _vectorized_choice(self, p_matrix: np.ndarray) -> np.ndarray:
+        cum_p = p_matrix.cumsum(axis=1)
+        cum_p /= cum_p[:, -1:]
+        rnd = np.random.rand(p_matrix.shape[0], 1)
+        return (cum_p > rnd).argmax(axis=1)
+
+    def _get_initial_exogenous(self, U: str) -> np.ndarray:
+        mask = self._valid_masks[U]
+        probs = self._prob_tables[U] * mask
+        p_matrix = probs / (probs.sum(axis=1, keepdims=True) + 1e-10)
+        return self._vectorized_choice(p_matrix)
+
+    def _updated_factor(self, U: str) -> MultinomialFactor:
+        m = self._model
+        u_old = self._int_exo_samples[U]
+        valid_mask = self._valid_masks[U]
+        method = self._method
+
+        if self._is_prior:
+            if self._alpha is None:
+                self._alpha = {u: np.ones(len(self._model.domains[u])) for u in self._trainable_vars}
+            theta = dirichlet.rvs(self._alpha[U])[0]
+            self._is_prior = False
+        else:
+            exo_f = self._model.factors[U]
+            theta_current = np.array(exo_f.values)
+            n_samples = len(u_old)
+
+            if method == 'sqrt':
+                w = np.sqrt(theta_current)
+                weights = w * valid_mask
+                p_matrix = weights / (weights.sum(axis=1, keepdims=True) + 1e-10)
+
+                u_new = self._vectorized_choice(p_matrix)
+
+                # MH Acceptance
+                target_ratio = theta_current[u_new] / (theta_current[u_old] + 1e-10)
+                proposal_ratio = w[u_old] / (w[u_new] + 1e-10)
+
+                ratio = np.minimum(target_ratio * proposal_ratio, 1.0)
+                flag = (ratio >= np.random.rand(n_samples)).astype(int)
+                self._int_exo_samples[U] = np.where(flag == 1, u_new, u_old)
+
+            elif method == 'barker':
+                theta_2d = theta_current.reshape(1, -1)
+                W_matrix = theta_2d / (theta_current.reshape(-1, 1) + theta_2d + 1e-10)
+
+                # Forward proposals
+                weights_fwd = W_matrix[u_old, :] * valid_mask
+                Z_fwd = weights_fwd.sum(axis=1)
+                p_fwd = weights_fwd / (Z_fwd[:, None] + 1e-10)
+
+                u_new = self._vectorized_choice(p_fwd)
+
+                # Backward proposals
+                weights_bck = W_matrix[u_new, :] * valid_mask
+                Z_bck = weights_bck.sum(axis=1)
+
+                # Q probabilities
+                Q_forward = W_matrix[u_old, u_new] / (Z_fwd + 1e-10)
+                Q_backward = W_matrix[u_new, u_old] / (Z_bck + 1e-10)
+
+                # MH Acceptance
+                target_ratio = theta_current[u_new] / (theta_current[u_old] + 1e-10)
+                proposal_ratio = Q_backward / (Q_forward + 1e-10)
+
+                ratio = np.minimum(target_ratio * proposal_ratio, 1.0)
+                flag = (ratio >= np.random.rand(n_samples)).astype(int)
+                self._int_exo_samples[U] = np.where(flag == 1, u_new, u_old)
+
+            else:
+                raise ValueError(f"Unknown method: {method}")
+
+            # Seguimiento de la tasa de aceptación
+            n_accepted = flag.sum()
+            self.accepted_proposals[U] += n_accepted
+            self.total_proposals[U] += n_samples
+            self.acceptance_history[U].append(n_accepted / n_samples if n_samples > 0 else 0)
+
+            # Actualización Dirichlet
+            counts_u = np.bincount(self._int_exo_samples[U], minlength=len(exo_f.domain[U]))
+            beta = np.array(self._alpha[U]) + counts_u
+            theta = dirichlet.rvs(beta)[0]
+
+        return MultinomialFactor({U: m.domains[U]}, theta)
+
 
 if __name__ == "__main__":
     import logging, sys
@@ -313,7 +250,7 @@ if __name__ == "__main__":
     # Start the timer
     start_time = time.time()
     # Initialize the Metropolis_Hastings sampling transition function "random" or "uniform"
-    mhs = MetropolisHastingsSampling(m)
+    mhs = MetropolisHastingsSampling(m, method='sqrt')
     # mhs.initialize(data[m.endogenous])
     mhs.run(data[m.endogenous], max_iter=10000)
 
