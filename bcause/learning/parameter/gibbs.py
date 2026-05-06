@@ -114,7 +114,11 @@ class GibbsSampling(IterativeParameterLearning):
     def _set_non_informative_alpha(self):
         self._alpha = {U: np.ones(len(self._model.domains[U])) for U in self._trainable_vars}
 
+'''
 if __name__ == "__main__":
+ 
+    
+    
     import logging, sys
 
     log_format = '%(asctime)s|%(levelname)s|%(filename)s: %(message)s'
@@ -208,3 +212,6 @@ if __name__ == "__main__":
     # plt.grid(axis='y')
     # show plot
     # plt.show()
+
+
+'''
