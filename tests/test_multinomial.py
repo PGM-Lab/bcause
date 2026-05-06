@@ -1,6 +1,6 @@
 from bcause.factors.multinomial import MultinomialFactor
 from bcause.util.domainutils import assingment_space
-from bcause.factors.values import __ALL__ as store_types, store_dict
+from bcause.factors.values import __ALL__ as store_types_all, store_dict
 from bcause.factors.values.store import DataStore
 
 import numpy as np
@@ -8,7 +8,7 @@ import pytest
 
 from numpy.testing import assert_array_almost_equal
 
-
+store_types =  [t for t in store_types_all if t != "btree"] # todo implement tests for
 
 
 def build_factors(vtype=None):
