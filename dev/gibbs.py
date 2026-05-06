@@ -1,9 +1,6 @@
-import sys
+import itertools
 import logging
-import logging
 import sys
-
-import random
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +8,7 @@ import pandas as pd
 from scipy.stats import dirichlet
 
 import bcause.util.domainutils as dutils
-from bcause.factors.multinomial import MultinomialFactor, canonical_multinomial, random_multinomial
+from bcause.factors.mulitnomial import MultinomialFactor, canonical_multinomial, random_multinomial
 from bcause.inference.causal.multi import CausalMultiInference
 from bcause.inference.probabilistic.datainference import LaplaceInference
 from bcause.inference.probabilistic.elimination import VariableElimination
@@ -78,7 +75,7 @@ m.set_factor("V",pv)
 
 ############### Sampling algorithm ##############
 
-max_iter = 50000
+max_iter = 1000
 
 model = m.copy()
 cardU = len(model.domains["U"])
@@ -97,9 +94,6 @@ theta = dirichlet.rvs(alpha)[0]
 pu = MultinomialFactor(domU, theta)
 model.set_factor("U", pu)
 
-import time
-
-
 for i in range(max_iter):
     # sample U
     ve = VariableElimination(model)
@@ -107,50 +101,26 @@ for i in range(max_iter):
 
     #data = pd.DataFrame({'T':np.random.randint(2,size = 100000),'S':np.random.randint(2,size = 100000)} )
     #### Solution 1: default
-    start = time.time()
-    samples_u = [pu_ts.R(**obs).sample(1,"U")[0]["U"] for obs in data.to_dict(orient="records")]
-
-    pu.get_value(U=0)
-    fs = model.factors["S"]
-
-    t = data.loc[0,"T"]
-    s = data.loc[0, "S"]
-
-    fs.get_value(U=0, T=t, S=s)
-
+    #samples_u = [pu_ts.R(**obs).sample(1,"U")[0]["U"] for obs in data.to_dict(orient="records")]
 
     # get the counts of U and update the parameters of the U
-<<<<<<< HEAD
-
-    w =random.uniform(0, 100)
-    counts_u = [samples_u.count(u)*1 for u in model.domains["U"]]
-=======
-    counts_u = [samples_u.count(u) for u in model.domains["U"]]
-    print(f'Time: {time.time() - start}')
->>>>>>> e095e74 (Update)
-    total_counts_u += [counts_u]
-    beta = [int(a + c) for a, c in zip(alpha, counts_u)]
-    #alpha = beta
+    #counts_u = [samples_u.count(u) for u in model.domains["U"]]
+    #total_counts_u += [counts_u]
+    #beta = [int(a + c) for a, c in zip(alpha, counts_u)]
 
     #### Solution 2: SQL approach / alternativa agrupar datos y generar todos a la vez
     ## Extract Prob df from tuple dict
-    start = time.time()
-    pu_ts_df = pd.DataFrame(list(itertools.product(*pu_ts.domain.values())) , columns = pu_ts.domain.keys())
-    pu_ts_df['Probability'] = pu_ts.values
-    pu_ts_df = pu_ts_df.groupby(pu_ts.right_vars).agg({'Probability': list}).reset_index()
 
-    ## Join assign U and prob to each data
-    join_df = pu_ts_df.merge(data, on=pu_ts.right_vars, how='right')
-    join_df['samples_U'] = join_df.apply(lambda row: np.random.choice(pu_ts.left_domain['U'],1, p = row['Probability'])[0],axis=1)
-    counts_u = join_df['samples_U'].value_counts().to_dict()
-    print(f'Time: {time.time() - start}')
+    pu_ts_df = pd.DataFrame(list(itertools.product(*pu_ts.right_domain.values())), columns=pu_ts.right_domain.keys())
+    pu_ts_df['Probability'] = list(map(lambda obs: pu_ts.R(**obs).values, pu_ts_df.to_dict(orient='records')))
+    count_df =data.groupby(pu_ts.right_vars).size().reset_index(name = 'count')
+    join_df =  pu_ts_df.merge(count_df, on=pu_ts.right_vars, how='left')
 
-    ### Solution 3: Multindex Series
-    start = time.time()
-    probability_table = pd.Series(pu_ts.values, index = pd.MultiIndex.from_product(pu_ts.domain.values(), names = pu_ts.domain.keys()),
-                                  name='Probabilities').reorder_levels(pu_ts.right_vars + pu_ts.left_vars)
-    counts_u = data.apply(lambda row: np.random.choice(pu_ts.left_domain['U'], size = 1, p = probability_table[tuple(row)].values)[0], axis=1).value_counts().to_dict()
-    print(f'Time: {time.time() - start}')
+    samples_u = np.concatenate(join_df.apply(lambda row: np.random.choice(pu_ts.left_domain['U'],
+                                     size = row['count'], p = row['Probability']),axis=1).to_list())
+
+    counts_u = np.bincount(samples_u)
+    beta = [int(a + c) for a, c in zip(alpha, counts_u)]
 
     # sample the theta and set it to the model
     theta = dirichlet.rvs(beta)[0]
@@ -168,11 +138,4 @@ for i in range(max_iter):
         plt.hist(Q[100:],density=True)
         plt.xlim(0, 1)
         plt.show()
-<<<<<<< HEAD
-
-
-
-
-dirichlet.rvs([1,1,0.1])[0]
-=======
->>>>>>> e095e74 (Update)
+[]

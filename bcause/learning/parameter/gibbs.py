@@ -1,9 +1,6 @@
 """
 Compute the PMF of exogenous variables given data for endogenous variable using
 Gibbs sampling
-
-Improvements:
- - _get_conditional_probability_table stores probabilities an array for each cell of the column 'Probabilities' of the data frame cpt
 """
 
 from collections import defaultdict
@@ -125,6 +122,7 @@ if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format=log_format, datefmt='%Y%m%d_%H%M%S')
 
 
+<<<<<<< HEAD
     # m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
     # m_semi = m.merge_exogenous("V","U")
     #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
@@ -132,6 +130,21 @@ if __name__ == "__main__":
     #data = pd.read_csv("./models/modelTest_SM.csv")
     # m = StructuralCausalModel.read("./models/g2_model_18.bif")
     # data = pd.read_csv("./models/g2_data_18.csv")
+=======
+    # Nota: probar también con modelos semi-markovianos
+
+    m = StructuralCausalModel.read("./models/literature/pearl_small.bif")
+
+    f = m.factors["S"]
+    seq_to_pandas(m.factors["S"], exovar="U")
+
+    f.variables
+
+
+    #m = StructuralCausalModel.read("./models/modelTest_SM.bif")
+    #data = pd.read_csv("./models/literature/pearl_small.csv")
+    data = pd.read_csv("./models/modelTest_SM.csv")
+>>>>>>> parent of 856ae446 (1st version metropolis-hastings implementation implementation)
 
     directory_path = "/Users/antoniogonzalezalves/Documents/s23/"
     download_path = "/Users/antoniogonzalezalves/Documents/BenchMarkMH/"
@@ -139,6 +152,7 @@ if __name__ == "__main__":
     m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr08_zdr10_12.uai")
     data = pd.read_csv(directory_path + "simple_nparents2_nzr08_zdr10_12.csv",index_col=0).add_prefix('V')
 
+<<<<<<< HEAD
     import time
     from bcause.util import randomUtil
 
@@ -147,6 +161,8 @@ if __name__ == "__main__":
 
     # Start the timer
     start_time = time.time()
+=======
+>>>>>>> parent of 856ae446 (1st version metropolis-hastings implementation implementation)
 
     gs = GibbsSampling(cosa)
     # gs.initialize(data[m.endogenous])
@@ -156,13 +172,6 @@ if __name__ == "__main__":
 
     # print(len(gs.model_evolution))
 
-
-    # End the timer
-    end_time = time.time()
-
-    # Calculate elapsed time
-    elapsed_time = end_time - start_time
-    print(f"Elapsed time: {elapsed_time:.4f} seconds")
 
     import matplotlib.pyplot as plt
 
@@ -181,6 +190,11 @@ if __name__ == "__main__":
     plt.hist(Q[100:], density=True)
     plt.xlim(0, 1)
     plt.show()
+
+        #print(q)
+
+
+
 
     #     U_store = np.vstack([U_store,model_i.get_factors(*model_i.exogenous)[0].values])
     #     V_store = np.vstack([V_store,model_i.get_factors(*model_i.exogenous)[1].values])

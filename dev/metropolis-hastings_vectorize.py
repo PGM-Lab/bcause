@@ -84,14 +84,9 @@ def uniform_proposal(num_states):
 def generate_random_proposal(alpha):
     return np.array([dirichlet.rvs(alpha)[0] for _ in range(4)])
 
-# New proposal
-def new_proposal():
-    return [[1/3,1/3,1/3,0], [1/3,1/3,0,1/3], [1/3,0,1/3,1/3], [0,1/3, 1/3, 1/3]]
-    #return [[(1-259/700), 109/700, 150/700, 0], [109/700,(1-423/700), 0, 314/700], [150/700, 0, (1-277/700),127/700], [0, 314/700, 127/700,(1-441/700)]]
 def perturbation_proposal(u, CondMatrix):
     delta = np.random.choice([0, 1, 2, 3], p = CondMatrix[u])
     return (u + delta) % 4
-
 
 # Asymmetric proposal adding noise
 def add_noise_to_Q(Q, noise_scale=0.1):
@@ -166,8 +161,7 @@ samples_u = np.array(sample_valid_u(data))
 for i in range(max_iter):
     n_accept = 0
     pu = model.factors["U"]
-    ConditionalMatrix = new_proposal()
-    #ConditionalMatrix = uniform_proposal(len(domU["U"])) # Uniform Proposal option
+    ConditionalMatrix = uniform_proposal(len(domU["U"])) # Uniform Proposal option
     #ConditionalMatrix = add_noise_to_Q(ConditionalMatrix, noise_scale=noise_scale) \
     #    if i != 0 else uniform_proposal(len(domU["U"])) # Add gaussian noise option
     #ConditionalMatrix = generate_random_proposal(alpha) # Random proposal
