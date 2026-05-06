@@ -30,7 +30,7 @@ except IndexError:
 #REQUIREMENTS = [i.strip() for i in open("requirements/install.txt").readlines()]
 REQUIREMENTS = [
     "numpy~=1.26 ",
-    "pandas~=2.0.3 ",
+    "pandas~=2.2.0 ",
     "matplotlib~=3.5.2 ",
     "networkx~=2.6.3 ",
     "pgmpy~=0.1.17 ",
