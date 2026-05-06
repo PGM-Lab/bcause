@@ -37,7 +37,7 @@ def get_eq(m, domains, x):
     return canonical_multinomial(dom, exovar, right_endoVars).reorder(*endoVars)
 
 
-modelfile = "/Users/antoniogonzalezalves/PycharmProjects/bcause/models/literature/pearl.uai"
+modelfile = "./models/literature/pearl.uai"
 full_model = StructuralCausalModel.read(modelfile)
 model_names = dict(V0="T",V1="S", V2="G", V3="V", V4="U", V5="W")
 full_model = full_model.rename_vars(model_names)
@@ -175,6 +175,8 @@ for i in range(max_iter):
 
         ratio = min(1, prob_new/prob_old )
         accept = np.random.uniform(0,1)
+        #accept = 0
+
         if accept < ratio:
             n_accept += 1
             samples_u[j] = u_new
@@ -193,12 +195,17 @@ for i in range(max_iter):
 
     # run the query
     inf = CausalMultiInference([model])
+    inf._model = model
     Q.append(inf.prob_sufficiency("T", "S")[0])
 
     if i % 10 == 0:
-        print(f"{i}., current query = {Q[-1]}, true interval = {qtrue}, theta= {theta}, N aceptados = {n_accept}")
+        msg = f"{i}., current query = {Q[-1]}, , theta= {theta}, true interval = {qtrue}"
+        if i>200:
+            qapprox = [min(Q[200:]), max(Q[200:])]
+            msg += f"approx interval = {qapprox}"
+        print(msg)
 
-    if i%100==0 and i>100:
+    if i%100==0 and i>200:
         plt.hist(Q[100:],density=True)
         plt.xlim(0, 1)
         plt.show()
