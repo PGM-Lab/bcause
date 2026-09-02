@@ -1,0 +1,18 @@
+---------------------------------------------------------------------
+Friedman test, objetive minimize output variable rmse. Obtained p-value: 6.8306e-01
+Chi squared with 3 degrees of freedom statistic: 1.4966
+Test accepted: p-value: 6.8306e-01 >= 0.0500
+---------------------------------------------------------------------
+Pairwise post hoc test for output rmse
+Adjust method: Shaffer
+
+p-values:
+                   Gibbs_Sampling Zanella Metropolis_Hastings
+Parallel_Tempering              1       1                   1
+Gibbs_Sampling                 NA       1                   1
+Zanella                        NA      NA                   1
+---------------------------------------------------------------------
+
+Mean rank per method (lower = better):
+ Parallel_Tempering      Gibbs_Sampling             Zanella Metropolis_Hastings 
+           2.474113            2.487589            2.508865            2.529433 

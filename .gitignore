@@ -136,6 +136,7 @@ dmypy.json
 #custom
 *_ignored*
 *_ig*
+/local
 /results
 /.vs
 TestResults

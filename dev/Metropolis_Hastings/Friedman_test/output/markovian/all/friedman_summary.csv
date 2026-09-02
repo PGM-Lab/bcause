@@ -1,0 +1,7 @@
+"method 1","method 2","pvalue","win","tie","loss"
+"Metropolis_Hastings","Parallel_Tempering",1,1710,183,1667
+"Zanella","Parallel_Tempering",1,1707,183,1670
+"Zanella","Metropolis_Hastings",1,1690,183,1687
+"Gibbs_Sampling","Zanella",0.547915739877049,1719,183,1658
+"Gibbs_Sampling","Metropolis_Hastings",0.228115961602693,1775,183,1602
+"Gibbs_Sampling","Parallel_Tempering",0.228115961602693,1723,183,1654

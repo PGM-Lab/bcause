@@ -74,7 +74,7 @@ class GibbsSampling(IterativeParameterLearning):
             # counts_u = np.bincount(samples_u, minlength=len(model_adjusted.left_domain[U]))
             counts = Counter(samples_u)
             counts_u = np.array([counts.get(cat, 0) for cat in model_adjusted.left_domain[U]])
-            beta = [int(a + c) for a, c in zip(self._alpha[U], counts_u)]
+            beta = [a + c for a, c in zip(self._alpha[U], counts_u)]
 
             # sample the theta and set it to the model
             theta = dirichlet.rvs(beta)[0]

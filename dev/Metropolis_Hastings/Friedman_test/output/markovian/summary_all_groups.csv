@@ -1,0 +1,5 @@
+"dataset","group","n_problems","chi_squared","df","p_value","outcome","best_method","Gibbs_Sampling","Zanella","Metropolis_Hastings","Parallel_Tempering"
+"markovian","all",3560,5.5677,3,0.13465,"Not Rejected","Gibbs_Sampling",2.4574,2.5029,2.5187,2.5209
+"markovian","nparents1",1410,1.4966,3,0.68306,"Not Rejected","Parallel_Tempering",2.4876,2.5089,2.5294,2.4741
+"markovian","nparents2",1544,7.1635,3,0.066866,"Not Rejected","Gibbs_Sampling",2.4307,2.4994,2.5194,2.5505
+"markovian","nparents3",606,1.8257,3,0.60935,"Not Rejected","Gibbs_Sampling",2.4554,2.4983,2.4917,2.5545

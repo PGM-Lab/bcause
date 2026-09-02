@@ -48,7 +48,7 @@ def from_uai(filepath, reverse_values=True, var_prefix="V", init_var_id=0, init_
     def get_numbers(path):
         with open(path) as f:
             for line in f:
-                for v in re.findall(r"[-+]?(?:\d*\.*\d+)", line):
+                for v in re.findall(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", line):
                     yield v
 
     numbers = get_numbers(filepath)

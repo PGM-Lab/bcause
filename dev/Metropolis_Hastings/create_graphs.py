@@ -1,313 +1,223 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-import seaborn as sns
+"""
+Draw convergence graphs from the sampler evaluation results (Results_MH.csv).
+
+Three figures are produced, each comparing the four samplers:
+ - RMSE  vs Iteration : accuracy against the exact bounds as the chain grows.
+ - Time  vs Iteration : cumulative learning time as the chain grows.
+ - RMSE  vs Time       : the accuracy/cost trade-off trajectory.
+
+The results can be filtered (and manually excluded) by model id, number of
+parents and the width of the exact interval (upp - low) before plotting. The
+filtered rows underlying the plots are also written to graph_data.csv.
+"""
+
+import argparse
 import ast
 import os
 
-# Define paths
-download_path = "/Users/antoniogonzalezalves/Documents/prueba_mh/"
-pd.set_option('display.max_columns', None)
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
-# ---------------------------------------------------------
-# GLOBAL STYLE SETTINGS
-# ---------------------------------------------------------
-sns.set_theme(style="whitegrid", font_scale=1.5)
+#Change the path with the results file you want to use.
+DEFAULT_INPUT = "/Users/antoniogonzalezalves/Documents/prueba_mh/results_MH_1000itet.csv"
 
-# Read the final results
-df = pd.read_csv(os.path.join(download_path, "Final_Merged_All_Methods_3.csv"))
+# ---------------------------------------------------------------------------
+# Editable configuration. Change these to set the defaults without using the
+# command line; the matching command-line flag still overrides any value here.
+# ---------------------------------------------------------------------------
+CONFIG_IDS = []          # model ids to keep, e.g. [7, 43]; empty list keeps all
+CONFIG_EXCLUDE_IDS = []  # model ids to drop, e.g. [12, 19]; empty list drops none
+CONFIG_NPARENTS = []     # nparents values to keep, e.g. [2]; empty list keeps all
+CONFIG_MIN_WIDTH = 0.1   # keep exact-interval widths >= this, e.g. 0.2; None = no limit
+CONFIG_MAX_WIDTH = None  # keep exact-interval widths <= this, e.g. 0.5; None = no limit
+
+# Each sampler bound to a fixed (time column, legend label, colour, marker). The
+# colour follows the algorithm, never its rank, so filtering models never
+# repaints a series. Palette is the Wong/colourblind-safe set (validated: worst
+# adjacent CVD dE 37); the distinct markers give a second, colour-free cue.
+ALGORITHMS = {
+    "Gibbs_Sampling": ("Time_gibbs", "Gibbs", "#0173B2", "o"),
+    "Metropolis_Hastings": ("Time_mh", "MH-Uniform", "#DE8F05", "s"),
+    "Zanella": ("Time_zanella", "MH-Zanella", "#029E73", "^"),
+    "Parallel_Tempering": ("Time_pt", "MH-Parallel Tempering", "#D55E00", "D"),
+}
+EXACT_COLUMN = "Exact_Probability"
+WIDTH_TOL = 0  # tolerance so float rounding never drops a boundary-width query
+MAX_XTICKS = 20  # cap on x-axis ticks so densely checkpointed runs stay readable
 
 
-# Helper to parse string intervals
-def parse_interval(s):
+def parse_interval(value) -> list:
+    """Parse a stored ``[low, upp]`` interval (string or sequence) into a list."""
     try:
-        if isinstance(s, (list, tuple)):
-            return s
-        if isinstance(s, str):
-            return ast.literal_eval(s)
-        return [np.nan, np.nan]
-    except:
-        return [np.nan, np.nan]
+        if isinstance(value, (list, tuple)):
+            return list(value)
+        if isinstance(value, str):
+            return ast.literal_eval(value)
+    except (ValueError, SyntaxError):
+        pass
+    return [np.nan, np.nan]
 
 
-# 1. Define Algorithms dynamically
-possible_algos = [
-    "Gibbs_Sampling",
-    "Metropolis_Hastings",
-    'Metropolis_Hastings_Zanella_wo_outliers',
-    'Metropolis_Hastings_Parallel_Tempering_wo_outliers'
-]
-# 'Metropolis_Hastings_Swandsen_Wang', 'Metropolis_Hastings_AlwaysTrue', Metropolis_Hastings_Parallel_Tempering
-# 'Metropolis_Hastings_Zanella'
-algorithms = [algo for algo in possible_algos if algo in df.columns]
-# exact_col = 'Exact_Probability'
-exact_col = 'exact_result'
-# 2. Parse Columns
-cols_to_parse = algorithms + [exact_col]
-for col in cols_to_parse:
-    df[col + '_parsed'] = df[col].apply(parse_interval)
+def load_results(input_path: str, ids: list, exclude_ids: list, nparents: list,
+                 min_width: float, max_width: float) -> tuple:
+    """
+    Read the results CSV, apply the id/exclude-id/nparents/interval-width
+    filters (``None`` or empty keeps all / drops none) and compute the interval
+    RMSE of every sampler present against the exact bounds. Returns the
+    enriched, filtered frame and the list of algorithm columns found.
 
-# Extract Exact Bounds ONCE (much faster than calculating it inside the loop every time)
-df['ex_l'] = df[exact_col + '_parsed'].apply(lambda x: x[0] if isinstance(x, (list, tuple)) else np.nan)
-df['ex_u'] = df[exact_col + '_parsed'].apply(lambda x: x[1] if isinstance(x, (list, tuple)) else np.nan)
+    ``min_width``/``max_width`` keep only queries whose exact interval width
+    (``upp - low``) is >= min_width and <= max_width respectively.
+    """
+    df = pd.read_csv(input_path)
 
-# 3. Calculate RMSE and Coverage
-for algo in algorithms:
-    # Extract Bounds
-    app_l = df[algo + '_parsed'].apply(lambda x: x[0] if isinstance(x, (list, tuple)) else np.nan)
-    app_u = df[algo + '_parsed'].apply(lambda x: x[1] if isinstance(x, (list, tuple)) else np.nan)
+    if ids:
+        df = df[df["Model_Index"].isin(ids)]
+    if exclude_ids:
+        df = df[~df["Model_Index"].isin(exclude_ids)]
+    if nparents:
+        df = df[df["nparents"].isin(nparents)]
+    if df.empty:
+        raise SystemExit("No rows left after filtering; relax --ids / --exclude-ids / --nparents.")
 
-    # RMSE
-    mse = ((app_l - df['ex_l']) ** 2 + (app_u - df['ex_u']) ** 2) / 2
-    df[algo + '_RMSE'] = np.sqrt(mse)
+    algorithms = [col for col in ALGORITHMS if col in df.columns]
+    if not algorithms:
+        raise SystemExit("None of the expected sampler columns are present in the CSV.")
 
+    exact = df[EXACT_COLUMN].apply(parse_interval)
+    exact_low = exact.apply(lambda x: x[0])
+    exact_upp = exact.apply(lambda x: x[1])
 
-    # Coverage
-    # Note: passing algo_name=algo fixes Python's late-binding loop issue!
-    def calc_cov(row, algo_name=algo):
-        ex = row[exact_col + '_parsed']
-        app = row[algo_name + '_parsed']
-        if not isinstance(ex, (list, tuple)) or not isinstance(app, (list, tuple)):
-            return np.nan
-        ex_l, ex_u = ex[0], ex[1]
-        app_l, app_u = app[0], app[1]
+    # Filter by the width of the exact interval, keeping the parsed bounds aligned.
+    width = exact_upp - exact_low
+    if min_width is not None:
+        mask = width >= min_width - WIDTH_TOL
+        df, exact_low, exact_upp, width = df[mask], exact_low[mask], exact_upp[mask], width[mask]
+    if max_width is not None:
+        mask = width <= max_width + WIDTH_TOL
+        df, exact_low, exact_upp = df[mask], exact_low[mask], exact_upp[mask]
+    if df.empty:
+        raise SystemExit("No rows left after filtering; relax --min-width / --max-width.")
 
-        ex_len = ex_u - ex_l
-        int_l = max(ex_l, app_l)
-        int_u = min(ex_u, app_u)
-        int_len = max(0, int_u - int_l)
+    # Interval RMSE: root mean square error of the lower and upper bounds.
+    for algo in algorithms:
+        bounds = df[algo].apply(parse_interval)
+        low = bounds.apply(lambda x: x[0])
+        upp = bounds.apply(lambda x: x[1])
+        df[algo + "_RMSE"] = np.sqrt(((low - exact_low) ** 2 + (upp - exact_upp) ** 2) / 2)
 
-        if ex_len > 1e-9:
-            return (int_len / ex_len) * 100.0
-        else:
-            if app_l <= ex_l and app_u >= ex_u:
-                return 100.0
-            else:
-                return 0.0
+    return df, algorithms
 
 
-    df[algo + '_Coverage'] = df.apply(calc_cov, axis=1)
-
-# 4. Filters
-# filter by nparents = 2
-# df = df[df['nparents'] == 3]
-
-# Delete point estimation
-# df['Exact_Probability_list'] = df['Exact_Probability'].apply(ast.literal_eval)
-# df = df[df['Exact_Probability_list'].str[0] != df['Exact_Probability_list'].str[1]]
-# Delete 0-coverage
-# df = df[df['Metropolis_Hastings_Coverage'] > 0]
-
-print(df[["Model_Index", "nparents", "nzr", "zdr", "cardinality"]].drop_duplicates())
-
-# ---------------------------------------------------------
-# PLOTTING WITH SEABORN
-# ---------------------------------------------------------
-
-# --- Dynamic Colors ---
-# Automatically creates a color mapping for however many algorithms you actually ran!
-palette = sns.color_palette("tab10", len(algorithms))
-colors = {algo: palette[i] for i, algo in enumerate(algorithms)}
-
-# --- Data Preparation (Melting) ---
-
-# 1. Melt RMSE
-rmse_cols = [algo + '_RMSE' for algo in algorithms]
-df_rmse = df.melt(id_vars=['Iteration'], value_vars=rmse_cols, var_name='Algorithm', value_name='RMSE')
-df_rmse['Algorithm'] = df_rmse['Algorithm'].str.replace('_RMSE', '')
-
-# 2. Melt Coverage
-cov_cols = [algo + '_Coverage' for algo in algorithms]
-df_cov = df.melt(id_vars=['Iteration'], value_vars=cov_cols, var_name='Algorithm', value_name='Coverage')
-df_cov['Algorithm'] = df_cov['Algorithm'].str.replace('_Coverage', '')
-
-# 3. Melt Time dynamically
-time_mapping = {}
-for algo in algorithms:
-    # Checks for dynamically named columns from the merge script
-    if f'Time_{algo}' in df.columns:
-        time_mapping[f'Time_{algo}'] = algo
-    # Fallbacks for older column names
-    elif algo == 'Gibbs_Sampling' and 'Time_gibbs' in df.columns:
-        time_mapping['Time_gibbs'] = algo
-    elif algo == 'Metropolis_Hastings' and 'Time_mh' in df.columns:
-        time_mapping['Time_mh'] = algo
-
-df_time = pd.DataFrame()
-if time_mapping:
-    temp_df = df[['Iteration'] + list(time_mapping.keys())].rename(columns=time_mapping)
-    df_time = temp_df.melt(id_vars=['Iteration'], value_vars=list(time_mapping.values()), var_name='Algorithm',
-                           value_name='Time')
-
-# Helper for X-ticks
-max_iter = df['Iteration'].max()
-xticks_range = np.arange(0, max_iter + 1, 1000)
-
-# ---------------------------------------------------------
-# PLOT 1: Mean RMSE
-# ---------------------------------------------------------
-plt.figure(figsize=(10, 9))
-sns.lineplot(
-    data=df_rmse,
-    x='Iteration',
-    y='RMSE',
-    hue='Algorithm',
-    style='Algorithm',
-    palette=colors,
-    markers=True,
-    dashes=False,
-    errorbar=None,
-    linewidth=4,
-    markersize=14
-)
-plt.xticks(xticks_range)
-plt.gca().yaxis.set_major_locator(MaxNLocator(nbins=10))
-plt.title('RMSE Comparison for Causal Queries', fontsize=26, fontweight='bold', pad=20)
-plt.xlabel('Iteration', fontsize=20, labelpad=15)
-plt.ylabel('RMSE', fontsize=20, labelpad=15)
-plt.legend(title='Algorithm', title_fontsize=20, fontsize=18, loc='best')
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.show()
-
-# ---------------------------------------------------------
-# PLOT 2: Average Coverage Ratio
-# ---------------------------------------------------------
-plt.figure(figsize=(10, 9))
-sns.lineplot(
-    data=df_cov,
-    x='Iteration',
-    y='Coverage',
-    hue='Algorithm',
-    style='Algorithm',
-    palette=colors,
-    markers=True,
-    dashes=False,
-    errorbar=None,
-    linewidth=4,
-    markersize=14
-)
-plt.xticks(xticks_range)
-plt.title('Average Coverage Ratio (%)', fontsize=26, fontweight='bold', pad=20)
-plt.xlabel('Iteration', fontsize=20, labelpad=15)
-plt.ylabel('Coverage (%)', fontsize=20, labelpad=15)
-plt.legend(title='Algorithm', title_fontsize=20, fontsize=16, loc='best')
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.show()
-
-# ---------------------------------------------------------
-# PLOT 3: Cumulative Learning Time
-# ---------------------------------------------------------
-if not df_time.empty:
-    plt.figure(figsize=(10, 9))
-    sns.lineplot(
-        data=df_time,
-        x='Iteration',
-        y='Time',
-        hue='Algorithm',
-        style='Algorithm',
-        palette=colors,
-        markers=True,
-        dashes=False,
-        errorbar=None,
-        linewidth=4,
-        markersize=14
-    )
-    plt.xticks(xticks_range)
-    plt.gca().yaxis.set_major_locator(MaxNLocator(nbins=10))
-    plt.title('Cumulative Learning Time (seconds)', fontsize=26, fontweight='bold', pad=20)
-    plt.xlabel('Iteration', fontsize=20, labelpad=15)
-    plt.ylabel('Time (s)', fontsize=20, labelpad=15)
-    plt.legend(title='Algorithm', title_fontsize=20, fontsize=16, loc='best')
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
+def aggregate(df: pd.DataFrame, algo: str) -> pd.DataFrame:
+    """Mean RMSE and cumulative time per iteration for one algorithm, iteration-ordered."""
+    time_col = ALGORITHMS[algo][0]
+    return (df.groupby("Iteration")
+              .agg(RMSE=(algo + "_RMSE", "mean"), Time=(time_col, "mean"))
+              .reset_index()
+              .sort_values("Iteration"))
 
 
+def line_plot(curves: dict, x: str, y: str, xlabel: str, ylabel: str, title: str,
+              save_path: str, xticks=None):
+    """
+    Draw one comparison line plot from ``{algo: aggregated_frame}`` using each
+    algorithm's fixed colour and marker, then save it.
+    """
+    fig, ax = plt.subplots(figsize=(11, 8))
+    for algo, frame in curves.items():
+        _, label, colour, marker = ALGORITHMS[algo]
+        ax.plot(frame[x], frame[y], color=colour, marker=marker, label=label,
+                linewidth=2.5, markersize=9)
 
-# ---------------------------------------------------------
-# PLOT 4: Boxplot
-# ---------------------------------------------------------
-target_iterations = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
-df_boxplot = df_rmse[df_rmse['Iteration'].isin(target_iterations)]
+    if xticks is not None:
+        # Thin the candidate ticks to at most MAX_XTICKS evenly-spaced values and
+        # slant the labels so densely checkpointed runs do not overlap.
+        ticks = list(xticks)
+        if len(ticks) > MAX_XTICKS:
+            ticks = ticks[::int(np.ceil(len(ticks) / MAX_XTICKS))]
+        ax.set_xticks(ticks)
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+    ax.set_title(title, fontsize=20, fontweight="bold", pad=16)
+    ax.set_xlabel(xlabel, fontsize=15, labelpad=10)
+    ax.set_ylabel(ylabel, fontsize=15, labelpad=10)
+    ax.legend(title="Algorithm", title_fontsize=13, fontsize=12, loc="best")
+    ax.grid(True, alpha=0.3)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(save_path, dpi=150)
 
-plt.figure(figsize=(10, 9))
-sns.boxplot(
-    data=df_boxplot,
-    x='Iteration',
-    y='RMSE',
-    hue='Algorithm',
-    palette=colors,
-    showfliers=False,
-    linewidth=2.5
-)
-plt.title('RMSE Distribution Across Algorithms', fontsize=24, fontweight='bold', pad=20)
-plt.xlabel('Iteration Step', fontsize=18, labelpad=15)
-plt.ylabel('RMSE', fontsize=18, labelpad=15)
-plt.legend(title='Algorithm', title_fontsize=18, fontsize=16, loc='best')
-plt.grid(True, axis='y', alpha=0.3)
-plt.tight_layout()
-plt.show()
-# 4. Aggregate Mean RMSE and Mean Time per Iteration!
-plot_data = []
-for algo in algorithms:
-    rmse_col = f'{algo}_RMSE'
 
-    # Safely map the correct time column for the algorithm
-    time_col = f'Time_{algo}'
-    if time_col not in df.columns:
-        if algo == 'Gibbs_Sampling' and 'Time_gibbs' in df.columns:
-            time_col = 'Time_gibbs'
-        elif algo == 'Metropolis_Hastings' and 'Time_mh' in df.columns:
-            time_col = 'Time_mh'
+def parse_args() -> argparse.Namespace:
+    """Command-line configuration: input file, id/nparents filters and output."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", default=DEFAULT_INPUT, help="Path to Results_MH.csv.")
+    parser.add_argument("--ids", type=int, nargs="*", default=CONFIG_IDS,
+                        help="Keep only these model ids (empty keeps all).")
+    parser.add_argument("--exclude-ids", type=int, nargs="*", default=CONFIG_EXCLUDE_IDS,
+                        help="Drop these model ids (empty drops none).")
+    parser.add_argument("--nparents", type=int, nargs="*", default=CONFIG_NPARENTS,
+                        help="Keep only these nparents values (empty keeps all).")
+    parser.add_argument("--min-width", type=float, default=CONFIG_MIN_WIDTH,
+                        help="Keep only queries with exact interval width (upp - low) "
+                             ">= this value.")
+    parser.add_argument("--max-width", type=float, default=CONFIG_MAX_WIDTH,
+                        help="Keep only queries with exact interval width (upp - low) "
+                             "<= this value.")
+    parser.add_argument("--save-dir", default=None,
+                        help="Where to write the PNGs (default: the input's directory).")
+    parser.add_argument("--no-show", action="store_true",
+                        help="Save the figures without opening a window.")
+    return parser.parse_args()
 
-    if time_col in df.columns:
-        # Group by Iteration and calculate the MEAN for RMSE and Time
-        grouped = df.groupby('Iteration')[[rmse_col, time_col]].mean().reset_index()
 
-        # Standardize column names for plotting
-        grouped = grouped.rename(columns={rmse_col: 'RMSE', time_col: 'Time'})
-        grouped['Algorithm'] = algo
+def main():
+    args = parse_args()
 
-        # Drop any NaN rows just in case
-        grouped = grouped.dropna(subset=['RMSE', 'Time'])
+    df, algorithms = load_results(args.input, args.ids, args.exclude_ids, args.nparents,
+                                  args.min_width, args.max_width)
+    print(df[["Model_Index", "nparents", "nzr", "zdr", "merged", "cardinality"]].drop_duplicates()
+          .to_string(index=False))
 
-        plot_data.append(grouped)
+    curves = {algo: aggregate(df, algo) for algo in algorithms}
+    xticks = sorted(df["Iteration"].unique())
 
-# Combine everything into one clean DataFrame for Seaborn
-df_plot = pd.concat(plot_data, ignore_index=True)
+    filters = []
+    if args.ids:
+        filters.append(f"ids={','.join(map(str, args.ids))}")
+    if args.exclude_ids:
+        filters.append(f"exclude_ids={','.join(map(str, args.exclude_ids))}")
+    if args.nparents:
+        filters.append(f"nparents={','.join(map(str, args.nparents))}")
+    if args.min_width is not None:
+        filters.append(f"width>={args.min_width:g}")
+    if args.max_width is not None:
+        filters.append(f"width<={args.max_width:g}")
+    suffix = f" ({'; '.join(filters)})" if filters else ""
 
-# Clean up Algorithm names to make the legend prettier and save space
-df_plot['Algorithm'] = df_plot['Algorithm'].str.replace('Metropolis_Hastings', 'MH')
+    save_dir = args.save_dir or os.path.dirname(args.input)
+    os.makedirs(save_dir, exist_ok=True)
 
-# ---------------------------------------------------------
-# PLOT: Average Time vs Average RMSE (Trajectory Plot)
-# ---------------------------------------------------------
-plt.figure(figsize=(12, 8))
-palette = sns.color_palette("tab10", len(algorithms))
+    csv_path = os.path.join(save_dir, "graph_data.csv")
+    df.to_csv(csv_path, index=False)
+    print(f"Saved filtered results ({len(df)} rows) to {csv_path}")
 
-# Plot the 10 iterations as distinct points connected by lines
-sns.lineplot(
-    data=df_plot,
-    x='Time',
-    y='RMSE',
-    hue='Algorithm',
-    palette=palette,
-    linewidth=3.5,
-    marker='o',  # Add a dot for each of the 10 iterations
-    markersize=12,  # Make the dots large enough to see
-    dashes=False
-)
+    line_plot(curves, "Iteration", "RMSE", "Iteration", "Mean RMSE",
+              "RMSE vs Iteration" + suffix,
+              os.path.join(save_dir, "rmse_vs_iteration.png"), xticks=xticks)
+    line_plot(curves, "Iteration", "Time", "Iteration", "Mean cumulative time (s)",
+              "Time vs Iteration" + suffix,
+              os.path.join(save_dir, "time_vs_iteration.png"), xticks=xticks)
+    line_plot(curves, "Time", "RMSE", "Mean cumulative time (s)", "Mean RMSE",
+              "RMSE vs Time" + suffix,
+              os.path.join(save_dir, "rmse_vs_time.png"))
 
-# Customizing the visual aesthetic
-plt.title('Performance Trajectory: RMSE vs Computation Time', fontsize=24, fontweight='bold', pad=20)
-plt.xlabel('Average Time Consumed (s)', fontsize=18, labelpad=15)
-plt.ylabel('Average RMSE', fontsize=18, labelpad=15)
+    print(f"Saved 3 figures to {save_dir}")
+    if not args.no_show:
+        plt.show()
 
-plt.legend(title='Algorithm', title_fontsize=16, fontsize=14, loc='upper right')
-plt.grid(True, which="both", ls="-", alpha=0.3)
-plt.tight_layout()
 
-plt.show()
+if __name__ == "__main__":
+    main()

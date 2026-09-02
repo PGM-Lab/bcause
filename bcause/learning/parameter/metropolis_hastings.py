@@ -18,8 +18,6 @@ from bcause.util import randomUtil
 import random
 from typing import Dict, List, Tuple, Any
 
-from sympy.stats.rv import probability
-
 import bcause as bc
 from bcause.factors import MultinomialFactor, DeterministicFactor
 from bcause.factors.mulitnomial import random_multinomial   # TODO: mulitnomial -> multinomial
@@ -250,11 +248,11 @@ if __name__ == "__main__":
     # m = StructuralCausalModel.read("./models/g2_model_18.bif")
     # data = pd.read_csv("./models/g2_data_18.csv")
 
-    directory_path = "/Users/antoniogonzalezalves/Documents/s23/"
+    directory_path = "/Users/antoniogonzalezalves/Documents/s23_semi/"
     download_path = "/Users/antoniogonzalezalves/Documents/BenchMarkMH/"
 
-    m = StructuralCausalModel.read(directory_path + "simple_nparents2_nzr04_zdr05_1.uai")
-    data = pd.read_csv(directory_path + "simple_nparents2_nzr04_zdr05_1.csv",index_col=0).add_prefix('V')
+    m = StructuralCausalModel.read(directory_path + "semi_nparents2_nzr02_zdr05_10_35.uai")
+    data = pd.read_csv(directory_path + "semi_nparents2_nzr02_zdr05_10_35.csv",index_col=0).add_prefix('V')
 
     import time
     # Start the timer

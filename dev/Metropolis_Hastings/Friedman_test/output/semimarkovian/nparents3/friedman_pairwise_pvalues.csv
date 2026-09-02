@@ -1,0 +1,4 @@
+"method","Metropolis_Hastings","Parallel_Tempering","Zanella"
+"Gibbs_Sampling",1,1,1
+"Metropolis_Hastings",NA,1,1
+"Parallel_Tempering",NA,NA,1
